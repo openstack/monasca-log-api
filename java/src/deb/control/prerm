@@ -1,0 +1,9 @@
+#!/bin/sh
+
+case "$1" in
+  remove)
+    stop monasca-log-api
+  ;;
+esac
+
+exit 0
