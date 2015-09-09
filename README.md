@@ -76,3 +76,68 @@ Requests flow through the following architectural layers from top to bottom:
 ## Documentation
 
 * API Specification: [/docs/monasca-log-api-spec.md](/docs/monasca-log-api-spec.md).
+
+## Python monasca-log-api implementation
+
+To install the python api implementation, git clone the source and run the
+following command::
+```sh
+    sudo python setup.py install
+```
+
+If it installs successfully, you will need to make changes to the following
+two files to reflect your system settings, especially where kafka server is
+located::
+
+```sh
+    /etc/monasca/log-api.conf
+    /etc/monasca/log-api.ini
+```
+
+Once the configurations are modified to match your environment, you can start
+up the server by following the following instructions.
+
+To start the server, run the following command:
+
+Running the server in foreground mode
+```sh
+    gunicorn -k eventlet --worker-connections=2000 --backlog=1000
+             --paste /etc/monasca/log-api.ini
+```
+
+Running the server as daemons
+```sh
+    gunicorn -k eventlet --worker-connections=2000 --backlog=1000
+             --paste /etc/monasca/log-api.ini -D
+```
+
+To check if the code follows python coding style, run the following command
+from the root directory of this project
+
+```sh
+    tox -e pep8
+```
+ 
+To run all the unit test cases, run the following command from the root
+directory of this project
+
+```sh
+    tox -e py27   (or -e py26, -e py33)
+```
+
+# License
+
+    # Copyright 2015 kornicameister@gmail.com
+    # Copyright 2015 FUJITSU LIMITED
+    #
+    # Licensed under the Apache License, Version 2.0 (the "License"); you may
+    # not use this file except in compliance with the License. You may obtain
+    # a copy of the License at
+    #
+    #      http://www.apache.org/licenses/LICENSE-2.0
+    #
+    # Unless required by applicable law or agreed to in writing, software
+    # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+    # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+    # License for the specific language governing permissions and limitations
+    # under the License.
