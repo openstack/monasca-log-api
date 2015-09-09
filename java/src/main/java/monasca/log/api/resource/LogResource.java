@@ -23,15 +23,19 @@ import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.core.Request;
 
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.sun.jersey.api.core.HttpRequestContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import monasca.log.api.app.LogService;
-import monasca.log.api.app.command.CreateLogCommand;
 import monasca.log.api.app.validation.Validation;
+import monasca.log.api.common.LogRequestBean;
+import monasca.log.api.model.Log;
 import monasca.log.api.resource.exception.Exceptions;
 
 /**
@@ -39,41 +43,71 @@ import monasca.log.api.resource.exception.Exceptions;
  */
 @Path("/v2.0/log")
 public class LogResource {
+  private static final Logger LOGGER = LoggerFactory.getLogger(LogResource.class);
   private static final String MONITORING_DELEGATE_ROLE = "monitoring-delegate";
   private static final Splitter COMMA_SPLITTER = Splitter.on(',').omitEmptyStrings().trimResults();
+  private static final boolean VALIDATE_LOG = true;
 
   private final LogService service;
 
   @Inject
-  public LogResource(LogService service) {
+  public LogResource(final LogService service) {
     this.service = service;
   }
 
   @POST
   @Timed
-  @Consumes({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
+  @Consumes(MediaType.APPLICATION_JSON)
   @Path("/single")
-  public void single(@Context UriInfo uriInfo,
-      @HeaderParam("X-Tenant-Id") String tenantId,
-      @HeaderParam("X-Roles") String roles,
-      @HeaderParam("X-Application-Type") String applicationType,
-      @HeaderParam("X-Dimensions") String dimensionsStr,
-      @QueryParam("tenant_id") String crossTenantId, String message) {
+  public void single(@Context Request request,
+                     @HeaderParam("X-Tenant-Id") String tenantId,
+                     @HeaderParam("X-Roles") String roles,
+                     @HeaderParam("X-Application-Type") String applicationType,
+                     @HeaderParam("X-Dimensions") String dimensionsStr,
+                     @QueryParam("tenant_id") String crossTenantId,
+                     String payload) {
 
-    boolean isDelegate = !Strings.isNullOrEmpty(roles) && COMMA_SPLITTER.splitToList(roles).contains(MONITORING_DELEGATE_ROLE);
+    LOGGER.debug("/single/{}", tenantId);
 
-    Map<String, String> dimensions = Strings.isNullOrEmpty(dimensionsStr) ? null : Validation.parseLogDimensions(dimensionsStr);
-
-    CreateLogCommand command = new CreateLogCommand(applicationType, dimensions, message);
-
-    if (!isDelegate) {
+    if (!this.isDelegate(roles)) {
+      LOGGER.trace(String.format("/single/%s is not delegated request, checking for crossTenantId",
+          tenantId));
       if (!Strings.isNullOrEmpty(crossTenantId)) {
         throw Exceptions.forbidden("Project %s cannot POST cross tenant metrics", tenantId);
       }
     }
 
-    command.validate();
+    final Log log = service.newLog(
+        new LogRequestBean()
+            .setApplicationType(applicationType)
+            .setDimensions(this.getDimensions(dimensionsStr))
+            .setContentType(this.getContentType(request))
+            .setPayload(payload),
+        VALIDATE_LOG
+    );
+    tenantId = this.getTenantId(tenantId, crossTenantId);
 
-    service.create(command.toLog(), Strings.isNullOrEmpty(crossTenantId) ? tenantId : crossTenantId);
+    LOGGER.debug("Shipping log={},tenantId={} pair to kafka", log, tenantId);
+
+    this.service.sendToKafka(log, tenantId);
   }
+
+  private MediaType getContentType(final Request request) {
+    return ((HttpRequestContext) request).getMediaType();
+  }
+
+  private String getTenantId(final String tenantId, final String crossTenantId) {
+    return Strings.isNullOrEmpty(crossTenantId) ? tenantId : crossTenantId;
+  }
+
+  private Map<String, String> getDimensions(final String dimensionsStr) {
+    return Strings.isNullOrEmpty(dimensionsStr) ? null : Validation.parseLogDimensions(dimensionsStr);
+  }
+
+  private boolean isDelegate(final String roles) {
+    return !Strings.isNullOrEmpty(roles) && COMMA_SPLITTER
+        .splitToList(roles)
+        .contains(MONITORING_DELEGATE_ROLE);
+  }
+
 }

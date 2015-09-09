@@ -19,7 +19,7 @@ import javax.ws.rs.WebApplicationException;
 
 import com.google.common.base.CharMatcher;
 
-import monasca.log.api.app.command.CreateLogCommand;
+import monasca.log.api.common.LogApiConstants;
 import monasca.log.api.resource.exception.Exceptions;
 
 /**
@@ -43,10 +43,13 @@ public class LogApplicationTypeValidator {
    * @throws WebApplicationException if validation fails
    */
   public static void validate(String applicationType) {
-    if (applicationType.length() > CreateLogCommand.MAX_NAME_LENGTH)
-      throw Exceptions.unprocessableEntity("Application type %s must be %d characters or less", applicationType, CreateLogCommand.MAX_NAME_LENGTH);
+    if (applicationType.length() > LogApiConstants.MAX_NAME_LENGTH)
+      throw Exceptions.unprocessableEntity("Application type %s must be %d characters or less",
+          applicationType,
+          LogApiConstants.MAX_NAME_LENGTH);
 
     if (!VALID_APPLICATION_TYPE.matcher(applicationType).matches())
-      throw Exceptions.unprocessableEntity("Application type %s may only contain: a-z A-Z 0-9 _ - .", applicationType);
+      throw Exceptions.unprocessableEntity("Application type %s may only contain: a-z A-Z 0-9 _ - .",
+          applicationType);
   }
 }

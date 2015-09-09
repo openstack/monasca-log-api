@@ -13,7 +13,11 @@
  */
 package monasca.log.api.app;
 
-import java.util.ArrayList;
+import static monasca.log.api.common.LogApiConstants.LOG_MARKER;
+import static monasca.log.api.common.LogApiConstants.LOG_MARKER_KAFKA;
+import static monasca.log.api.common.LogApiConstants.LOG_MARKER_WARN;
+import static monasca.log.api.common.LogApiConstants.MAX_LOG_LENGTH;
+
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -21,28 +25,38 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.inject.Inject;
+import javax.ws.rs.core.MediaType;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import kafka.javaapi.producer.Producer;
 import kafka.producer.KeyedMessage;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import monasca.log.api.ApiConfig;
+import monasca.log.api.app.unload.JsonPayloadTransformer;
+import monasca.log.api.app.validation.DimensionValidation;
+import monasca.log.api.app.validation.LogApplicationTypeValidator;
+import monasca.log.api.common.LogRequestBean;
+import monasca.log.api.common.PayloadTransformer;
 import monasca.log.api.model.Log;
 import monasca.log.api.model.LogEnvelope;
-import monasca.log.api.model.LogEnvelopes;
+import monasca.log.api.resource.exception.Exceptions;
 
 /**
  * Log service implementation.
  */
 public class LogService {
-  private static final Comparator<Map.Entry<String, String>> comparator;
-  private final ApiConfig config;
-  private final Producer<String, String> producer;
+  private static final Logger LOGGER = LoggerFactory.getLogger(LogService.class);
+  private static final Comparator<Map.Entry<String, String>> DIMENSIONS_COMPARATOR;
 
   static {
-    comparator = new Comparator<Map.Entry<String, String>>() {
+    DIMENSIONS_COMPARATOR = new Comparator<Map.Entry<String, String>>() {
       @Override
       public int compare(Entry<String, String> o1, Entry<String, String> o2) {
         int nameCmp = o1.getKey().compareTo(o2.getKey());
@@ -51,37 +65,121 @@ public class LogService {
     };
   }
 
+  protected ApiConfig config;
+  protected Producer<String, String> producer;
+  protected LogSerializer serializer;
+  protected Map<MediaType, PayloadTransformer> payloadTransformers;
+
   @Inject
-  public LogService(ApiConfig config, Producer<String, String> producer) {
+  public LogService(final ApiConfig config,
+                    final Producer<String, String> producer,
+                    final LogSerializer logSerializer) {
     this.config = config;
     this.producer = producer;
+    this.serializer = logSerializer;
+    this.payloadTransformers = Maps.newHashMapWithExpectedSize(2);
   }
 
-  public void create(Log log, String tenantId) {
-    Builder<String, Object> metaBuilder = new ImmutableMap.Builder<String, Object>().put("tenantId", tenantId).put("region", this.config.region);
-    ImmutableMap<String, Object> meta = metaBuilder.build();
+  protected LogService() {
+    this(null, null, null);
+  }
 
-    LogEnvelope envelope = new LogEnvelope(log, meta);
-    String key = buildKey(tenantId, log);
-    String json = LogEnvelopes.toJson(envelope);
-    String topic = this.config.logTopic;
-    this.producer.send(new KeyedMessage<>(topic, key, json));
+  @Inject
+  public void setJsonPayloadTransformer(final JsonPayloadTransformer jsonPayloadTransformer) {
+    this.payloadTransformers.put(MediaType.APPLICATION_JSON_TYPE, jsonPayloadTransformer);
+  }
+
+  public Log newLog(final LogRequestBean logRequestBean) {
+    LOGGER.debug(LOG_MARKER, "Creating new log from bean = {}", logRequestBean);
+    return this.newLog(logRequestBean, true);
+  }
+
+  public Log newLog(final LogRequestBean logRequestBean, final boolean validate) {
+    LOGGER.debug(LOG_MARKER, "Creating new log from bean = {}, validation is {}",
+        logRequestBean, validate ? "enabled" : "disabled");
+
+    Preconditions.checkNotNull(logRequestBean, "LogBean must not be null");
+    Preconditions.checkNotNull(logRequestBean.getPayload(), "Payload should not be null");
+
+    final String payload = logRequestBean.getPayload();
+    final Log log;
+
+    try {
+      log = this.payloadTransformers.get(logRequestBean.getContentType()).transform(payload);
+    } catch (Exception exp) {
+      LOGGER.warn(LOG_MARKER_WARN, "Failed to unpack payload \n\"{}\"", payload);
+      throw Exceptions.unprocessableEntity("{} couldn't be processed", payload);
+    }
+
+    log.setApplicationType(LogApplicationTypeValidator
+        .normalize(logRequestBean.getApplicationType()));
+    log.setDimensions(DimensionValidation
+        .normalize(logRequestBean.getDimensions()));
+
+    if (validate) {
+      this.validate(log);
+    }
+
+    return log;
+  }
+
+  public void validate(final Log log) {
+
+    LOGGER.trace(LOG_MARKER, "Validating log {}", log);
+
+    try {
+      if (log.getApplicationType() != null && !log.getApplicationType().isEmpty()) {
+        LogApplicationTypeValidator.validate(log.getApplicationType());
+      }
+      if (log.getDimensions() != null) {
+        DimensionValidation.validate(log.getDimensions(), null);
+      }
+      if (log.getMessage().length() > MAX_LOG_LENGTH) {
+        throw Exceptions.unprocessableEntity("Log must be %d characters or less", MAX_LOG_LENGTH);
+      }
+    } catch (Exception exp) {
+      LOGGER.warn(LOG_MARKER_WARN, "Log {} not valid, error is {}", log, exp);
+      throw exp;
+    }
+
+    LOGGER.debug(LOG_MARKER, "Log {} considered valid", log);
+
+  }
+
+  public void sendToKafka(Log log, String tenantId) {
+    final KeyedMessage<String, String> keyedMessage = new KeyedMessage<>(
+        this.config.logTopic,
+        this.buildKey(tenantId, log),
+        this.serializer.logEnvelopeToJson(this.newLogEnvelope(log, tenantId))
+    );
+
+    LOGGER.debug(LOG_MARKER_KAFKA, "Shipping kafka message {}", keyedMessage);
+
+    this.producer.send(keyedMessage);
+  }
+
+  protected LogEnvelope newLogEnvelope(final Log log, final String tenantId) {
+    return new LogEnvelope(
+        log,
+        new ImmutableMap
+            .Builder<String, Object>()
+            .put("tenantId", tenantId)
+            .put("region", this.config.region)
+            .build()
+    );
   }
 
   private String buildKey(String tenantId, Log log) {
     final StringBuilder key = new StringBuilder();
 
-    // appends tenantId
     key.append(tenantId);
 
-    // appends applicationType
-    if (log.applicationType != null && !log.applicationType.isEmpty()) {
-      key.append(log.applicationType);
+    if (StringUtils.isNotEmpty(log.getApplicationType())) {
+      key.append(log.getApplicationType());
     }
 
-    // appends dimensions
-    if (log.dimensions != null && !log.dimensions.isEmpty()) {
-      for (final Map.Entry<String, String> dim : buildSortedDimSet(log.dimensions)) {
+    if (MapUtils.isNotEmpty(log.getDimensions())) {
+      for (final Map.Entry<String, String> dim : this.buildSortedDimSet(log.getDimensions())) {
         key.append(dim.getKey());
         key.append(dim.getValue());
       }
@@ -90,12 +188,17 @@ public class LogService {
     return key.toString();
   }
 
-  // Key must be the same for the same log so sort the dimensions so they will
-  // be
-  // in a known order
+  /**
+   * Key must be the same for the same log so sort the dimensions so they will
+   * be in known order
+   *
+   * @param dimMap unsorted dimensions
+   *
+   * @return sorted dimensions
+   */
   private List<Map.Entry<String, String>> buildSortedDimSet(final Map<String, String> dimMap) {
-    final List<Map.Entry<String, String>> dims = new ArrayList<>(dimMap.entrySet());
-    Collections.sort(dims, comparator);
+    final List<Map.Entry<String, String>> dims = Lists.newArrayList(dimMap.entrySet());
+    Collections.sort(dims, DIMENSIONS_COMPARATOR);
     return dims;
   }
 

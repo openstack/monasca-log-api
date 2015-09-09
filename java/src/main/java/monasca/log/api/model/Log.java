@@ -10,102 +10,95 @@
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
- *
  */
+
 package monasca.log.api.model;
 
-import java.io.Serializable;
+import java.beans.Transient;
+import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.Nullable;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Represents a log.
+ *
+ * It allows any set of fields to be placed as log entity.
+ * That is particularly useful for JSON based messages where
+ * known fields can not be clearly determined and only requirement
+ * is to append:
+ *
+ * <ol>
+ * <li>{@code application_type}</li>
+ * <li>{@code dimensions}</li>
+ * </ol>
  */
+@SuppressWarnings("unchecked")
 public class Log
-    implements Serializable {
-
+    extends HashMap<String, Object> {
   private static final long serialVersionUID = 685205295808136758L;
-
-  public String applicationType;
-  public Map<String, String> dimensions;
-  public String message;
+  private static final String KEY_DIMENSIONS = "dimensions";
+  private static final String KEY_APPLICATION_TYPE = "application_type";
+  private static final String KEY_MESSAGE = "message";
 
   public Log() {
+    super(3);  // 3 fields at least
   }
 
-  public Log(@Nullable String applicationType, @Nullable Map<String, String> dimensions,
-             String message) {
-    this.applicationType = applicationType;
-    this.dimensions = dimensions;
-    this.message = message;
+  public Log(final String applicationType,
+             final Map<String, String> dimensions,
+             final String message) {
+    this();
+    if (StringUtils.isNotEmpty(applicationType)) {
+      this.setApplicationType(applicationType);
+    }
+    if (dimensions != null) {
+      this.setDimensions(dimensions);
+    }
+    if (message != null) {
+      this.setMessage(message);
+    }
   }
 
-  @Override
-  public String toString() {
-    return "Log{" + "applicationType='" + applicationType + '\'' + ", dimensions=" + dimensions
-        + ", message=" + message + '}';
+  public Log setDimensions(final Map<String, String> dimensions) {
+    if (dimensions != null) {
+      this.put(KEY_DIMENSIONS, dimensions);
+    }
+    return this;
   }
 
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj)
-      return true;
-    if (obj == null)
-      return false;
-    if (!(obj instanceof Log))
-      return false;
-    Log other = (Log) obj;
-    if (dimensions == null) {
-      if (other.dimensions != null)
-        return false;
-    } else if (!dimensions.equals(other.dimensions))
-      return false;
-    // internally handles null and empty strings as same for applicationType
-    if (applicationType == null) {
-      if (other.applicationType != null && !other.applicationType.isEmpty())
-        return false;
-    } else if (applicationType.isEmpty()) {
-      if (other.applicationType != null && !other.applicationType.isEmpty())
-        return false;
-    } else if (!applicationType.equals(other.applicationType))
-      return false;
-    if (!message.equals(other.message))
-      return false;
-    return true;
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((dimensions == null) ? 0 : dimensions.hashCode());
-    result = prime * result + ((applicationType == null) ? 0 : applicationType.hashCode());
-    result = prime * result + message.hashCode();
-    return result;
-  }
-
-  public String getApplicationType() {
-    return applicationType;
-  }
-
-  public void setApplicationType(String applicationType) {
-    this.applicationType = applicationType;
-  }
-
+  @Transient
   public Map<String, String> getDimensions() {
-    return dimensions;
+    return (Map<String, String>) this.get(KEY_DIMENSIONS);
   }
 
-  public void setDimensions(Map<String, String> dimensions) {
-    this.dimensions = dimensions;
+  public Log setApplicationType(final String applicationType) {
+    if (StringUtils.isNotEmpty(applicationType)) {
+      this.put(KEY_APPLICATION_TYPE, applicationType);
+    }
+    return this;
   }
 
+  @Transient
+  public String getApplicationType() {
+    final String val = (String) this.get(KEY_APPLICATION_TYPE);
+    return val != null ? val : StringUtils.EMPTY;
+  }
+
+  public Log setMessage(final String message) {
+    this.put(KEY_MESSAGE, message);
+    return this;
+  }
+
+  @Transient
   public String getMessage() {
-    return message;
+    final String val = (String) this.get(KEY_MESSAGE);
+    return val != null ? val : StringUtils.EMPTY;
   }
 
-  public void setMessage(String message) {
-    this.message = message;
+  public Log append(final String key, final String val) {
+    this.put(key, val);
+    return this;
   }
+
 }
