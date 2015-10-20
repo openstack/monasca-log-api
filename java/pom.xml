@@ -6,7 +6,7 @@
     <groupId>monasca-log-api</groupId>
     <artifactId>monasca-log-api</artifactId>
     <version>1.1.0-SNAPSHOT</version>
-    <url>http://github.com/stackforge/monasca-log-api</url>
+    <url>http://github.com/openstack/monasca-log-api</url>
     <packaging>jar</packaging>
 
     <prerequisites>
@@ -31,8 +31,8 @@
     </properties>
 
     <scm>
-        <connection>scm:git:git@github.com:stackforge/monasca-log-api</connection>
-        <developerConnection>scm:git:git@github.com:stackforge/monasca-log-api</developerConnection>
+        <connection>scm:git:git@github.com:openstack/monasca-log-api</connection>
+        <developerConnection>scm:git:git@github.com:openstack/monasca-log-api</developerConnection>
     </scm>
 
     <profiles>

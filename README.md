@@ -1,5 +1,5 @@
-# Forked from https://github.com/stackforge/monasca-api
-This repository is forked from [monasca-api](https://github.com/stackforge/monasca-api).
+# Forked from https://github.com/openstack/monasca-api
+This repository is forked from [monasca-api](https://github.com/openstack/monasca-api).
 
 # Overview
 
@@ -9,20 +9,20 @@ The full API Specification can be found in [docs/monasca-log-api-spec.md](docs/m
 
 ## Java Build
 
-Requires monasca-common from https://github.com/stackforge/monasca-common. Download and do mvn install. Then:
+Requires monasca-common from https://github.com/openstack/monasca-common. Download and do mvn install. Then:
 
 ```
 cd java
 mvn clean package
 ```
 
-# StackForge Java Build
+# OpenStack Java Build
 
-There is a pom.xml in the base directory that should only be used for the StackForge build. The StackForge build is a rather strange build because of the limitations of the current StackForge java jobs and infrastructure. We have found that the API runs faster if built with maven 3 but the StackForge nodes only have maven 2. This build checks the version of maven and if not maven 3, it downloads a version of maven 3 and uses it. This build depends on jars that are from monasca-common. That StrackForge build uploads the completed jars to http://tarballs.openstack.org/ci/monasca-common, but they are just regular jars, and not in a maven repository and sometimes zuul takes a long time to do the upload. Hence, the first thing the maven build from the base project does is invoke build_common.sh in the common directory. This script clones monasca-common and then invokes maven 3 to build monasca-common in the common directory and install the jars in the local maven repository.
+There is a pom.xml in the base directory that should only be used for the OpenStack build. The OpenStack build is a rather strange build because of the limitations of the current OpenStack java jobs and infrastructure. We have found that the API runs faster if built with maven 3 but the OpenStack nodes only have maven 2. This build checks the version of maven and if not maven 3, it downloads a version of maven 3 and uses it. This build depends on jars that are from monasca-common. That StrackForge build uploads the completed jars to http://tarballs.openstack.org/ci/monasca-common, but they are just regular jars, and not in a maven repository and sometimes zuul takes a long time to do the upload. Hence, the first thing the maven build from the base project does is invoke build_common.sh in the common directory. This script clones monasca-common and then invokes maven 3 to build monasca-common in the common directory and install the jars in the local maven repository.
 
-Since this is all rather complex, that part of the build only works on StackForge so follow the simple instruction above if you are building your own monasca-log-api.
+Since this is all rather complex, that part of the build only works on OpenStack so follow the simple instruction above if you are building your own monasca-log-api.
 
-Currently this build is executed on the bare-precise nodes in StackForge and they only have maven 2. So, this build must be kept compatible with Maven 2. If another monasca-common jar is added as a dependency to java/pom.xml, it must also be added to download/download.sh.
+Currently this build is executed on the bare-precise nodes in OpenStack and they only have maven 2. So, this build must be kept compatible with Maven 2. If another monasca-common jar is added as a dependency to java/pom.xml, it must also be added to download/download.sh.
 
 ## Usage
 
@@ -54,7 +54,7 @@ For secure operation of the Monasca API, the API must be configured to use Keyst
 
 ### Keystone Roles
 
-See [Monasca API documentation](https://github.com/stackforge/monasca-api/blob/master/README.md#keystone-roles) for the levels of access description.
+See [Monasca API documentation](https://github.com/openstack/monasca-api/blob/master/README.md#keystone-roles) for the levels of access description.
 
 ## Design Overview
 
