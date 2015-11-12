@@ -13,17 +13,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import collections
 import datetime
 import re
 
-import falcon
 from oslo_config import cfg
 from oslo_log import log
-import simplejson
 
 from monasca_log_api.api import exceptions
 from monasca_log_api.api import logs_api
+from monasca_log_api.api import rest_utils
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
@@ -49,8 +47,11 @@ DIMENSION_NAME_CONSTRAINTS = {
 DIMENSION_VALUE_CONSTRAINTS = {
     'MAX_LENGTH': 255
 }
+EPOCH_START = datetime.datetime(1970, 1, 1)
 
-Dimension = collections.namedtuple('Dimensions', ['name', 'value'])
+
+class LogEnvelopeException(Exception):
+    pass
 
 
 class Validations(object):
@@ -118,16 +119,16 @@ class Validations(object):
                     value
                 )
 
-        if (isinstance(dimensions, (list, tuple)) and not
+        if (isinstance(dimensions, dict) and not
                 isinstance(dimensions, basestring)):
 
-            for dim_name, dim_value in dimensions:
+            for dim_name in dimensions:
                 validate_name(dim_name)
-                validate_value(dim_value)
+                validate_value(dimensions[dim_name])
 
         else:
             raise exceptions.HTTPUnprocessableEntity(
-                'Dimensions %s must be a collections' % dimensions)
+                'Dimensions %s must be a dictionary (map)' % dimensions)
 
 
 class LogCreator(object):
@@ -135,30 +136,12 @@ class LogCreator(object):
         self._log = log.getLogger('service.LogCreator')
         self._log.info('Initializing LogCreator')
 
-    # noinspection PyMethodMayBeStatic
-    def _create_meta_info(self, tenant_id):
+    @staticmethod
+    def _create_meta_info(tenant_id):
         return {
             'tenantId': tenant_id,
             'region': cfg.CONF.service.region
         }
-
-    def _read_payload(self, payload, content_type):
-
-        try:
-            content = payload.read()
-        except Exception as ex:
-            raise falcon.HTTPBadRequest(title='Failed to read body',
-                                        description=ex.message)
-
-        if content and content_type == 'application/json':
-            try:
-                content = simplejson.loads(content, encoding='utf-8')
-            except Exception as ex:
-                raise falcon.HTTPBadRequest(title='Failed to read body as '
-                                                  'json',
-                                            description=ex.message)
-
-        return content
 
     def new_log(self,
                 application_type,
@@ -167,7 +150,7 @@ class LogCreator(object):
                 content_type='application/json',
                 validate=True):
 
-        payload = self._read_payload(payload, content_type)
+        payload = rest_utils.read_body(payload, content_type)
         if not payload:
             return None
 
@@ -199,8 +182,15 @@ class LogCreator(object):
         return log_object
 
     def new_log_envelope(self, log_object, tenant_id):
-        timestamp = (datetime.datetime.utcnow() -
-                     datetime.datetime(1970, 1, 1)).total_seconds()
+        if not log_object:
+            raise LogEnvelopeException('Envelope cannot be '
+                                       'created without log')
+        if not tenant_id:
+            raise LogEnvelopeException('Envelope cannot be '
+                                       'created without tenant')
+
+        timestamp = (datetime.datetime.utcnow() - EPOCH_START).total_seconds()
+
         return {
             'log': log_object,
             'creation_time': timestamp,
@@ -212,7 +202,6 @@ def is_delegate(roles):
     if roles:
         roles = roles.split(',')
         return logs_api.MONITORING_DELEGATE_ROLE in roles
-        pass
     return False
 
 
@@ -226,7 +215,7 @@ def parse_dimensions(dimensions):
     if not dimensions:
         raise exceptions.HTTPUnprocessableEntity('Dimension are required')
 
-    new_dimensions = []
+    new_dimensions = {}
     dimensions = map(str.strip, dimensions.split(','))
 
     for dim in dimensions:
@@ -241,6 +230,6 @@ def parse_dimensions(dimensions):
         name = str(dim[0].strip()) if dim[0] else None
         value = str(dim[1].strip()) if dim[1] else None
         if name and value:
-            new_dimensions.append(Dimension(name, value))
+            new_dimensions.update({name: value})
 
     return new_dimensions

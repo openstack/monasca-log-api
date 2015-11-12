@@ -61,7 +61,7 @@ def launch(conf, config_file='/etc/monasca/log-api-config.conf'):
 
 def load_logs_resource(app):
     logs = simport.load(CONF.dispatcher.logs)()
-    app.add_route('/v1.0/logs/single', logs)
+    app.add_route('/v1.0/log/single', logs)
 
 
 def load_versions_resource(app):

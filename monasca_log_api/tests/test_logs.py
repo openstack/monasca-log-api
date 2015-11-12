@@ -29,13 +29,13 @@ class TestLogs(testing.TestBase):
         self.conf = base.mock_config(self)
         self.logs_resource = logs.Logs()
         self.api.add_route(
-            '/logs/single',
+            '/log/single',
             self.logs_resource
         )
 
     def test_should_fail_not_delegate_ok_cross_tenant_id(self):
         self.simulate_request(
-            '/logs/single',
+            '/log/single',
             method='POST',
             query_string='tenant_id=1',
             headers={
@@ -45,19 +45,15 @@ class TestLogs(testing.TestBase):
         self.assertEqual(falcon.HTTP_403, self.srmock.status)
 
     @mock.patch('monasca_log_api.v1.common.service.LogCreator')
-    @mock.patch('monasca_log_api.publisher.kafka_publisher.KafkaPublisher')
+    @mock.patch('monasca_log_api.v1.common.log_publisher.LogPublisher')
     def test_should_pass_empty_cross_tenant_id_wrong_role(self,
                                                           log_creator,
                                                           kafka_publisher):
-        log_creator.configure_mock(**{'new_log.return_value': None,
-                                      'new_log_envelope.return_value': None})
-        kafka_publisher.configure_mock(**{'send_message.return_value': None})
-
         self.logs_resource._log_creator = log_creator
         self.logs_resource._kafka_publisher = kafka_publisher
 
         self.simulate_request(
-            '/logs/single',
+            '/log/single',
             method='POST',
             headers={
                 headers.X_ROLES.name: 'some_role',
@@ -72,19 +68,15 @@ class TestLogs(testing.TestBase):
         self.assertEqual(1, log_creator.new_log_envelope.call_count)
 
     @mock.patch('monasca_log_api.v1.common.service.LogCreator')
-    @mock.patch('monasca_log_api.publisher.kafka_publisher.KafkaPublisher')
+    @mock.patch('monasca_log_api.v1.common.log_publisher.LogPublisher')
     def test_should_pass_empty_cross_tenant_id_ok_role(self,
                                                        log_creator,
                                                        kafka_publisher):
-        log_creator.configure_mock(**{'new_log.return_value': None,
-                                      'new_log_envelope.return_value': None})
-        kafka_publisher.configure_mock(**{'send_message.return_value': None})
-
         self.logs_resource._log_creator = log_creator
         self.logs_resource._kafka_publisher = kafka_publisher
 
         self.simulate_request(
-            '/logs/single',
+            '/log/single',
             method='POST',
             headers={
                 headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
@@ -99,19 +91,15 @@ class TestLogs(testing.TestBase):
         self.assertEqual(1, log_creator.new_log_envelope.call_count)
 
     @mock.patch('monasca_log_api.v1.common.service.LogCreator')
-    @mock.patch('monasca_log_api.publisher.kafka_publisher.KafkaPublisher')
+    @mock.patch('monasca_log_api.v1.common.log_publisher.LogPublisher')
     def test_should_pass_delegate_cross_tenant_id_ok_role(self,
                                                           log_creator,
-                                                          kafka_publisher):
-        log_creator.configure_mock(**{'new_log.return_value': None,
-                                      'new_log_envelope.return_value': None})
-        kafka_publisher.configure_mock(**{'send_message.return_value': None})
-
+                                                          log_publisher):
         self.logs_resource._log_creator = log_creator
-        self.logs_resource._kafka_publisher = kafka_publisher
+        self.logs_resource._kafka_publisher = log_publisher
 
         self.simulate_request(
-            '/logs/single',
+            '/log/single',
             method='POST',
             query_string='tenant_id=1',
             headers={
@@ -122,28 +110,28 @@ class TestLogs(testing.TestBase):
         )
         self.assertEqual(falcon.HTTP_204, self.srmock.status)
 
-        self.assertEqual(1, kafka_publisher.send_message.call_count)
+        self.assertEqual(1, log_publisher.send_message.call_count)
         self.assertEqual(1, log_creator.new_log.call_count)
         self.assertEqual(1, log_creator.new_log_envelope.call_count)
 
-    def test_should_fail_empty_dimensions_delegate(self):
-        with mock.patch.object(self.logs_resource._log_creator,
-                               '_read_payload',
-                               return_value=True):
-            self.simulate_request(
-                '/logs/single',
-                method='POST',
-                headers={
-                    headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
-                    headers.X_DIMENSIONS.name: '',
-                    'Content-Type': 'application/json'
-                }
-            )
+    @mock.patch('monasca_log_api.v1.common.service.rest_utils')
+    def test_should_fail_empty_dimensions_delegate(self, rest_utils):
+        rest_utils.read_body.return_value = True
+
+        self.simulate_request(
+            '/log/single',
+            method='POST',
+            headers={
+                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_DIMENSIONS.name: '',
+                'Content-Type': 'application/json'
+            }
+        )
         self.assertEqual(log_api_exceptions.HTTP_422, self.srmock.status)
 
     def test_should_fail_for_invalid_content_type(self):
         self.simulate_request(
-            '/logs/single',
+            '/log/single',
             method='POST',
             headers={
                 headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,

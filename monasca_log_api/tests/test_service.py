@@ -16,10 +16,8 @@
 import datetime
 import unittest
 
-import falcon
 from falcon import testing
 import mock
-import simplejson
 
 from monasca_log_api.api import exceptions
 from monasca_log_api.api import logs_api
@@ -64,9 +62,12 @@ class ParseDimensions(unittest.TestCase):
 
     def test_should_pass_for_valid_dimensions(self):
         dimensions = 'a:1,b:2'
-        expected = [('a', '1'), ('b', '2')]
+        expected = {
+            'a': '1',
+            'b': '2'
+        }
 
-        self.assertListEqual(expected,
+        self.assertDictEqual(expected,
                              common_service.parse_dimensions(dimensions))
 
 
@@ -138,10 +139,10 @@ class DimensionsValidations(unittest.TestCase):
         common_service.Validations.validate_dimensions(1)
 
     def test_should_pass_for_empty_dimensions_array(self):
-        common_service.Validations.validate_dimensions([])
+        common_service.Validations.validate_dimensions({})
 
     def test_should_fail_too_empty_name(self):
-        dimensions = [('', 1)]
+        dimensions = {'': 1}
         with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
             common_service.Validations.validate_dimensions(dimensions)
 
@@ -150,7 +151,7 @@ class DimensionsValidations(unittest.TestCase):
 
     def test_should_fail_too_long_name(self):
         name = testing.rand_string(256, 260)
-        dimensions = [(name, 1)]
+        dimensions = {name: 1}
         with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
             common_service.Validations.validate_dimensions(dimensions)
 
@@ -159,7 +160,7 @@ class DimensionsValidations(unittest.TestCase):
 
     def test_should_fail_underscore_at_begin(self):
         name = '_aDim'
-        dimensions = [(name, 1)]
+        dimensions = {name: 1}
         with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
             common_service.Validations.validate_dimensions(dimensions)
 
@@ -168,7 +169,7 @@ class DimensionsValidations(unittest.TestCase):
 
     def test_should_fail_invalid_chars(self):
         name = '<>'
-        dimensions = [(name, 1)]
+        dimensions = {name: 1}
         with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
             common_service.Validations.validate_dimensions(dimensions)
 
@@ -178,7 +179,7 @@ class DimensionsValidations(unittest.TestCase):
 
     def test_should_fail_ok_name_empty_value(self):
         name = 'monasca'
-        dimensions = [(name, '')]
+        dimensions = {name: ''}
         with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
             common_service.Validations.validate_dimensions(dimensions)
 
@@ -188,7 +189,7 @@ class DimensionsValidations(unittest.TestCase):
     def test_should_fail_ok_name_too_long_value(self):
         name = 'monasca'
         value = testing.rand_string(256, 300)
-        dimensions = [(name, value)]
+        dimensions = {name: value}
         with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
             common_service.Validations.validate_dimensions(dimensions)
 
@@ -198,53 +199,15 @@ class DimensionsValidations(unittest.TestCase):
     def test_should_pass_ok_name_ok_value_empty_service(self):
         name = 'monasca'
         value = '1'
-        dimensions = [(name, value)]
+        dimensions = {name: value}
         common_service.Validations.validate_dimensions(dimensions)
 
     def test_should_pass_ok_name_ok_value_service_SERVICE_DIMENSIONS_as_name(
             self):
         name = 'some_name'
         value = '1'
-        dimensions = [(name, value)]
+        dimensions = {name: value}
         common_service.Validations.validate_dimensions(dimensions)
-
-
-class LogsCreatorPayload(unittest.TestCase):
-    def setUp(self):
-        self.instance = common_service.LogCreator()
-
-    @mock.patch('io.IOBase')
-    def test_should_read_text_for_plain_text(self, payload):
-        msg = u'Hello World'
-        payload.configure_mock(
-            **{'readable.return_value': True, 'read.return_value': msg})
-
-        self.assertEqual(msg,
-                         self.instance._read_payload(payload, 'text/plain'))
-
-    @mock.patch('io.IOBase')
-    def test_should_read_json_for_application_json(self, payload):
-        msg = u'{"path":"/var/log/messages","message":"This is message"}'
-        payload.configure_mock(
-            **{'readable.return_value': True, 'read.return_value': msg})
-
-        json_msg = simplejson.loads(msg, encoding='utf-8')
-
-        self.assertEqual(json_msg,
-                         self.instance._read_payload(payload,
-                                                     'application/json'))
-
-    @mock.patch('io.IOBase')
-    def test_should_fail_read_text_for_application_json(self, payload):
-        with self.assertRaises(falcon.HTTPBadRequest) as context:
-            msg = u'Hello World'
-            payload.configure_mock(
-                **{'readable.return_value': True, 'read.return_value': msg})
-            self.instance._read_payload(payload,
-                                        'application/json')
-
-        self.assertEqual(context.exception.title,
-                         'Failed to read body as json')
 
 
 class LogsCreatorNewLog(unittest.TestCase):
@@ -258,13 +221,14 @@ class LogsCreatorNewLog(unittest.TestCase):
         json_msg = u'{"path":"%s","message":"%s"}' % (path, msg)
         app_type = 'monasca'
         dimensions = 'cpu_time:30'
-        payload.configure_mock(
-            **{'readable.return_value': True, 'read.return_value': json_msg})
+        payload.read.return_value = json_msg
 
         expected_log = {
             'message': msg,
             'application_type': app_type,
-            'dimensions': [('cpu_time', '30')],
+            'dimensions': {
+                'cpu_time': '30'
+            },
             'path': path
         }
 
@@ -278,14 +242,17 @@ class LogsCreatorNewLog(unittest.TestCase):
     def test_should_create_log_from_text(self, payload):
         msg = u'Hello World'
         app_type = 'monasca'
-        dimensions = 'cpu_time:30'
-        payload.configure_mock(
-            **{'readable.return_value': True, 'read.return_value': msg})
+        dimension_name = 'cpu_time'
+        dimension_value = 30
+        dimensions = '%s:%s' % (dimension_name, str(dimension_value))
+        payload.read.return_value = msg
 
         expected_log = {
             'message': msg,
             'application_type': app_type,
-            'dimensions': [('cpu_time', '30')]
+            'dimensions': {
+                dimension_name: str(dimension_value)
+            }
         }
 
         self.assertEqual(expected_log, self.instance.new_log(
@@ -304,10 +271,14 @@ class LogCreatorNewEnvelope(unittest.TestCase):
         msg = u'Hello World'
         path = u'/var/log/messages'
         app_type = 'monasca'
+        dimension_name = 'cpu_time'
+        dimension_value = 30
         expected_log = {
             'message': msg,
             'application_type': app_type,
-            'dimensions': [('cpu_time', '30')],
+            'dimensions': {
+                dimension_name: str(dimension_value)
+            },
             'path': path
         }
         tenant_id = 'a_tenant'
@@ -330,3 +301,38 @@ class LogCreatorNewEnvelope(unittest.TestCase):
                              actual_envelope.get('log'))
             self.assertEqual(expected_envelope.get('meta'),
                              actual_envelope.get('meta'))
+            self.assertDictEqual(
+                expected_envelope.get('log').get('dimensions'),
+                actual_envelope.get('log').get('dimensions'))
+
+    @unittest.expectedFailure
+    def test_should_not_create_log_none(self):
+        log_object = None
+        tenant_id = 'a_tenant'
+
+        self.instance.new_log_envelope(log_object, tenant_id)
+
+    @unittest.expectedFailure
+    def test_should_not_create_log_empty(self):
+        log_object = {}
+        tenant_id = 'a_tenant'
+
+        self.instance.new_log_envelope(log_object, tenant_id)
+
+    @unittest.expectedFailure
+    def test_should_not_create_tenant_none(self):
+        log_object = {
+            'message': ''
+        }
+        tenant_id = None
+
+        self.instance.new_log_envelope(log_object, tenant_id)
+
+    @unittest.expectedFailure
+    def test_should_not_create_tenant_empty(self):
+        log_object = {
+            'message': ''
+        }
+        tenant_id = ''
+
+        self.instance.new_log_envelope(log_object, tenant_id)

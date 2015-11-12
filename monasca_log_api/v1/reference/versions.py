@@ -15,10 +15,9 @@
 
 import falcon
 from oslo_log import log
-import simplejson
 
+from monasca_log_api.api import rest_utils
 from monasca_log_api.api import versions_api
-from monasca_log_api import constants
 
 LOG = log.getLogger(__name__)
 VERSIONS = {
@@ -50,14 +49,14 @@ class Versions(versions_api.VersionsAPI):
             VERSIONS[version]['links'][0]['href'] = (
                 req.uri.decode('utf8') + version)
             result['elements'].append(VERSIONS[version])
-        res.body = simplejson.dumps(result)
+        res.body = rest_utils.as_json(result)
         res.status = falcon.HTTP_200
 
     @staticmethod
     def handle_version_id(req, res, version_id):
         if version_id in VERSIONS:
             VERSIONS[version_id]['links'][0]['href'] = (
-                req.uri.decode(constants.ENCODING)
+                req.uri.decode(rest_utils.ENCODING)
             )
             for version in VERSIONS:
                 VERSIONS[version]['links'][0]['href'] = (
@@ -67,7 +66,7 @@ class Versions(versions_api.VersionsAPI):
                 req.uri.decode('utf8') +
                 VERSIONS[version_id]['links'][1]['href']
             )
-            res.body = simplejson.dumps(VERSIONS[version_id])
+            res.body = rest_utils.as_json(VERSIONS[version_id])
             res.status = falcon.HTTP_200
         else:
             res.body = 'Invalid Version ID'
@@ -77,7 +76,7 @@ class Versions(versions_api.VersionsAPI):
         result = {
             'links': [{
                 'rel': 'self',
-                'href': req.uri.decode(constants.ENCODING)
+                'href': req.uri.decode(rest_utils.ENCODING)
             }],
             'elements': []
         }
