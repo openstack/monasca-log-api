@@ -199,9 +199,11 @@ class LogCreator(object):
         return log_object
 
     def new_log_envelope(self, log_object, tenant_id):
+        timestamp = (datetime.datetime.utcnow() -
+                     datetime.datetime(1970, 1, 1)).total_seconds()
         return {
             'log': log_object,
-            'creation_time': datetime.datetime.utcnow(),
+            'creation_time': timestamp,
             'meta': self._create_meta_info(tenant_id)
         }
 

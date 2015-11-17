@@ -313,9 +313,11 @@ class LogCreatorNewEnvelope(unittest.TestCase):
         tenant_id = 'a_tenant'
         none = None
         meta = {'tenantId': tenant_id, 'region': none}
+        timestamp = (datetime.datetime.utcnow() -
+                     datetime.datetime(1970, 1, 1)).total_seconds()
         expected_envelope = {
             'log': expected_log,
-            'creation_time': datetime.datetime.utcnow(),
+            'creation_time': timestamp,
             'meta': meta
         }
 
