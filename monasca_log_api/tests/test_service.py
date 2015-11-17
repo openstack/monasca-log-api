@@ -214,12 +214,6 @@ class LogsCreatorPayload(unittest.TestCase):
         self.instance = common_service.LogCreator()
 
     @mock.patch('io.IOBase')
-    def test_should_fail_for_unreadable_payload(self, payload):
-        payload.configure_mock(**{'readable.return_value': False})
-        self.assertRaises(falcon.HTTPInternalServerError,
-                          self.instance._read_payload, payload, 'a')
-
-    @mock.patch('io.IOBase')
     def test_should_read_text_for_plain_text(self, payload):
         msg = u'Hello World'
         payload.configure_mock(

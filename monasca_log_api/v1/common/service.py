@@ -139,16 +139,10 @@ class LogCreator(object):
     def _create_meta_info(self, tenant_id):
         return {
             'tenantId': tenant_id,
-            'region': cfg.CONF.get('region')
+            'region': cfg.CONF.service.region
         }
 
     def _read_payload(self, payload, content_type):
-        if not payload.readable():
-            self._log.error('Payload cannot be read, stream not readable')
-            raise falcon.HTTPInternalServerError(
-                title='Invalid message',
-                description='Couldn\'t read the message'
-            )
 
         try:
             content = payload.read()
