@@ -20,12 +20,14 @@ HTTP_422 = '422 Unprocessable Entity'
 
 
 class HTTPUnprocessableEntity(falcon.OptionalRepresentation, falcon.HTTPError):
-    """HTTPUnprocessableEntity http error
+    """HTTPUnprocessableEntity http error.
 
     HTTPError that comes with '422 Unprocessable Entity' status
 
-    Args:
-        message(str) - meaningful description of what caused an error
+    :argument: message(str) - meaningful description of what caused an error
+    :argument: kwargs - any other option defined in
+                        :py:class:`falcon.OptionalRepresentation` and
+                        :py:class:`falcon.HTTPError`
     """
     def __init__(self, message, **kwargs):
         falcon.HTTPError.__init__(self,

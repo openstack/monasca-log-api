@@ -40,6 +40,7 @@ VERSIONS = {
 
 
 class Versions(versions_api.VersionsAPI):
+    """Versions Api V2."""
     def __init__(self):
         super(Versions, self).__init__()
 

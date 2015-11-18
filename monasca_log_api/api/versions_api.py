@@ -20,6 +20,12 @@ LOG = log.getLogger(__name__)
 
 
 class VersionsAPI(object):
+    """Versions API
+
+    VersionsAPI returns information about API itself.
+
+    """
+
     def __init__(self):
         super(VersionsAPI, self).__init__()
         LOG.info('Initializing VersionsAPI!')

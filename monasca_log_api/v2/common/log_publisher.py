@@ -43,6 +43,23 @@ class InvalidMessageException(Exception):
 
 
 class LogPublisher(object):
+    """Publishes log data to Kafka
+
+    LogPublisher is able to send single message to multiple configured topic.
+    It uses following configuration written in conf file ::
+
+        [log_publisher]
+        topics = 'logs'
+        kafka_url = 'localhost:8900'
+
+    Note:
+        Uses :py:class:`monasca_common.kafka.producer.KafkaProducer`
+        to ship logs to kafka. For more details
+        see `monasca_common`_ github repository.
+
+    .. _monasca_common: https://github.com/openstack/monasca-common
+
+    """
     def __init__(self):
         self._topics = CONF.log_publisher.topics
         self._kafka_publisher = None
@@ -115,6 +132,23 @@ class LogPublisher(object):
         return self._kafka_publisher
 
     def send_message(self, message):
+        """Sends message to each configured topic.
+
+        Prior to sending a message, unique key is being
+        calculated for the given message using:
+
+        * tenant id
+        * application type
+        * dimensions
+
+        Note:
+            Falsy messages (i.e. empty) are not shipped to kafka
+
+        See :py:meth:`monasca_log_api.v2.common.service.LogCreator`
+                    `.new_log_envelope`
+
+        :param dict message: instance of log envelope
+        """
         if not message:
             return
         if not self._is_message_valid(message):

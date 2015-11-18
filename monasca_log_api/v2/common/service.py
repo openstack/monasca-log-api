@@ -40,13 +40,25 @@ APPLICATION_TYPE_CONSTRAINTS = {
     'MAX_LENGTH': 255,
     'PATTERN': re.compile('^[a-zA-Z0-9_\\.\\-]+$')
 }
+"""Application type constraint used in validation.
+
+See :py:func:`Validations.validate_application_type`
+"""
 DIMENSION_NAME_CONSTRAINTS = {
     'MAX_LENGTH': 255,
     'PATTERN': re.compile('[^><={}(), \'";&]+$')
 }
+"""Constraint for name of single dimension.
+
+See :py:func:`Validations.validate_dimensions`
+"""
 DIMENSION_VALUE_CONSTRAINTS = {
     'MAX_LENGTH': 255
 }
+"""Constraint for value of single dimension.
+
+See :py:func:`Validations.validate_dimensions`
+"""
 EPOCH_START = datetime.datetime(1970, 1, 1)
 
 
@@ -55,9 +67,15 @@ class LogEnvelopeException(Exception):
 
 
 class Validations(object):
+    """Contains validation logic."""
 
     @staticmethod
     def validate_application_type(application_type=None):
+        """Validates application type.
+
+           Validation won't take place if application_type is None.
+           For details see: :py:data:`APPLICATION_TYPE_CONSTRAINTS`
+           """
 
         def validate_length():
             if (len(application_type) >
@@ -86,6 +104,14 @@ class Validations(object):
 
     @staticmethod
     def validate_dimensions(dimensions):
+        """Validates dimensions type.
+
+           Empty dimensions are not being validated.
+           For details see:
+
+           * :py:data:`DIMENSION_NAME_CONSTRAINTS`
+           * :py:data:`DIMENSION_VALUE_CONSTRAINTS`
+           """
 
         def validate_name(name):
             if not name:
@@ -132,12 +158,36 @@ class Validations(object):
 
 
 class LogCreator(object):
+    """Transforms logs,
+
+    Takes care of transforming information received via
+    HTTP requests into log and log envelopes objects.
+
+    For more details see following:
+
+    * :py:func:`LogCreator.new_log`
+    * :py:func:`LogCreator.new_log_envelope`
+
+    """
     def __init__(self):
         self._log = log.getLogger('service.LogCreator')
         self._log.info('Initializing LogCreator')
 
     @staticmethod
     def _create_meta_info(tenant_id):
+        """Creates meta block for log envelope.
+
+        Additionally method accesses oslo configuration,
+        looking for *service.region* configuration property.
+
+        For more details see :py:data:`service_opts`
+
+        :param tenant_id: ID of the tenant
+        :type tenant_id: str
+        :return: meta block
+        :rtype: dict
+
+        """
         return {
             'tenantId': tenant_id,
             'region': cfg.CONF.service.region
@@ -149,6 +199,19 @@ class LogCreator(object):
                 payload,
                 content_type='application/json',
                 validate=True):
+        """Creates new log object.
+
+        :param str application_type: origin of the log
+        :param dict dimensions: dictionary of dimensions (any data sent to api)
+        :param stream payload: stream to read log entry from
+        :param str content_type: actual content type used to send data to
+                                 server
+        :param bool validate: by default True, marks if log should be validated
+        :return: log object
+        :rtype: dict
+
+        :keyword: log_object
+        """
 
         payload = rest_utils.read_body(payload, content_type)
         if not payload:
@@ -182,6 +245,43 @@ class LogCreator(object):
         return log_object
 
     def new_log_envelope(self, log_object, tenant_id):
+        """Creates new log envelope.
+
+        Log envelope is combined ouf of following properties
+
+        * log - dict
+        * creation_time - timestamp
+        * meta - meta block
+
+        Example output json would like this:
+
+        .. code-block:: json
+
+            {
+                "log": {
+                  "message": "Some message",
+                  "application_type": "monasca-log-api",
+                  "dimension": {
+                    "hostname": "devstack"
+                  }
+                },
+                "creation_time": 1447834886,
+                "meta": {
+                  "tenantId": "e4bd29509eda473092d32aadfee3e7b1",
+                  "region": "pl"
+                }
+            }
+
+        :param dict log_object: log object created with
+                                :py:meth:`LogCreator.new_log`
+        :param str tenant_id: ID of the tenant
+        :return: log envelope object
+        :rtype: dict
+
+        :keyword: log_envelope
+
+        """
+
         if not log_object:
             raise LogEnvelopeException('Envelope cannot be '
                                        'created without log')

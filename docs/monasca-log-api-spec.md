@@ -1,8 +1,8 @@
 # Monasca Log API
 
-Date: August 19, 2015
+Date: November 18, 2015
 
-Document Version: v2.0
+Document Version: v2.1
 
 # Log
 The log resource allows logs to be created.

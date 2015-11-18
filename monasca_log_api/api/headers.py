@@ -16,6 +16,7 @@
 import collections
 
 LogApiHeader = collections.namedtuple('LogApiHeader', ['name', 'is_required'])
+"""Tuple describing a header."""
 
 X_TENANT_ID = LogApiHeader(name='X-Tenant-Id', is_required=False)
 X_ROLES = LogApiHeader(name='X-Roles', is_required=False)

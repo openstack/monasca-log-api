@@ -20,6 +20,23 @@ ENCODING = 'utf8'
 
 
 def read_body(payload, content_type='application/json'):
+    """Reads HTTP payload according to given content_type.
+
+    Function is capable of reading from payload stream.
+    Read data is then processed according to content_type.
+
+    Note:
+        There is no transformation if content type is equal to
+        'text/plain'. What has been read is returned.
+
+    :param payload(stream): payload to read
+    :param content_type(str): payload content type
+    :return: read data, returned type depends on content_type
+
+    :exception: :py:class:`falcon.HTTPBadRequest` - in case of any failure when
+                                                    reading data
+
+    """
     try:
         content = payload.read()
         if not content:
@@ -39,6 +56,11 @@ def read_body(payload, content_type='application/json'):
 
 
 def as_json(data):
+    """Writes data as json.
+
+    :param data(dict): data to convert to json
+    :return (str): json string
+    """
     return json.dumps(data,
                       encoding=ENCODING,
                       sort_keys=False,
@@ -46,4 +68,9 @@ def as_json(data):
 
 
 def from_json(data):
+    """Reads data from json str.
+
+    :param data(str): data to read
+    :return (dict): read data
+    """
     return json.loads(data, encoding=ENCODING)

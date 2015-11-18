@@ -22,9 +22,25 @@ MONITORING_DELEGATE_ROLE = 'monitoring-delegate'
 
 
 class LogsApi(object):
+    """Logs API.
+
+    Logs API acts as RESTful endpoint accepting
+    messages contains collected log entries from the system.
+    Works as gateway for any further processing for accepted data.
+
+    """
     def __init__(self):
         super(LogsApi, self).__init__()
         LOG.info('Initializing LogsApi!')
 
     def on_post(self, req, res):
+        """Accepts sent logs as text or json.
+
+        Accepts logs sent to resource which should
+        be sent to kafka queue.
+
+        :param req: current request
+        :param res: current response
+
+        """
         res.status = falcon.HTTP_501
