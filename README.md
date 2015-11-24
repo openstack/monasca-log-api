@@ -102,13 +102,13 @@ To start the server, run the following command:
 Running the server in foreground mode
 ```sh
     gunicorn -k eventlet --worker-connections=2000 --backlog=1000
-             --paste /etc/monasca/log-api.ini
+             --paste /etc/monasca/log-api-config.ini
 ```
 
 Running the server as daemons
 ```sh
     gunicorn -k eventlet --worker-connections=2000 --backlog=1000
-             --paste /etc/monasca/log-api.ini -D
+             --paste /etc/monasca/log-api-config.ini -D
 ```
 
 To check if the code follows python coding style, run the following command
