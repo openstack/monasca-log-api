@@ -28,10 +28,16 @@ CONF = cfg.CONF
 dispatcher_opts = [
     cfg.StrOpt('versions',
                default=None,
-               help='Versions'),
+               required=True,
+               help='Versions endpoint'),
     cfg.StrOpt('logs',
                default=None,
-               help='Logs')
+               required=True,
+               help='Logs endpoint'),
+    cfg.StrOpt('healthchecks',
+               default=None,
+               required=True,
+               help='Healthchecks endpoint')
 ]
 dispatcher_group = cfg.OptGroup(name='dispatcher', title='dispatcher')
 CONF.register_group(dispatcher_group)
@@ -53,10 +59,16 @@ def launch(conf, config_file='/etc/monasca/log-api-config.conf'):
 
     load_versions_resource(app)
     load_logs_resource(app)
+    load_healthcheck_resource(app)
 
     LOG.debug('Dispatcher drivers have been added to the routes!')
 
     return app
+
+
+def load_healthcheck_resource(app):
+    healthchecks = simport.load(CONF.dispatcher.healthchecks)()
+    app.add_route('/healthcheck', healthchecks)
 
 
 def load_logs_resource(app):

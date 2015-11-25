@@ -9,6 +9,7 @@ Subpackages
     monasca_log_api.api
     monasca_log_api.v2
     monasca_log_api.middleware
+    monasca_log_api.healthcheck
 
 Submodules
 ----------
