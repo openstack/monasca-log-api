@@ -21,8 +21,8 @@ from monasca_log_api.api import versions_api
 
 LOG = log.getLogger(__name__)
 VERSIONS = {
-    'v1.0': {
-        'id': 'v1.0',
+    'v2.0': {
+        'id': 'v2.0',
         'links': [
             {
                 'rel': 'self',
@@ -30,7 +30,7 @@ VERSIONS = {
             },
             {
                 'rel': 'links',
-                'href': '/logs'
+                'href': '/log'
             }
         ],
         'status': 'CURRENT',

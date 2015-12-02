@@ -22,7 +22,7 @@ import mock
 import simplejson
 
 from monasca_log_api.tests import base
-from monasca_log_api.v1.common import log_publisher
+from monasca_log_api.v2.common import log_publisher
 
 
 EPOCH_START = datetime.datetime(1970, 1, 1)
@@ -108,7 +108,7 @@ class TestSendMessage(testing.TestBase):
         self.conf = base.mock_config(self)
         return super(TestSendMessage, self).setUp()
 
-    @mock.patch('monasca_log_api.v1.common.log_publisher.producer'
+    @mock.patch('monasca_log_api.v2.common.log_publisher.producer'
                 '.KafkaProducer')
     def test_should_not_send_empty_message(self, _):
         instance = log_publisher.LogPublisher()
@@ -168,7 +168,7 @@ class TestSendMessage(testing.TestBase):
                               instance.send_message,
                               tmp_message)
 
-    @mock.patch('monasca_log_api.v1.common.log_publisher.producer'
+    @mock.patch('monasca_log_api.v2.common.log_publisher.producer'
                 '.KafkaProducer')
     def test_should_send_message(self, _):
         instance = log_publisher.LogPublisher()
@@ -206,7 +206,7 @@ class TestSendMessage(testing.TestBase):
             # 'some_key',  # TODO(feature) next version of monasca-common
             simplejson.dumps(msg))
 
-    @mock.patch('monasca_log_api.v1.common.log_publisher.producer'
+    @mock.patch('monasca_log_api.v2.common.log_publisher.producer'
                 '.KafkaProducer')
     def test_should_send_message_multiple_topics(self, _):
         topics = ['logs', 'analyzer', 'tester']

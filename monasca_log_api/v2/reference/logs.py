@@ -17,8 +17,8 @@ import falcon
 
 from monasca_log_api.api import headers
 from monasca_log_api.api import logs_api
-from monasca_log_api.v1.common import log_publisher
-from monasca_log_api.v1.common import service
+from monasca_log_api.v2.common import log_publisher
+from monasca_log_api.v2.common import service
 
 
 # TODO(idea) perhaps add it as pipeline call right before API, seems generic
