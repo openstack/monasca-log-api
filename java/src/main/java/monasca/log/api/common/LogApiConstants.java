@@ -20,7 +20,6 @@ import org.slf4j.MarkerFactory;
 public final class LogApiConstants {
 
   public static final Marker LOG_MARKER = MarkerFactory.getMarker("log-api");
-  public static final Marker LOG_MARKER_ERROR = MarkerFactory.getMarker("log-api-error");
   public static final Marker LOG_MARKER_WARN = MarkerFactory.getMarker("log-api-warn");
   public static final Marker LOG_MARKER_KAFKA = MarkerFactory.getMarker("log-api-kafka");
 

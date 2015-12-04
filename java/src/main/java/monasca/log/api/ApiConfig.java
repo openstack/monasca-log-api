@@ -21,13 +21,23 @@ import javax.validation.constraints.NotNull;
 import org.hibernate.validator.constraints.NotEmpty;
 
 import monasca.common.messaging.kafka.KafkaConfiguration;
+import monasca.log.api.common.LogApiConstants;
 import monasca.log.api.infrastructure.middleware.MiddlewareConfiguration;
 
 public class ApiConfig extends Configuration {
+
+  /**
+   * Refers to payload/envelope size.
+   * If either is exceeded API will throw an error.
+   */
+  private static final Integer DEFAULT_LOG_SIZE = LogApiConstants.MAX_LOG_LENGTH;
+
   @NotEmpty
   public String region;
   @NotEmpty
   public String logTopic = "log";
+  @Valid
+  public Integer logSize = DEFAULT_LOG_SIZE;
   @Valid
   @NotNull
   public KafkaConfiguration kafka;

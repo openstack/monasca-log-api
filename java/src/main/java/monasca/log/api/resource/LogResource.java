@@ -22,6 +22,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Request;
 
@@ -29,6 +30,7 @@ import com.codahale.metrics.annotation.Timed;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.sun.jersey.api.core.HttpRequestContext;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +71,11 @@ public class LogResource {
 
     LOGGER.debug("/single/{}", tenantId);
 
+    final MediaType contentType = this.getContentType(request);
+
+    this.service.validateContentLength(this.getContentLength(request));
+    this.service.validateContentType(contentType);
+
     if (!this.isDelegate(roles)) {
       LOGGER.trace(String.format("/single/%s is not delegated request, checking for crossTenantId",
           tenantId));
@@ -81,7 +88,7 @@ public class LogResource {
         new LogRequestBean()
             .setApplicationType(applicationType)
             .setDimensions(this.getDimensions(dimensionsStr))
-            .setContentType(this.getContentType(request))
+            .setContentType(contentType)
             .setPayload(payload),
         VALIDATE_LOG
     );
@@ -94,6 +101,11 @@ public class LogResource {
 
   private MediaType getContentType(final Request request) {
     return ((HttpRequestContext) request).getMediaType();
+  }
+
+  private Integer getContentLength(final Request request){
+    final String value = ((HttpRequestContext) request).getHeaderValue(HttpHeaders.CONTENT_LENGTH);
+    return StringUtils.isNotEmpty(value) ? Integer.valueOf(value) : null;
   }
 
   private String getTenantId(final String tenantId, final String crossTenantId) {

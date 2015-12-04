@@ -15,7 +15,9 @@
 
 import datetime
 import re
+import sys
 
+from falcon import errors as falcon_errors
 from oslo_config import cfg
 from oslo_log import log
 
@@ -26,10 +28,16 @@ from monasca_log_api.api import rest_utils
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
 
+_DEFAULT_MAX_LOG_SIZE = 1024 * 1024
+
 service_opts = [
     cfg.StrOpt('region',
                default=None,
-               help='Region')
+               help='Region'),
+    cfg.IntOpt('max_log_size',
+               default=_DEFAULT_MAX_LOG_SIZE,
+               help=('Refers to payload/envelope size. If either is exceeded'
+                     'API will throw an error'))
 ]
 service_group = cfg.OptGroup(name='service', title='service')
 
@@ -60,6 +68,7 @@ DIMENSION_VALUE_CONSTRAINTS = {
 See :py:func:`Validations.validate_dimensions`
 """
 EPOCH_START = datetime.datetime(1970, 1, 1)
+SUPPORTED_CONTENT_TYPE = {'application/json', 'text/plain'}
 
 
 class LogEnvelopeException(Exception):
@@ -156,6 +165,103 @@ class Validations(object):
             raise exceptions.HTTPUnprocessableEntity(
                 'Dimensions %s must be a dictionary (map)' % dimensions)
 
+    @staticmethod
+    def validate_content_type(req):
+        """Validates content type.
+
+        Method validates request against correct
+        content type.
+
+        If content-type cannot be established (i.e. header is missing),
+        :py:class:`falcon.HTTPMissingHeader` is thrown.
+        If content-type is not **application/json** or **text/plain**,
+        :py:class:`falcon.HTTPUnsupportedMediaType` is thrown.
+
+
+        :param :py:class:`falcon.Request` req: current request
+
+        :exception: :py:class:`falcon.HTTPMissingHeader`
+        :exception: :py:class:`falcon.HTTPUnsupportedMediaType`
+        """
+        content_type = req.content_type
+
+        LOG.debug('Content-Type is %s', content_type)
+
+        if content_type is None or len(content_type) == 0:
+            raise falcon_errors.HTTPMissingHeader(u'Content-Type')
+
+        if content_type not in SUPPORTED_CONTENT_TYPE:
+            sup_types = ', '.join(SUPPORTED_CONTENT_TYPE)
+            details = u'Only [%s] are accepted as logs representations' % str(
+                sup_types)
+            raise falcon_errors.HTTPUnsupportedMediaType(description=details)
+
+    @staticmethod
+    def validate_payload_size(req):
+        """Validates payload size.
+
+        Method validates sent payload size.
+        It expects that http header **Content-Length** is present.
+        If it does not, method raises :py:class:`falcon.HTTPLengthRequired`.
+        Otherwise values is being compared with ::
+
+            [service]
+            max_log_size = 1048576
+
+        **max_log_size** refers to the maximum allowed content length.
+        If it is exceeded :py:class:`falcon.HTTPRequestEntityTooLarge` is
+        thrown.
+
+        :param :py:class:`falcon.Request` req: current request
+
+        :exception: :py:class:`falcon.HTTPLengthRequired`
+        :exception: :py:class:`falcon.HTTPRequestEntityTooLarge`
+
+        """
+        payload_size = req.content_length
+        max_size = CONF.service.max_log_size
+
+        LOG.debug('Payload (content-length) is %s', str(payload_size))
+
+        if payload_size is None:
+            raise falcon_errors.HTTPLengthRequired(
+                title=u'Content length header is missing',
+                description=u'Content length is required to estimate if '
+                            u'payload can be processed'
+            )
+
+        if payload_size >= max_size:
+            raise falcon_errors.HTTPRequestEntityTooLarge(
+                title=u'Log payload size exceeded',
+                description=u'Maximum allowed size is %d bytes' % max_size
+            )
+
+    @staticmethod
+    def validate_envelope_size(envelope=None):
+        """Validates envelope size before sending to kafka.
+
+        Validates the case similar to what
+        :py:meth:`.Validations.validate_payload_size`. Difference is
+        that this method checks if log envelope (already serialized)
+        can be safely sent to Kafka.
+
+        For more information check kafka documentation regarding
+        Message Size Too Large exception.
+
+        :param str envelope: serialized envelope
+        :exception: :py:class:`falcon.HTTPInternalServerError`
+        """
+        max_size = CONF.service.max_log_size
+        envelope_size = sys.getsizeof(envelope) if envelope is not None else -1
+
+        LOG.debug('Envelope size is %s', envelope_size)
+
+        if envelope_size >= max_size:
+            raise falcon_errors.HTTPInternalServerError(
+                title=u'Envelope size exceeded',
+                description=u'Maximum allowed size is %d bytes' % max_size
+            )
+
 
 class LogCreator(object):
     """Transforms logs,
@@ -221,15 +327,15 @@ class LogCreator(object):
         application_type = parse_application_type(application_type)
         dimensions = parse_dimensions(dimensions)
 
-        self._log.debug(
-            'application_type=%s,dimensions=%s' % (
-                application_type, dimensions)
-        )
-
         if validate:
             self._log.debug('Validation enabled, proceeding with validation')
             Validations.validate_application_type(application_type)
             Validations.validate_dimensions(dimensions)
+
+        self._log.debug(
+            'application_type=%s,dimensions=%s' % (
+                application_type, dimensions)
+        )
 
         log_object = {}
         if content_type == 'application/json':

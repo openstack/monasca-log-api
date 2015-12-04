@@ -58,7 +58,8 @@ class TestLogs(testing.TestBase):
             headers={
                 headers.X_ROLES.name: 'some_role',
                 headers.X_DIMENSIONS.name: 'a:1',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Content-Length': '0'
             }
         )
         self.assertEqual(falcon.HTTP_204, self.srmock.status)
@@ -81,7 +82,8 @@ class TestLogs(testing.TestBase):
             headers={
                 headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
                 headers.X_DIMENSIONS.name: 'a:1',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Content-Length': '0'
             }
         )
         self.assertEqual(falcon.HTTP_204, self.srmock.status)
@@ -105,7 +107,8 @@ class TestLogs(testing.TestBase):
             headers={
                 headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
                 headers.X_DIMENSIONS.name: 'a:1',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Content-Length': '0'
             }
         )
         self.assertEqual(falcon.HTTP_204, self.srmock.status)
@@ -124,7 +127,8 @@ class TestLogs(testing.TestBase):
             headers={
                 headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
                 headers.X_DIMENSIONS.name: '',
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Content-Length': '0'
             }
         )
         self.assertEqual(log_api_exceptions.HTTP_422, self.srmock.status)
@@ -136,7 +140,80 @@ class TestLogs(testing.TestBase):
             headers={
                 headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
                 headers.X_DIMENSIONS.name: '',
-                'Content-Type': 'video/3gpp'
+                'Content-Type': 'video/3gpp',
+                'Content-Length': '0'
             }
         )
-        self.assertEqual(falcon.HTTP_406, self.srmock.status)
+        self.assertEqual(falcon.HTTP_415, self.srmock.status)
+
+    def test_should_pass_payload_size_not_exceeded(self):
+        max_log_size = 1000
+        content_length = max_log_size - 100
+        self.conf.config(max_log_size=max_log_size, group='service')
+
+        self.logs_resource._log_creator = mock.Mock()
+        self.logs_resource._kafka_publisher = mock.Mock()
+
+        self.simulate_request(
+            '/log/single',
+            method='POST',
+            headers={
+                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_DIMENSIONS.name: '',
+                'Content-Type': 'application/json',
+                'Content-Length': str(content_length)
+            }
+        )
+        self.assertEqual(falcon.HTTP_204, self.srmock.status)
+
+    def test_should_fail_payload_size_exceeded(self):
+        max_log_size = 1000
+        content_length = max_log_size + 100
+        self.conf.config(max_log_size=max_log_size, group='service')
+
+        self.logs_resource._log_creator = mock.Mock()
+        self.logs_resource._kafka_publisher = mock.Mock()
+
+        self.simulate_request(
+            '/log/single',
+            method='POST',
+            headers={
+                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_DIMENSIONS.name: '',
+                'Content-Type': 'application/json',
+                'Content-Length': str(content_length)
+            }
+        )
+        self.assertEqual(falcon.HTTP_413, self.srmock.status)
+
+    def test_should_fail_payload_size_equal(self):
+        max_log_size = 1000
+        content_length = max_log_size
+        self.conf.config(max_log_size=max_log_size, group='service')
+
+        self.logs_resource._log_creator = mock.Mock()
+        self.logs_resource._kafka_publisher = mock.Mock()
+
+        self.simulate_request(
+            '/log/single',
+            method='POST',
+            headers={
+                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_DIMENSIONS.name: '',
+                'Content-Type': 'application/json',
+                'Content-Length': str(content_length)
+            }
+        )
+        self.assertEqual(falcon.HTTP_413, self.srmock.status)
+
+    def test_should_fail_content_length(self):
+        self.simulate_request(
+            '/log/single',
+            method='POST',
+            headers={
+                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_DIMENSIONS.name: '',
+                'Content-Type': 'application/json'
+            }
+        )
+        self.assertEqual(falcon.HTTP_411, self.srmock.status)

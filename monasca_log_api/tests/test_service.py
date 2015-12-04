@@ -14,13 +14,17 @@
 # under the License.
 
 import datetime
+import random
+import string
 import unittest
 
+from falcon import errors
 from falcon import testing
 import mock
 
 from monasca_log_api.api import exceptions
 from monasca_log_api.api import logs_api
+from monasca_log_api.tests import base
 from monasca_log_api.v2.common import service as common_service
 
 
@@ -208,6 +212,142 @@ class DimensionsValidations(unittest.TestCase):
         value = '1'
         dimensions = {name: value}
         common_service.Validations.validate_dimensions(dimensions)
+
+
+class ContentTypeValidations(unittest.TestCase):
+
+    def test_should_pass_text_plain(self):
+        content_type = 'text/plain'
+        req = mock.Mock()
+        req.content_type = content_type
+        common_service.Validations.validate_content_type(req)
+
+    def test_should_pass_application_json(self):
+        content_type = 'application/json'
+        req = mock.Mock()
+        req.content_type = content_type
+        common_service.Validations.validate_content_type(req)
+
+    def test_should_fail_invalid_content_type(self):
+        content_type = 'no/such/type'
+        req = mock.Mock()
+        req.content_type = content_type
+        self.assertRaises(
+            errors.HTTPUnsupportedMediaType,
+            common_service.Validations.validate_content_type,
+            req
+        )
+
+    def test_should_fail_missing_header(self):
+        content_type = None
+        req = mock.Mock()
+        req.content_type = content_type
+        self.assertRaises(
+            errors.HTTPMissingHeader,
+            common_service.Validations.validate_content_type,
+            req
+        )
+
+
+class PayloadSizeValidations(testing.TestBase):
+
+    def setUp(self):
+        self.conf = base.mock_config(self)
+        return super(PayloadSizeValidations, self).setUp()
+
+    def test_should_fail_missing_header(self):
+        content_length = None
+        req = mock.Mock()
+        req.content_length = content_length
+        self.assertRaises(
+            errors.HTTPLengthRequired,
+            common_service.Validations.validate_payload_size,
+            req
+        )
+
+    def test_should_pass_limit_not_exceeded(self):
+        content_length = 120
+        max_log_size = 240
+        self.conf.config(max_log_size=max_log_size,
+                         group='service')
+
+        req = mock.Mock()
+        req.content_length = content_length
+
+        common_service.Validations.validate_payload_size(req)
+
+    def test_should_fail_limit_exceeded(self):
+        content_length = 120
+        max_log_size = 60
+        self.conf.config(max_log_size=max_log_size,
+                         group='service')
+
+        req = mock.Mock()
+        req.content_length = content_length
+
+        self.assertRaises(
+            errors.HTTPRequestEntityTooLarge,
+            common_service.Validations.validate_payload_size,
+            req
+        )
+
+    def test_should_fail_limit_equal(self):
+        content_length = 120
+        max_log_size = 120
+        self.conf.config(max_log_size=max_log_size,
+                         group='service')
+
+        req = mock.Mock()
+        req.content_length = content_length
+
+        self.assertRaises(
+            errors.HTTPRequestEntityTooLarge,
+            common_service.Validations.validate_payload_size,
+            req
+        )
+
+
+class EnvelopeSizeValidations(testing.TestBase):
+
+    @staticmethod
+    def _rand_str(size):
+        return ''.join((random.choice(string.letters) for _ in range(size)))
+
+    def setUp(self):
+        self.conf = base.mock_config(self)
+        return super(EnvelopeSizeValidations, self).setUp()
+
+    def test_should_pass_envelope_size_ok(self):
+        envelope = self._rand_str(120)
+        max_log_size = 240
+        self.conf.config(max_log_size=max_log_size,
+                         group='service')
+
+        common_service.Validations.validate_envelope_size(envelope)
+
+    def test_should_pass_envelope_size_exceeded(self):
+        envelope = self._rand_str(360)
+        max_log_size = 240
+        self.conf.config(max_log_size=max_log_size,
+                         group='service')
+
+        self.assertRaises(
+            errors.HTTPInternalServerError,
+            common_service.Validations.validate_envelope_size,
+            envelope
+        )
+
+    def test_should_pass_envelope_size_equal(self):
+        envelope = self._rand_str(240)
+        max_log_size = 240
+        self.conf.config(max_log_size=max_log_size,
+                         group='service')
+
+        self.assertRaises(
+            errors.HTTPInternalServerError,
+            common_service.Validations.validate_envelope_size,
+            envelope
+        )
 
 
 class LogsCreatorNewLog(unittest.TestCase):

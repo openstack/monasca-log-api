@@ -21,13 +21,12 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.google.common.base.Splitter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Exception factory methods.
@@ -52,11 +51,14 @@ public final class Exceptions {
     NOT_FOUND(Status.NOT_FOUND, true),
     CONFLICT(Status.CONFLICT, true),
     UNPROCESSABLE_ENTITY(422, true),
-    FORBIDDEN(Status.FORBIDDEN, true);
+    FORBIDDEN(Status.FORBIDDEN, true),
+    LENGTH_REQUIRED(411, true),
+    PAYLOAD_TOO_LARGE(413, true),
+    MISSING_HEADER(Status.BAD_REQUEST, true);
 
     public final int statusCode;
-    public final boolean loggable;
 
+    public final boolean loggable;
     FaultType(int statusCode, boolean loggable) {
       this.statusCode = statusCode;
       this.loggable = loggable;
@@ -71,17 +73,17 @@ public final class Exceptions {
     public String toString() {
       return name().toLowerCase();
     }
+
   }
-
   private static class WebAppException extends WebApplicationException {
-    private static final long serialVersionUID = 1L;
 
+    private static final long serialVersionUID = 1L;
     public WebAppException(FaultType faultType, String message) {
       super(Response.status(faultType.statusCode).entity(message).type(MediaType.APPLICATION_JSON)
           .build());
     }
-  }
 
+  }
   private Exceptions() {}
 
   public static WebApplicationException badRequest(String msg, Object... args) {
@@ -166,4 +168,27 @@ public final class Exceptions {
     return new WebAppException(FaultType.UNPROCESSABLE_ENTITY, buildLoggedErrorMessage(
         FaultType.UNPROCESSABLE_ENTITY, msg, details, exception));
   }
+
+  public static WebApplicationException lengthRequired(final String msg, final String details) {
+    final FaultType faultType = FaultType.LENGTH_REQUIRED;
+    return new WebAppException(faultType, buildLoggedErrorMessage(faultType, msg, details));
+  }
+
+  public static WebApplicationException payloadTooLarge(final String msg, final String details) {
+    final FaultType faultType = FaultType.PAYLOAD_TOO_LARGE;
+    return new WebAppException(faultType, buildLoggedErrorMessage(faultType, msg, details));
+  }
+
+  public static WebApplicationException internalServerError(final String msg, final String
+      details, @Nullable final Throwable error) {
+    final FaultType faultType = FaultType.SERVER_ERROR;
+    return new WebAppException(faultType, buildLoggedErrorMessage(faultType, msg, details, error));
+  }
+
+  public static WebApplicationException headerMissing(final String headerName) {
+    final FaultType faultType = FaultType.MISSING_HEADER;
+    final String details = String.format("The %s header is required", headerName);
+    return new WebAppException(faultType, buildLoggedErrorMessage(faultType, "Missing header value", details));
+  }
+
 }

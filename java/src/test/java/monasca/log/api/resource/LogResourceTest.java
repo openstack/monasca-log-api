@@ -26,6 +26,7 @@ import static org.testng.Assert.assertEquals;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
 import com.google.common.collect.Maps;
@@ -34,6 +35,7 @@ import com.sun.jersey.api.client.WebResource;
 import org.mockito.Mockito;
 import org.testng.annotations.Test;
 
+import monasca.log.api.ApiConfig;
 import monasca.log.api.app.ApplicationModule;
 import monasca.log.api.app.LogSerializer;
 import monasca.log.api.app.LogService;
@@ -42,6 +44,8 @@ import monasca.log.api.common.LogApiConstants;
 import monasca.log.api.common.LogRequestBean;
 import monasca.log.api.model.Log;
 import monasca.log.api.resource.exception.ErrorMessages;
+import monasca.log.api.resource.exception.Exceptions;
+import monasca.log.api.utils.TestUtils;
 
 @Test
 public class LogResourceTest
@@ -54,6 +58,7 @@ public class LogResourceTest
   private String longString;
   private LogService service;
   private String jsonMessage;
+  private ApiConfig config;
 
   @Override
   @SuppressWarnings("unchecked")
@@ -74,7 +79,9 @@ public class LogResourceTest
 
     final LogSerializer serializer = new LogSerializer(new ApplicationModule().objectMapper());
 
-    service = Mockito.spy(new LogService(null, null, serializer));
+    config = new ApiConfig();
+
+    service = Mockito.spy(new LogService(config, null, serializer));
     service.setJsonPayloadTransformer(new JsonPayloadTransformer(serializer));
 
     doNothing().when(service).sendToKafka(any(Log.class), anyString());
@@ -351,13 +358,21 @@ public class LogResourceTest
     String tooLongMessage = buf.toString();
     ClientResponse response = createResponseForJson(null, null, tooLongMessage);
 
-    ErrorMessages.assertThat(response.getEntity(String.class)).matches("unprocessable_entity", 422, "Log must be " + LogApiConstants.MAX_LOG_LENGTH + " characters or less");
+    ErrorMessages
+        .assertThat(response.getEntity(String.class))
+        .matches(
+            "payload_too_large",
+            Exceptions.FaultType.PAYLOAD_TOO_LARGE.statusCode,
+            "Log payload size exceeded"
+        );
   }
 
   public void shouldErrorOnCreateJsonMessageWithCrossTenant() {
     ClientResponse response = createResponseForJsonWithCrossTenant(null, null, jsonPayload, "illegal-role", "def");
 
-    ErrorMessages.assertThat(response.getEntity(String.class)).matches("forbidden", 403, "Project abc cannot POST cross tenant");
+    ErrorMessages
+        .assertThat(response.getEntity(String.class))
+        .matches("forbidden", 403, "Project abc cannot POST cross tenant");
   }
 
   public void shouldCreateJsonMessageWithCrossTenant() {
@@ -370,7 +385,11 @@ public class LogResourceTest
 
   private ClientResponse createResponseForJson(String applicationType, String dimensions, String message) {
     WebResource.Builder builder =
-        client().resource("/v2.0/log/single").header("X-Tenant-Id", tenantId).header("Content-Type", MediaType.APPLICATION_JSON);
+        client()
+            .resource("/v2.0/log/single")
+            .header("X-Tenant-Id", tenantId)
+            .header(HttpHeaders.CONTENT_LENGTH, message != null ? message.length() : null)
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
     if (applicationType != null)
       builder = builder.header("X-Application-Type", applicationType);
     if (dimensions != null)
@@ -380,9 +399,12 @@ public class LogResourceTest
 
   private ClientResponse createResponseForJsonWithCrossTenant(String applicationType, String dimensions, String message, String roles,
                                                               String crossTenantId) {
-    WebResource.Builder builder =
-        client().resource("/v2.0/log/single?tenant_id=" + crossTenantId).header("X-Tenant-Id", tenantId).header("X-Roles", roles)
-            .header("Content-Type", MediaType.APPLICATION_JSON);
+    WebResource.Builder builder = client()
+        .resource("/v2.0/log/single?tenant_id=" + crossTenantId)
+        .header("X-Tenant-Id", tenantId)
+        .header("X-Roles", roles)
+        .header(HttpHeaders.CONTENT_LENGTH, message != null ? message.length() : null)
+        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
     if (applicationType != null)
       builder = builder.header("X-Application-Type", applicationType);
     if (dimensions != null)

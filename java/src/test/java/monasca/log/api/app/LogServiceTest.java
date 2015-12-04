@@ -13,11 +13,14 @@
  */
 package monasca.log.api.app;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MediaType;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +37,7 @@ import monasca.log.api.ApiConfig;
 import monasca.log.api.common.LogApiConstants;
 import monasca.log.api.model.Log;
 import monasca.log.api.model.LogEnvelope;
+import monasca.log.api.utils.TestUtils;
 
 @Test
 public class LogServiceTest {
@@ -48,23 +52,27 @@ public class LogServiceTest {
   private Producer<String, String> producer;
   private LogService logService;
   private LogSerializer serializer;
+  private ObjectMapper mapper;
 
   @BeforeTest
   @SuppressWarnings("unchecked")
   protected void beforeMethod() {
     dimensions.clear();
     dimensions.put("a", "b");
+
     config = new ApiConfig();
     config.region = REGION;
     config.logTopic = TOPIC;
 
     this.producer = Mockito.mock(Producer.class);
-    this.serializer = Mockito.spy(new LogSerializer(new ApplicationModule().objectMapper()));
+    this.mapper = new ApplicationModule().objectMapper();
+    this.serializer = Mockito.spy(new LogSerializer(this.mapper));
     this.logService = Mockito.spy(new LogService(this.config, this.producer, this.serializer));
   }
 
   public void testValidate_shouldFail_ApplicationType_TooLarge() {
-    final String str = this.generateRandomStr(LogApiConstants.MAX_NAME_LENGTH + new Random().nextInt(10));
+    final String str = TestUtils.generateRandomStr(LogApiConstants.MAX_NAME_LENGTH + new Random()
+        .nextInt(10));
     try {
       final Log log = new Log(str, null, null);
       this.logService.validate(log);
@@ -98,11 +106,71 @@ public class LogServiceTest {
     Mockito.verifyZeroInteractions(this.producer, this.serializer);
   }
 
-  private String generateRandomStr(final int length) {
-    final StringBuilder builder = new StringBuilder();
-    for (int i = 0; i < length; i++) {
-      builder.append(i);
-    }
-    return builder.toString();
+  public void testValidateContentLength_OK() {
+    final Integer contentLength = this.config.logSize / 2;
+    this.logService.validateContentLength(contentLength);
   }
+
+  public void testValidateContentLength_PayloadTooLarge() throws IOException {
+    final Integer contentLength = this.config.logSize * 2;
+    try {
+      this.logService.validateContentLength(contentLength);
+    } catch (WebApplicationException exp) {
+      final Map map = this.mapper.readValue((String) exp.getResponse().getEntity(), Map.class);
+      Assert.assertTrue(map.containsKey("payload_too_large"));
+    }
+  }
+
+  public void testValidateContentLength_MissingHeader() throws IOException {
+    final Integer contentLength = null;
+    try {
+      this.logService.validateContentLength(contentLength);
+    } catch (WebApplicationException exp) {
+      final Map map = this.mapper.readValue((String) exp.getResponse().getEntity(), Map.class);
+      Assert.assertTrue(map.containsKey("length_required"));
+    }
+  }
+
+  public void testValidateEnvelopeSize_OK() {
+    this.config.logSize = 100;
+    final int length = this.config.logSize / 2;
+
+    final String msg = TestUtils.generateByteLengthString(length);
+    this.logService.validateEnvelopeSize(msg);
+  }
+
+  public void testValidateEnvelopeSize_Exceeded() throws IOException {
+    this.config.logSize = 100;
+    final int length = this.config.logSize * 2;
+
+    final String msg = TestUtils.generateByteLengthString(length);
+    try {
+      this.logService.validateEnvelopeSize(msg);
+    } catch (WebApplicationException exp) {
+      final Map map = this.mapper.readValue((String) exp.getResponse().getEntity(), Map.class);
+      Assert.assertTrue(map.containsKey("server_error"));
+      return;
+    }
+
+    Assert.assertFalse(true, "Should not happen");
+  }
+
+  public void testShouldThrowExceptionIfContentTypeNull() throws IOException {
+    try {
+      this.logService.validateContentType(null);
+    } catch (WebApplicationException exp){
+      final Map map = this.mapper.readValue((String) exp.getResponse().getEntity(), Map.class);
+      Assert.assertTrue(map.containsKey("missing_header"));
+      return;
+    }
+
+    Assert.assertFalse(true, "Should not happen");
+  }
+
+
+  public void testShouldNotThrowExceptionIfContentTypeSet() throws IOException {
+    this.logService.validateContentType(MediaType.APPLICATION_ATOM_XML_TYPE);
+    Assert.assertTrue(true);
+  }
+
 }

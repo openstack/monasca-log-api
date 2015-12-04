@@ -16,8 +16,8 @@ package monasca.log.api.app;
 import static monasca.log.api.common.LogApiConstants.LOG_MARKER;
 import static monasca.log.api.common.LogApiConstants.LOG_MARKER_KAFKA;
 import static monasca.log.api.common.LogApiConstants.LOG_MARKER_WARN;
-import static monasca.log.api.common.LogApiConstants.MAX_LOG_LENGTH;
 
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.inject.Inject;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
 import com.google.common.base.Preconditions;
@@ -134,9 +135,6 @@ public class LogService {
       if (log.getDimensions() != null) {
         DimensionValidation.validate(log.getDimensions(), null);
       }
-      if (log.getMessage().length() > MAX_LOG_LENGTH) {
-        throw Exceptions.unprocessableEntity("Log must be %d characters or less", MAX_LOG_LENGTH);
-      }
     } catch (Exception exp) {
       LOGGER.warn(LOG_MARKER_WARN, "Log {} not valid, error is {}", log, exp);
       throw exp;
@@ -147,15 +145,61 @@ public class LogService {
   }
 
   public void sendToKafka(Log log, String tenantId) {
+    final String envelope = this.serializer
+        .logEnvelopeToJson(this.newLogEnvelope(log, tenantId));
+
+    this.validateEnvelopeSize(envelope);
+
     final KeyedMessage<String, String> keyedMessage = new KeyedMessage<>(
         this.config.logTopic,
         this.buildKey(tenantId, log),
-        this.serializer.logEnvelopeToJson(this.newLogEnvelope(log, tenantId))
+        envelope
     );
 
     LOGGER.debug(LOG_MARKER_KAFKA, "Shipping kafka message {}", keyedMessage);
 
     this.producer.send(keyedMessage);
+  }
+
+  public void validateContentLength(final Integer contentLength) {
+
+    LOGGER.debug("validateContentLength(length=%d)", contentLength);
+
+    if (contentLength == null) {
+      throw Exceptions.lengthRequired(
+          "Content length header is missing",
+          "Content length is required to estimate if payload can be processed"
+      );
+    }
+
+    if (contentLength >= this.config.logSize) {
+      throw Exceptions.payloadTooLarge(
+          "Log payload size exceeded",
+          String.format("Maximum allowed size is %d bytes", this.config.logSize)
+      );
+    }
+
+  }
+
+  public void validateContentType(final MediaType contentType) {
+    if(contentType == null){
+      throw Exceptions.headerMissing(HttpHeaders.CONTENT_TYPE);
+    }
+  }
+
+  public void validateEnvelopeSize(final String envelope) {
+    if (!StringUtils.isEmpty(envelope)) {
+      // that must be length in bytes in common encoding
+
+      final int size = envelope.getBytes(Charset.forName("UTF-8")).length;
+      if (size >= this.config.logSize) {
+        throw Exceptions.internalServerError(
+            "Envelope size exceeded",
+            String.format("Maximum allowed size is %d bytes", this.config.logSize),
+            null
+        );
+      }
+    }
   }
 
   protected LogEnvelope newLogEnvelope(final Log log, final String tenantId) {

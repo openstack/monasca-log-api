@@ -18,6 +18,8 @@ from oslo_config import cfg
 from oslo_log import log
 import simplejson as json
 
+from monasca_log_api.v2.common import service
+
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
 
@@ -107,7 +109,7 @@ class LogPublisher(object):
         * log
         * creation_time
 
-        If keys are found, each key must have a value.
+        If keys are found, each key must have a valueH.
 
         If at least none of the conditions is met
         :py:class:`.InvalidMessageException` is raised
@@ -158,6 +160,8 @@ class LogPublisher(object):
         msg = json.dumps(message,
                          sort_keys=False,
                          ensure_ascii=False).encode('utf8')
+
+        service.Validations.validate_envelope_size(msg)
 
         # TODO(feature) next version of monasca-common
         LOG.debug('Build key [%s] for message' % key)

@@ -38,7 +38,7 @@ def _get_message_size(size_base):
 _SMALL_MESSAGE_SIZE = _get_message_size(0.001)
 _MEDIUM_MESSAGE_SIZE = _get_message_size(0.01)
 _LARGE_MESSAGE_SIZE = _get_message_size(0.1)
-_REJECTABLE_MESSAGE_SIZE = _get_message_size(10)
+_REJECTABLE_MESSAGE_SIZE = _get_message_size(1)
 
 
 def generate_unique_message(message=None, size=50):

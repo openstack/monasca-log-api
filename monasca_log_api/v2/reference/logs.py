@@ -37,8 +37,6 @@ def _before_logs_post(req, res, payload, params):
 class Logs(logs_api.LogsApi):
     """Logs Api V1."""
 
-    _supported_c_types = {'application/json', 'text/plain'}
-
     def __init__(self):
         self._log_creator = service.LogCreator()
         self._kafka_publisher = log_publisher.LogPublisher()
@@ -46,12 +44,8 @@ class Logs(logs_api.LogsApi):
 
     @falcon.before(_before_logs_post)
     def on_post(self, req, res):
-        content_type = req.content_type
-
-        if content_type not in self._supported_c_types:
-            raise falcon.HTTPNotAcceptable(
-                description='Only %s are accepted as logs representations'
-                            % self._supported_c_types)
+        service.Validations.validate_payload_size(req)
+        service.Validations.validate_content_type(req)
 
         cross_tenant_id = req.get_param('tenant_id')
         tenant_id = req.get_header(*headers.X_TENANT_ID)

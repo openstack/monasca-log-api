@@ -44,3 +44,7 @@ class LogApiClient(service_client.ServiceClient):
         resp, body = self.post(_uri(uri), msg, default_headers)
 
         return resp, body
+
+    def custom_request(self, method, headers=None, body=None):
+        uri = '/' + _uri("/log/single")
+        self.request(method=method, url=uri, headers=headers, body=body)
