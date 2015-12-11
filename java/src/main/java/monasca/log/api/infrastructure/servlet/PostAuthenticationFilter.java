@@ -41,7 +41,7 @@ import monasca.log.api.infrastructure.servlet.PreAuthenticationFilter.ErrorCaptu
 public class PostAuthenticationFilter implements Filter {
   static final String CONFIRMED_STATUS = "CONFIRMED";
   static final String X_ROLES_ATTRIBUTE = "X-ROLES";
-  static final String X_MONASCA_AGENT = "X-MONASCA_AGENT";
+  static final String X_MONASCA_LOG_AGENT = "X-MONASCA-LOG-AGENT";
   static final String X_IDENTITY_STATUS_ATTRIBUTE = "X-IDENTITY-STATUS";
   private static final String X_TENANT_ID_ATTRIBUTE = "X-PROJECT-ID";
   static final String X_TENANT_ID_HEADER = "X-Tenant-Id";
@@ -136,7 +136,7 @@ public class PostAuthenticationFilter implements Filter {
       }
     }
     if (agentUser) {
-      request.setAttribute(X_MONASCA_AGENT, true);
+      request.setAttribute(X_MONASCA_LOG_AGENT, true);
       return true;
     }
     return false;

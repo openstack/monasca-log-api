@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
 
-import static monasca.log.api.infrastructure.servlet.PostAuthenticationFilter.X_MONASCA_AGENT;
+import static monasca.log.api.infrastructure.servlet.PostAuthenticationFilter.X_MONASCA_LOG_AGENT;
 
 public class RoleAuthorizationFilter implements ContainerRequestFilter {
   private static final Logger logger = LoggerFactory.getLogger
@@ -39,10 +39,10 @@ public class RoleAuthorizationFilter implements ContainerRequestFilter {
     @Override
     public ContainerRequest filter(ContainerRequest containerRequest) {
         String method = containerRequest.getMethod();
-        Object isAgent = httpServletRequest.getAttribute(X_MONASCA_AGENT);
+        Object isAgent = httpServletRequest.getAttribute(X_MONASCA_LOG_AGENT);
         String pathInfo = httpServletRequest.getPathInfo();
 
-        // X_MONASCA_AGENT is only set if the only valid role for this user is an agent role
+        // X_MONASCA_LOG_AGENT is only set if the only valid role for this user is an agent role
         if (isAgent != null) {
             if (!(method.equals("POST") && validPath(pathInfo, VALID_MONASCA_AGENT_POST_PATHS)) &&
                 !(method.equals("GET") && validPath(pathInfo, VALID_MONASCA_AGENT_GET_PATHS))) {

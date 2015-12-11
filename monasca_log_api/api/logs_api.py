@@ -43,4 +43,4 @@ class LogsApi(object):
         :param res: current response
 
         """
-        res.status = falcon.HTTP_501
+        res.status = falcon.HTTP_501  # pragma: no cover
