@@ -1,16 +1,16 @@
 # Monasca Log API
 
-Date: November 18, 2015
+Date: January 22, 2016
 
-Document Version: v2.1
+Document Version: v2.2
 
-# Log
-The log resource allows logs to be created.
+# Logs
+The logs resource allows logs to be created.
 
-## Create Log
-Create log.
+## Create Logs
+Create logs.
 
-### POST /v2.0/log/single
+### POST /v2.0/log/single (deprecated)
 
 #### Headers
 * X-Auth-Token (string, required) - Keystone auth token
@@ -76,6 +76,79 @@ Cache-Control: no-cache
   "from":"hoover"
 }
 
+```
+
+### Response
+#### Status Code
+* 204 - No content
+
+#### Response Body
+This request does not return a response body.
+
+=======
+### POST /v3.0/logs
+
+#### Headers
+* X-Auth-Token (string, required) - Keystone auth token
+* Content-Type (string, required) - application/json
+
+#### Path Parameters
+None.
+
+#### Query Parameters
+* tenant_id (string, optional, restricted) - Tenant ID to create log on behalf of. Usage of this query parameter requires the `monitoring-delegate` role.
+
+#### Request Body
+JSON object which can have a maximum size of 5 MB. It consists of global
+dimensions (optional) and array of logs.
+Dimensions is a dictionary of key-value pairs and should be consistent with
+metric dimensions.
+
+Logs is an array of JSON objects describing the log entries. Every log object
+can have individual set of dimensions which has higher precedence than global
+ones. It should be noted that dimensions presented in each log record are also
+optional.
+
+    If both global (at the root level) and local (at log entry level)
+    dimensions would be present, they will be merged into one dictionary.
+    Please note that local dimensions are logically considered as more
+    specific thus in case of conflict (i.e. having two entries with the same
+    key in both global and local dimensions) local dimensions take
+    precedence over global dimensions.
+
+#### Request Examples
+
+POST logs
+
+```
+POST /v3.0/logs HTTP/1.1
+Host: 192.168.10.4:5607
+Content-Type: application/json
+X-Auth-Token: 27feed73a0ce4138934e30d619b415b0
+Cache-Control: no-cache
+
+{
+    "dimensions":{
+        "hostname":"mini-mon",
+        "service":"monitoring"
+    },
+    "logs":[
+        {
+            "message":"msg1",
+            "dimensions":{
+                "component":"mysql",
+                "path":"/var/log/mysql.log"
+            }
+        },
+        {
+            "message":"msg2",
+            "dimensions":{
+                "component":"monasca-api",
+                "path":"/var/log/monasca/monasca-api.log"
+            }
+        }
+    ]
+}
 ```
 
 ### Response
