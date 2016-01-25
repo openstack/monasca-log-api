@@ -54,7 +54,7 @@ def _intersect(a, b):
     return list(set(a) & set(b))
 
 
-class RoleMiddleware(om.Middleware):
+class RoleMiddleware(om.ConfigurableMiddleware):
     """Authorization middleware for X-Roles header.
 
     RoleMiddleware is responsible for authorizing user's
@@ -96,8 +96,8 @@ class RoleMiddleware(om.Middleware):
 
     """
 
-    def __init__(self, application):
-        super(RoleMiddleware, self).__init__(application)
+    def __init__(self, application, conf=None):
+        super(RoleMiddleware, self).__init__(application, conf)
         middleware = CONF.roles_middleware
 
         self._path = middleware.path
