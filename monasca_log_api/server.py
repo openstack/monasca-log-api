@@ -37,14 +37,17 @@ dispatcher_opts = [
     cfg.StrOpt('healthchecks',
                default=None,
                required=True,
-               help='Healthchecks endpoint')
+               help='Healthchecks endpoint'),
+    cfg.StrOpt('logs_v3',
+               default=None,
+               help='Logs')
 ]
 dispatcher_group = cfg.OptGroup(name='dispatcher', title='dispatcher')
 CONF.register_group(dispatcher_group)
 CONF.register_opts(dispatcher_opts, dispatcher_group)
 
 
-def launch(conf, config_file='/etc/monasca/log-api-config.conf'):
+def launch(conf, config_file='etc/monasca/log-api-config.conf'):
     if conf and 'config_file' in conf:
         config_file = conf.get('config_file')
 
@@ -75,6 +78,9 @@ def load_logs_resource(app):
     logs = simport.load(CONF.dispatcher.logs)()
     app.add_route('/v2.0/log/single', logs)
 
+    logs_v3 = simport.load(CONF.dispatcher.logs_v3)()
+    app.add_route('/v3.0/logs', logs_v3)
+
 
 def load_versions_resource(app):
     versions = simport.load(CONF.dispatcher.versions)()
@@ -86,7 +92,7 @@ if __name__ == '__main__':
 
     base_path = '%s/..' % os.getcwd()
     global_conf = {'config_file': (
-        '%s/%s' % (base_path, '/etc/monasca/log-api-config.conf'))}
+        '%s/%s' % (base_path, 'etc/monasca/log-api-config.conf'))}
 
     wsgi_app = (
         paste.deploy.loadapp(
@@ -96,5 +102,5 @@ if __name__ == '__main__':
         )
     )
 
-    httpd = simple_server.make_server('127.0.0.1', 8080, wsgi_app)
+    httpd = simple_server.make_server('127.0.0.1', 8074, wsgi_app)
     httpd.serve_forever()

@@ -13,7 +13,7 @@ cover
 ChangeLog
 MANIFEST
 AUTHORS
-monasca.log
+monasca-log-api.log
 
 
 *.swp
@@ -31,3 +31,4 @@ test-output/
 logs/
 *config*.yml
 db/config.yml
+.venv
