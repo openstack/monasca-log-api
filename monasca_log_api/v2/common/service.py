@@ -18,12 +18,12 @@ import re
 import sys
 
 from falcon import errors as falcon_errors
+from monasca_common.rest import utils as rest_utils
 from oslo_config import cfg
 from oslo_log import log
 
 from monasca_log_api.api import exceptions
 from monasca_log_api.api import logs_api
-from monasca_log_api.api import rest_utils
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF

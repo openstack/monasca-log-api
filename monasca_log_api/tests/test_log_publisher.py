@@ -19,7 +19,7 @@ import unittest
 
 from falcon import testing
 import mock
-import simplejson
+import ujson
 
 from monasca_log_api.tests import base
 from monasca_log_api.v2.common import log_publisher
@@ -174,8 +174,9 @@ class TestSendMessage(testing.TestBase):
         instance = log_publisher.LogPublisher()
         instance._kafka_publisher = mock.Mock()
         instance.send_message({})
+        expected_key = 'some_key'
         instance._build_key = mock.Mock(name='_build_key',
-                                        return_value='some_key')
+                                        return_value=expected_key)
 
         creation_time = ((datetime.datetime.utcnow() - EPOCH_START)
                          .total_seconds())
@@ -203,8 +204,8 @@ class TestSendMessage(testing.TestBase):
 
         instance._kafka_publisher.publish.assert_called_once_with(
             self.conf.conf.log_publisher.topics[0],
-            # 'some_key',  # TODO(feature) next version of monasca-common
-            simplejson.dumps(msg))
+            ujson.dumps(msg),
+            expected_key)
 
     @mock.patch('monasca_log_api.v2.common.log_publisher.producer'
                 '.KafkaProducer')
@@ -215,8 +216,9 @@ class TestSendMessage(testing.TestBase):
         instance = log_publisher.LogPublisher()
         instance._kafka_publisher = mock.Mock()
         instance.send_message({})
+        expected_key = 'some_key'
         instance._build_key = mock.Mock(name='_build_key',
-                                        return_value='some_key')
+                                        return_value=expected_key)
 
         creation_time = ((datetime.datetime.utcnow() - EPOCH_START)
                          .total_seconds())
@@ -239,7 +241,7 @@ class TestSendMessage(testing.TestBase):
                 'tenantId': 1
             }
         }
-        json_msg = simplejson.dumps(msg)
+        json_msg = ujson.dumps(msg)
 
         instance.send_message(msg)
 
@@ -248,5 +250,5 @@ class TestSendMessage(testing.TestBase):
         for topic in topics:
             instance._kafka_publisher.publish.assert_any_call(
                 topic,
-                # 'some_key', # TODO(feature) next version of monasca-common
-                json_msg)
+                json_msg,
+                expected_key)

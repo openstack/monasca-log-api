@@ -14,9 +14,9 @@
 # under the License.
 
 from monasca_common.kafka import producer
+from monasca_common.rest import utils as rest_utils
 from oslo_config import cfg
 from oslo_log import log
-import simplejson as json
 
 from monasca_log_api.v2.common import service
 
@@ -62,6 +62,7 @@ class LogPublisher(object):
     .. _monasca_common: https://github.com/openstack/monasca-common
 
     """
+
     def __init__(self):
         self._topics = CONF.log_publisher.topics
         self._kafka_publisher = None
@@ -157,20 +158,17 @@ class LogPublisher(object):
             raise InvalidMessageException()
 
         key = self._build_key(message['meta']['tenantId'], message['log'])
-        msg = json.dumps(message,
-                         sort_keys=False,
-                         ensure_ascii=False).encode('utf8')
+        msg = rest_utils.as_json(message).encode('utf8')
 
         service.Validations.validate_envelope_size(msg)
 
-        # TODO(feature) next version of monasca-common
-        LOG.debug('Build key [%s] for message' % key)
-        LOG.debug('Sending message {topics=%s,key=%s,message=%s}' %
-                  (self._topics, key, msg))
+        LOG.debug('Build key [%s] for message', key)
+        LOG.debug('Sending message {topics=%s,key=%s,message=%s}',
+                  self._topics, key, msg)
 
         try:
             for topic in self._topics:
-                self._publisher().publish(topic, msg)
+                self._publisher().publish(topic, msg, key)
         except Exception as ex:
             LOG.error(ex.message)
             raise ex

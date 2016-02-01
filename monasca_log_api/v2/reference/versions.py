@@ -14,9 +14,9 @@
 # under the License.
 
 import falcon
+from monasca_common.rest import utils as rest_utils
 from oslo_log import log
 
-from monasca_log_api.api import rest_utils
 from monasca_log_api.api import versions_api
 
 LOG = log.getLogger(__name__)
