@@ -3,10 +3,12 @@
 ## Installation
 
 To install the python api implementation, git clone the source and run the
-following command::
+following command:
 ```sh
     sudo python setup.py install
 ```
+
+## Configuration
 
 If it installs successfully, you will need to make changes to the following
 two files to reflect your system settings, especially where kafka server is
@@ -18,23 +20,80 @@ located::
 ```
 
 Once the configurations are modified to match your environment, you can start
-up the server by following the following instructions.
+up the server using either Gunicorn or Apache.
 
-To start the server, run the following command:
+## Start the Server -- for Gunicorn
 
-Running the server in foreground mode
+The server can be run in the foreground, or as daemons:
+
+Running the server in foreground mode with Gunicorn:
+
 ```sh
     gunicorn -k eventlet --worker-connections=2000 --backlog=1000
              --paste /etc/monasca/log-api.ini
 ```
 
-Running the server as daemons
+Running the server as daemons with Gunicorn:
+
 ```sh
     gunicorn -k eventlet --worker-connections=2000 --backlog=1000
              --paste /etc/monasca/log-api.ini -D
 ```
 
+## Start the Server -- for Apache
+
+To start the server using Apache: create a modwsgi file,
+create a modwsgi config file, and enable the wsgi module
+in Apache.
+
+The modwsgi conf file may look something like this, and the site will need to be enabled:
+
+```sh
+    Listen myhost:8082
+    Listen 127.0.0.1:8082
+
+    <VirtualHost *:8082>
+        WSGIDaemonProcess log-api processes=4 threads=4 socket-timeout=120 user=log group=log python-path=/usr/local/lib/python2.7/site-packages
+        WSGIProcessGroup log-api
+        WSGIApplicationGroup log-api
+        WSGIScriptAlias / /var/www/log/log-api.wsgi
+
+        ErrorLog /var/log/log-api/wsgi.log
+        LogLevel info
+        CustomLog /var/log/log-api/wsgi-access.log combined
+
+        <Directory /usr/local/lib/python2.7/site-packages/monasca_log_api>
+          Options Indexes FollowSymLinks MultiViews
+          Require all granted
+          AllowOverride None
+          Order allow,deny
+          allow from all
+          LimitRequestBody 102400
+        </Directory>
+
+        SetEnv no-gzip 1
+
+    </VirtualHost>
+
+```
+
+The wsgi file may look something like this:
+
+```sh
+    from monasca_log_api.server import get_wsgi_app
+
+    application = get_wsgi_app(config_base_path='/etc/monasca')
+```
+
+
 ## Testing
+
+### Commandline run
+To check the server from the commandline:
+
+```sh
+    python server.py
+```
 
 ### PEP8 guidelines
 To check if the code follows python coding style, run the following command
@@ -44,7 +103,7 @@ from the root directory of this project:
     tox -e pep8
 ```
 
-### Testing
+### Unit Tests
 To run all the unit test cases, run the following command from the root
 directory of this project:
 
