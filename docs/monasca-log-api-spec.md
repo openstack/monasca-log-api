@@ -84,3 +84,38 @@ Cache-Control: no-cache
 
 #### Response Body
 This request does not return a response body.
+
+
+# Healthcheck
+
+    Note that following part is updated for Python implementation.
+
+The *Monasca Log API* comes with a built-in health check mechanism.
+It is available in two flavors, both accessible under ```/healthcheck```
+endpoint.
+
+## Complex check
+The complex check not only returns a response with success code if *Monasca Log API*
+is up and running but it also verifies if peripheral components, such as **Kafka**,
+are healthy too.
+
+*Monasca Log API* will respond with following codes:
+
+* 200 - both API and external components are healthy.
+* 503 - API is running but problems with peripheral components have been spotted.
+
+Example:
+```curl -XGET 192.168.10.4:8080/healthcheck```
+
+### Peripheral checks
+
+* **Kafka** is considered healthy if connection to broker can be established
+and configured topics can be found.
+
+## Simple check
+The simple check only returns response only if *Monasca Log API* is up and running.
+It does not return any data because it is accessible only for ```HEAD``` requests.
+If the *Monasca Log API* is running the following response code: ```204``` is expected.
+
+Example:
+```curl -XHEAD 192.168.10.4:8080/healthcheck```
