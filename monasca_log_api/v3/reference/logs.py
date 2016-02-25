@@ -29,6 +29,7 @@ LOG = log.getLogger(__name__)
 
 
 class Logs(logs_v3_api.LogsV3Api):
+
     def __init__(self):
         super(Logs, self).__init__()
         self._service_config = cfg.CONF.service
@@ -67,37 +68,43 @@ class Logs(logs_v3_api.LogsV3Api):
                 )
 
     def _get_dimensions(self, log_element):
-        '''Get the dimensions in the log element.'''
+        """Get the dimensions in the log element."""
         if 'dimensions' not in log_element:
             raise exceptions.HTTPUnprocessableEntity(
                 'Unprocessable Entity Dimensions not found')
         return log_element['dimensions']
 
     def _get_log_message(self, log_element):
-        '''Get the message in the log element.'''
+        """Get the message in the log element."""
         if 'message' not in log_element:
             raise exceptions.HTTPUnprocessableEntity(
                 'Unprocessable Entity Log message not found')
         return log_element['message']
 
     def _get_logs(self, request_body):
-        '''Get the logs in the HTTP request body.'''
+        """Get the logs in the HTTP request body."""
         if 'logs' not in request_body:
             raise exceptions.HTTPUnprocessableEntity(
                 'Unprocessable Entity Logs not found')
         return request_body['logs']
 
     def _create_log_envelope(self, tenant_id, cross_tenant_id, region='',
-                             dimensions={}, logs={}):
-        '''Create a log envelope and return it as a json string.'''
+                             dimensions=None, log_message=None):
+        """Create a log envelope and return it as a json string."""
+        if log_message is None:
+            log_message = {}
+        if dimensions is None:
+            dimensions = {}
+
+        log_message['dimensions'] = dimensions
+
         envelope = {
             'creation_time': timeutils.utcnow_ts(),
             'meta': {
                 'tenantId': tenant_id if tenant_id else cross_tenant_id,
                 'region': region
             },
-            'dimensions': dimensions,
-            'logs': logs
+            'log': log_message
         }
         return rest_utils.as_json(envelope)
 
