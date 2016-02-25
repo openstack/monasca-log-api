@@ -69,21 +69,21 @@ class Logs(logs_v3_api.LogsV3Api):
     def _get_dimensions(self, log_element):
         '''Get the dimensions in the log element.'''
         if 'dimensions' not in log_element:
-            raise exceptions.HTTPUnprocessableEntityError(
+            raise exceptions.HTTPUnprocessableEntity(
                 'Unprocessable Entity Dimensions not found')
         return log_element['dimensions']
 
     def _get_log_message(self, log_element):
         '''Get the message in the log element.'''
         if 'message' not in log_element:
-            raise exceptions.HTTPUnprocessableEntityError(
+            raise exceptions.HTTPUnprocessableEntity(
                 'Unprocessable Entity Log message not found')
         return log_element['message']
 
     def _get_logs(self, request_body):
         '''Get the logs in the HTTP request body.'''
         if 'logs' not in request_body:
-            raise exceptions.HTTPUnprocessableEntityError(
+            raise exceptions.HTTPUnprocessableEntity(
                 'Unprocessable Entity Logs not found')
         return request_body['logs']
 
