@@ -45,13 +45,13 @@ dispatcher_opts = [
 dispatcher_group = cfg.OptGroup(name='dispatcher', title='dispatcher')
 CONF.register_group(dispatcher_group)
 CONF.register_opts(dispatcher_opts, dispatcher_group)
+log.register_options(CONF)
 
 
 def launch(conf, config_file='etc/monasca/log-api-config.conf'):
     if conf and 'config_file' in conf:
         config_file = conf.get('config_file')
 
-    log.register_options(CONF)
     log.set_defaults()
     CONF(args=[],
          project='monasca_log_api',
@@ -88,19 +88,24 @@ def load_versions_resource(app):
     app.add_route("/{version_id}", versions)
 
 
-if __name__ == '__main__':
-
-    base_path = '%s/..' % os.getcwd()
+def get_wsgi_app(config_base_path=None):
+    if config_base_path is None:
+        config_base_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), '../etc/monasca')
     global_conf = {'config_file': (
-        '%s/%s' % (base_path, 'etc/monasca/log-api-config.conf'))}
+        os.path.join(config_base_path, 'log-api-config.conf'))}
 
     wsgi_app = (
         paste.deploy.loadapp(
-            'config:etc/monasca/log-api-config.ini',
-            relative_to=base_path,
+            'config:log-api-config.ini',
+            relative_to=config_base_path,
             global_conf=global_conf
         )
     )
+    return wsgi_app
 
+if __name__ == '__main__':
+
+    wsgi_app = get_wsgi_app()
     httpd = simple_server.make_server('127.0.0.1', 8074, wsgi_app)
     httpd.serve_forever()
