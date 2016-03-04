@@ -300,7 +300,7 @@
                                         implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>monasca.api.MonApiApplication</mainClass>
+                                    <mainClass>monasca.log.api.MonApiApplication</mainClass>
                                 </transformer>
                             </transformers>
                             <shadedArtifactAttached>true</shadedArtifactAttached>
@@ -315,7 +315,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <packageName>monasca.api</packageName>
+                            <packageName>monasca.log.api</packageName>
                         </manifest>
                         <manifestEntries>
                             <Implementation-Version>${project.artifactId}-${computedVersion}</Implementation-Version>
@@ -358,7 +358,7 @@
                                 <data>
                                     <type>file</type>
                                     <src>${project.build.directory}/${shadedJarName}.jar</src>
-                                    <dst>/opt/monasca/monasca-api.jar</dst>
+                                    <dst>/opt/monasca/monasca-log-api.jar</dst>
                                 </data>
                                 <data>
                                     <type>file</type>
