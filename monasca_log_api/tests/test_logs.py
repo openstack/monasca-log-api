@@ -1,5 +1,5 @@
 # Copyright 2015 kornicameister@gmail.com
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2016 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -20,8 +20,8 @@ import mock
 from monasca_log_api.api import exceptions as log_api_exceptions
 from monasca_log_api.api import headers
 from monasca_log_api.api import logs_api
+from monasca_log_api.reference.v2 import logs
 from monasca_log_api.tests import base
-from monasca_log_api.v2.reference import logs
 
 
 class TestLogs(testing.TestBase):
@@ -44,8 +44,10 @@ class TestLogs(testing.TestBase):
         )
         self.assertEqual(falcon.HTTP_403, self.srmock.status)
 
-    @mock.patch('monasca_log_api.v2.common.service.LogCreator')
-    @mock.patch('monasca_log_api.v2.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    @mock.patch(
+        'monasca_log_api.reference.v2.common.log_publisher.LogPublisher'
+    )
     def test_should_pass_empty_cross_tenant_id_wrong_role(self,
                                                           log_creator,
                                                           kafka_publisher):
@@ -68,8 +70,10 @@ class TestLogs(testing.TestBase):
         self.assertEqual(1, log_creator.new_log.call_count)
         self.assertEqual(1, log_creator.new_log_envelope.call_count)
 
-    @mock.patch('monasca_log_api.v2.common.service.LogCreator')
-    @mock.patch('monasca_log_api.v2.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    @mock.patch(
+        'monasca_log_api.reference.v2.common.log_publisher.LogPublisher'
+    )
     def test_should_pass_empty_cross_tenant_id_ok_role(self,
                                                        log_creator,
                                                        kafka_publisher):
@@ -92,8 +96,10 @@ class TestLogs(testing.TestBase):
         self.assertEqual(1, log_creator.new_log.call_count)
         self.assertEqual(1, log_creator.new_log_envelope.call_count)
 
-    @mock.patch('monasca_log_api.v2.common.service.LogCreator')
-    @mock.patch('monasca_log_api.v2.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    @mock.patch(
+        'monasca_log_api.reference.v2.common.log_publisher.LogPublisher'
+    )
     def test_should_pass_delegate_cross_tenant_id_ok_role(self,
                                                           log_creator,
                                                           log_publisher):
@@ -117,7 +123,7 @@ class TestLogs(testing.TestBase):
         self.assertEqual(1, log_creator.new_log.call_count)
         self.assertEqual(1, log_creator.new_log_envelope.call_count)
 
-    @mock.patch('monasca_log_api.v2.common.service.rest_utils')
+    @mock.patch('monasca_common.rest.utils')
     def test_should_fail_empty_dimensions_delegate(self, rest_utils):
         rest_utils.read_body.return_value = True
 
@@ -129,7 +135,8 @@ class TestLogs(testing.TestBase):
                 headers.X_DIMENSIONS.name: '',
                 'Content-Type': 'application/json',
                 'Content-Length': '0'
-            }
+            },
+            body='{"message":"test"}'
         )
         self.assertEqual(log_api_exceptions.HTTP_422, self.srmock.status)
 

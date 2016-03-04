@@ -1,5 +1,5 @@
 # Copyright 2015 kornicameister@gmail.com
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2016 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -24,8 +24,8 @@ import mock
 
 from monasca_log_api.api import exceptions
 from monasca_log_api.api import logs_api
+from monasca_log_api.reference.v2.common import service as common_service
 from monasca_log_api.tests import base
-from monasca_log_api.v2.common import service as common_service
 
 
 class IsDelegate(unittest.TestCase):

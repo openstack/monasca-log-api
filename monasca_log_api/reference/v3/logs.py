@@ -22,8 +22,8 @@ from oslo_utils import timeutils
 from monasca_log_api.api import exceptions
 from monasca_log_api.api import headers
 from monasca_log_api.api import logs_v3_api
-from monasca_log_api.v2.common import service
-from monasca_log_api.v3.reference import helpers
+from monasca_log_api.reference.v2.common import service
+from monasca_log_api.reference.v3.common import helpers
 
 LOG = log.getLogger(__name__)
 

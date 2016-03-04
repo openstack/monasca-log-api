@@ -1,5 +1,5 @@
 # Copyright 2015 kornicameister@gmail.com
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2016 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -15,15 +15,14 @@
 
 import datetime
 import random
+import ujson
 import unittest
 
 from falcon import testing
 import mock
-import ujson
 
+from monasca_log_api.reference.v2.common import log_publisher
 from monasca_log_api.tests import base
-from monasca_log_api.v2.common import log_publisher
-
 
 EPOCH_START = datetime.datetime(1970, 1, 1)
 
@@ -108,7 +107,7 @@ class TestSendMessage(testing.TestBase):
         self.conf = base.mock_config(self)
         return super(TestSendMessage, self).setUp()
 
-    @mock.patch('monasca_log_api.v2.common.log_publisher.producer'
+    @mock.patch('monasca_log_api.reference.v2.common.log_publisher.producer'
                 '.KafkaProducer')
     def test_should_not_send_empty_message(self, _):
         instance = log_publisher.LogPublisher()
@@ -168,7 +167,7 @@ class TestSendMessage(testing.TestBase):
                               instance.send_message,
                               tmp_message)
 
-    @mock.patch('monasca_log_api.v2.common.log_publisher.producer'
+    @mock.patch('monasca_log_api.reference.v2.common.log_publisher.producer'
                 '.KafkaProducer')
     def test_should_send_message(self, _):
         instance = log_publisher.LogPublisher()
@@ -207,7 +206,7 @@ class TestSendMessage(testing.TestBase):
             ujson.dumps(msg),
             expected_key)
 
-    @mock.patch('monasca_log_api.v2.common.log_publisher.producer'
+    @mock.patch('monasca_log_api.reference.v2.common.log_publisher.producer'
                 '.KafkaProducer')
     def test_should_send_message_multiple_topics(self, _):
         topics = ['logs', 'analyzer', 'tester']

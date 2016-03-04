@@ -1,4 +1,4 @@
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2016 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -18,8 +18,8 @@ import mock
 import simplejson as json
 
 from monasca_log_api.healthcheck import kafka_check as healthcheck
+from monasca_log_api.reference import healthchecks
 from monasca_log_api.tests import base
-from monasca_log_api.v2.reference import healthchecks
 
 ENDPOINT = '/healthcheck'
 
