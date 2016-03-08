@@ -20,68 +20,104 @@ from oslo_log import log
 from monasca_log_api.api import versions_api
 
 LOG = log.getLogger(__name__)
-VERSIONS = {
+
+_VERSIONS_TPL_DICT = {
     'v2.0': {
         'id': 'v2.0',
         'links': [
             {
-                'rel': 'self',
-                'href': ''
-            },
+                'rel': 'logs',
+                'href': '/log/single'
+            }
+        ],
+        'status': 'DEPRECATED',
+        'updated': "2015-09-01T00:00:00Z"
+    },
+    'v3.0': {
+        'id': 'v3.0',
+        'links': [
             {
-                'rel': 'links',
-                'href': '/log'
+                'rel': 'logs',
+                'href': '/logs'
             }
         ],
         'status': 'CURRENT',
-        'updated': "2013-03-06T00:00:00Z"
+        'updated': "2016-03-01T00:00:00Z"
     }
 }
 
 
 class Versions(versions_api.VersionsAPI):
-    """Versions Api V2."""
-    def __init__(self):
-        super(Versions, self).__init__()
+    """Versions Api"""
 
     @staticmethod
     def handle_none_version_id(req, res, result):
-        for version in VERSIONS:
-            VERSIONS[version]['links'][0]['href'] = (
-                req.uri.decode('utf8') + version)
-            result['elements'].append(VERSIONS[version])
-        res.body = rest_utils.as_json(result)
+        for version in _VERSIONS_TPL_DICT:
+            selected_version = _parse_version(version, req)
+            result['elements'].append(selected_version)
+        res.body = rest_utils.as_json(result, sort_keys=True)
         res.status = falcon.HTTP_200
 
     @staticmethod
-    def handle_version_id(req, res, version_id):
-        if version_id in VERSIONS:
-            VERSIONS[version_id]['links'][0]['href'] = (
-                req.uri.decode(rest_utils.ENCODING)
-            )
-            for version in VERSIONS:
-                VERSIONS[version]['links'][0]['href'] = (
-                    req.uri.decode('utf8')
-                )
-            VERSIONS[version_id]['links'][1]['href'] = (
-                req.uri.decode('utf8') +
-                VERSIONS[version_id]['links'][1]['href']
-            )
-            res.body = rest_utils.as_json(VERSIONS[version_id])
+    def handle_version_id(req, res, result, version_id):
+        if version_id in _VERSIONS_TPL_DICT:
+            result['elements'].append(_parse_version(version_id, req))
+            res.body = rest_utils.as_json(result, sort_keys=True)
             res.status = falcon.HTTP_200
         else:
-            res.body = 'Invalid Version ID'
+            error_body = {'message': '%s is not valid version' % version_id}
+            res.body = rest_utils.as_json(error_body)
             res.status = falcon.HTTP_400
 
     def on_get(self, req, res, version_id=None):
         result = {
-            'links': [{
-                'rel': 'self',
-                'href': req.uri.decode(rest_utils.ENCODING)
-            }],
+            'links': _get_common_links(req),
             'elements': []
         }
         if version_id is None:
             self.handle_none_version_id(req, res, result)
         else:
-            self.handle_version_id(req, res, version_id)
+            self.handle_version_id(req, res, result, version_id)
+
+
+def _get_common_links(req):
+    self_uri = req.uri.decode(rest_utils.ENCODING)
+    base_uri = self_uri.replace(req.path, '')
+    return [
+        {
+            'rel': 'self',
+            'href': self_uri
+        },
+        {
+            'rel': 'version',
+            'href': '%s/version' % base_uri
+        },
+        {
+            'rel': 'healthcheck',
+            'href': '%s/healthcheck' % base_uri
+        }
+    ]
+
+
+def _parse_version(version_id, req):
+    self_uri = req.uri.decode('utf-8')
+    base_uri = self_uri.replace(req.path, '')
+
+    # need to get template dict, consecutive calls
+    # needs to operate on unmodified instance
+
+    selected_version = _VERSIONS_TPL_DICT[version_id].copy()
+    raw_links = selected_version['links']
+    links = []
+
+    for link in raw_links:
+        raw_link_href = link.get('href')
+        raw_link_rel = link.get('rel')
+        link_href = base_uri + '/' + version_id + raw_link_href
+        links.append({
+            'href': link_href,
+            'rel': raw_link_rel
+        })
+    selected_version['links'] = links
+
+    return selected_version

@@ -1,4 +1,4 @@
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2016 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -16,6 +16,9 @@ from keystonemiddleware import auth_token
 from oslo_log import log
 
 LOG = log.getLogger(__name__)
+
+_SKIP_PATH = '/version', '/healthcheck'
+"""Tuple of non-application endpoints"""
 
 
 class SkippingAuthProtocol(auth_token.AuthProtocol):
@@ -35,10 +38,12 @@ class SkippingAuthProtocol(auth_token.AuthProtocol):
 
     def process_request(self, request):
         path = request.path
-        if path == '/healthcheck':
-            LOG.debug(('Request path is %s and it does not require keystone '
-                       'communication'), path)
-            return None  # return NONE to reach actual logic
+        for p in _SKIP_PATH:
+            if path.startswith(p):
+                LOG.debug(
+                    ('Request path is %s and it does not require keystone '
+                     'communication'), path)
+                return None  # return NONE to reach actual logic
 
         return super(SkippingAuthProtocol, self).process_request(request)
 

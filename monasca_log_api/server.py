@@ -1,5 +1,5 @@
 # Copyright 2015 kornicameister@gmail.com
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2016 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -84,8 +84,8 @@ def load_logs_resource(app):
 
 def load_versions_resource(app):
     versions = simport.load(CONF.dispatcher.versions)()
-    app.add_route("/", versions)
-    app.add_route("/{version_id}", versions)
+    app.add_route("/version", versions)
+    app.add_route("/version/{version_id}", versions)
 
 
 def get_wsgi_app(config_base_path=None):
