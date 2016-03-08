@@ -16,7 +16,7 @@ Create log.
 * X-Auth-Token (string, required) - Keystone auth token
 * Content-Type (string, required) - application/json; text/plain
 * X-Application-Type (string(255), optional) - Type of application
-* X-Dimensions ({string(255):string(255)}, optional) - A dictionary consisting of (key, value) pairs used to structure logs.
+* X-Dimensions ({string(255):string(255)}, required) - A dictionary consisting of (key, value) pairs used to structure logs.
 
 #### Path Parameters
 None.

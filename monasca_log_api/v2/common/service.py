@@ -262,6 +262,20 @@ class Validations(object):
                 description=u'Maximum allowed size is %d bytes' % max_size
             )
 
+    @staticmethod
+    def validate_log_message(log_object):
+        """Validates log property.
+
+        Log property should have message property.
+
+        Args:
+            log_object (dict): log property
+           """
+        if 'message' not in log_object:
+            raise exceptions.HTTPUnprocessableEntity(
+                'Log property should have message'
+            )
+
 
 class LogCreator(object):
     """Transforms logs,
@@ -342,6 +356,8 @@ class LogCreator(object):
             log_object.update(payload)
         else:
             log_object.update({'message': payload})
+
+        Validations.validate_log_message(log_object)
 
         log_object.update({
             'application_type': application_type,

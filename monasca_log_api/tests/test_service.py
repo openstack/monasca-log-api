@@ -350,6 +350,30 @@ class EnvelopeSizeValidations(testing.TestBase):
         )
 
 
+class LogMessageValidations(testing.TestBase):
+
+    def test_should_pass_message_in_log_property(self):
+        log_object = {
+            'message': 'some messages',
+            'application_type': 'monasca-log-api',
+            'dimensions': {
+                'hostname': 'devstack'
+            }
+        }
+        common_service.Validations.validate_log_message(log_object)
+
+    @unittest.expectedFailure
+    def test_should_fail_pass_for_non_message_in_log_property(self):
+        log_object = {
+            'massage': 'some messages',
+            'application_type': 'monasca-log-api',
+            'dimensions': {
+                'hostname': 'devstack'
+            }
+        }
+        common_service.Validations.validate_log_message(log_object)
+
+
 class LogsCreatorNewLog(unittest.TestCase):
     def setUp(self):
         self.instance = common_service.LogCreator()
