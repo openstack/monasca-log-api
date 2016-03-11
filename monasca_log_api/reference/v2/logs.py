@@ -19,6 +19,10 @@ from monasca_log_api.api import headers
 from monasca_log_api.api import logs_api
 from monasca_log_api.reference.v2.common import log_publisher
 from monasca_log_api.reference.v2.common import service
+from monasca_log_api import uri_map
+
+_DEPRECATED_INFO = ('%s has been deprecated. Please use %s.'
+                    % (uri_map.V2_LOGS_URI, uri_map.V3_LOGS_URI))
 
 
 # TODO(idea) perhaps add it as pipeline call right before API, seems generic
@@ -45,6 +49,7 @@ class Logs(logs_api.LogsApi):
         super(Logs, self).__init__()
 
     @falcon.before(_before_logs_post)
+    @falcon.deprecated(_DEPRECATED_INFO)
     def on_post(self, req, res):
         service.Validations.validate_payload_size(req)
         service.Validations.validate_content_type(req)
@@ -61,6 +66,13 @@ class Logs(logs_api.LogsApi):
         self._kafka_publisher.send_message(envelope)
 
         res.status = falcon.HTTP_204
+        res.add_link(
+            target=str(_get_v3_link(req)),
+            rel='current',  # [RFC5005]
+            title='V3 Logs',
+            type_hint='application/json'
+        )
+        res.append_header('DEPRECATED', 'true')
 
     def get_envelope(self, log, tenant_id):
         return self._log_creator.new_log_envelope(
@@ -75,3 +87,9 @@ class Logs(logs_api.LogsApi):
             payload=request.stream,
             content_type=request.content_type
         )
+
+
+def _get_v3_link(req):
+    self_uri = req.uri.decode('UTF-8')
+    base_uri = self_uri.replace(req.relative_uri, '')
+    return '%s%s' % (base_uri, uri_map.V3_LOGS_URI)

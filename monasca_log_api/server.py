@@ -22,6 +22,8 @@ from oslo_log import log
 import paste.deploy
 import simport
 
+from monasca_log_api import uri_map
+
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
 
@@ -71,15 +73,15 @@ def launch(conf, config_file='/etc/monasca/log-api-config.conf'):
 
 def load_healthcheck_resource(app):
     healthchecks = simport.load(CONF.dispatcher.healthchecks)()
-    app.add_route('/healthcheck', healthchecks)
+    app.add_route(uri_map.HEALTHCHECK_URI, healthchecks)
 
 
 def load_logs_resource(app):
     logs = simport.load(CONF.dispatcher.logs)()
-    app.add_route('/v2.0/log/single', logs)
+    app.add_route(uri_map.V2_LOGS_URI, logs)
 
     logs_v3 = simport.load(CONF.dispatcher.logs_v3)()
-    app.add_route('/v3.0/logs', logs_v3)
+    app.add_route(uri_map.V3_LOGS_URI, logs_v3)
 
 
 def load_versions_resource(app):

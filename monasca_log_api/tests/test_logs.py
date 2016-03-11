@@ -41,6 +41,25 @@ class TestLogs(testing.TestBase):
             self.logs_resource
         )
 
+    def test_should_contain_deprecated_details_in_successful_response(self):
+        self.logs_resource._log_creator = mock.Mock()
+        self.logs_resource._kafka_publisher = mock.Mock()
+
+        self.simulate_request(
+            '/log/single',
+            method='POST',
+            headers={
+                headers.X_ROLES.name: 'some_role',
+                headers.X_DIMENSIONS.name: 'a:1',
+                'Content-Type': 'application/json',
+                'Content-Length': '0'
+            }
+        )
+
+        self.assertEqual(falcon.HTTP_204, self.srmock.status)
+        self.assertIn('deprecated', self.srmock.headers_dict)
+        self.assertIn('link', self.srmock.headers_dict)
+
     def test_should_fail_not_delegate_ok_cross_tenant_id(self):
         self.simulate_request(
             '/log/single',
