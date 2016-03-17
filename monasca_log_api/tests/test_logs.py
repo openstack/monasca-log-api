@@ -16,12 +16,20 @@
 import falcon
 from falcon import testing
 import mock
+import unittest
 
 from monasca_log_api.api import exceptions as log_api_exceptions
 from monasca_log_api.api import headers
 from monasca_log_api.api import logs_api
 from monasca_log_api.reference.v2 import logs
 from monasca_log_api.tests import base
+
+
+class TestLogsVersion(unittest.TestCase):
+
+    def test_should_return_v2_as_version(self):
+        logs_resource = logs.Logs()
+        self.assertEqual('v2.0', logs_resource.version)
 
 
 class TestLogs(testing.TestBase):

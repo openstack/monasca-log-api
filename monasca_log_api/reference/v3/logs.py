@@ -1,4 +1,5 @@
 # Copyright 2016 Hewlett Packard Enterprise Development Company, L.P.
+# Copyright 2016 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -21,14 +22,16 @@ from oslo_utils import timeutils
 
 from monasca_log_api.api import exceptions
 from monasca_log_api.api import headers
-from monasca_log_api.api import logs_v3_api
+from monasca_log_api.api import logs_api
 from monasca_log_api.reference.v2.common import service
 from monasca_log_api.reference.v3.common import helpers
 
 LOG = log.getLogger(__name__)
 
 
-class Logs(logs_v3_api.LogsV3Api):
+class Logs(logs_api.LogsApi):
+
+    VERSION = 'v3.0'
 
     def __init__(self):
         super(Logs, self).__init__()

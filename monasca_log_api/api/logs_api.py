@@ -1,5 +1,5 @@
 # Copyright 2015 kornicameister@gmail.com
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2016 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -31,7 +31,7 @@ class LogsApi(object):
     """
     def __init__(self):
         super(LogsApi, self).__init__()
-        LOG.info('Initializing LogsApi!')
+        LOG.info('Initializing LogsApi %s!' % self.version)
 
     def on_post(self, req, res):
         """Accepts sent logs as text or json.
@@ -44,3 +44,7 @@ class LogsApi(object):
 
         """
         res.status = falcon.HTTP_501  # pragma: no cover
+
+    @property
+    def version(self):
+        return getattr(self, 'VERSION')

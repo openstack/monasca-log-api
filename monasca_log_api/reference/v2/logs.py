@@ -35,7 +35,9 @@ def _before_logs_post(req, res, payload, params):
 
 
 class Logs(logs_api.LogsApi):
-    """Logs Api V1."""
+    """Logs Api V2."""
+
+    VERSION = 'v2.0'
 
     def __init__(self):
         self._log_creator = service.LogCreator()

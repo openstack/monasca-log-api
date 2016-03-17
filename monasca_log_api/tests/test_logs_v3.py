@@ -1,10 +1,10 @@
-# Copyright 2016 Hewlett Packard Enterprise Development Company, L.P.
+# Copyright 2016 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
 # a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -12,17 +12,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import falcon
-from oslo_log import log
+import mock
+import unittest
 
-LOG = log.getLogger(__name__)
+from monasca_log_api.reference.v3 import logs
 
 
-class LogsV3Api(object):
+class TestLogsVersion(unittest.TestCase):
 
-    def __init__(self):
-        super(LogsV3Api, self).__init__()
-        LOG.info('Initializing LogsV3Api!')
-
-    def on_post(self, req, res):
-        res.status = falcon.HTTP_501  # pragma: no cover
+    @mock.patch('monasca_log_api.reference.v3.logs.producer.KafkaProducer')
+    def test_should_return_v3_as_version(self, _):
+        logs_resource = logs.Logs()
+        self.assertEqual('v3.0', logs_resource.version)
