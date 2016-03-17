@@ -20,7 +20,8 @@ from monasca_log_api.reference.v3 import logs
 
 class TestLogsVersion(unittest.TestCase):
 
-    @mock.patch('monasca_log_api.reference.v3.logs.producer.KafkaProducer')
+    @mock.patch('monasca_log_api.reference.v3.logs.log_publisher'
+                '.LogPublisher')
     def test_should_return_v3_as_version(self, _):
         logs_resource = logs.Logs()
         self.assertEqual('v3.0', logs_resource.version)

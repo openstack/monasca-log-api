@@ -1,6 +1,7 @@
 # Copyright 2014 Hewlett-Packard
 # Copyright 2015 Cray Inc. All Rights Reserved.
 # Copyright 2016 Hewlett Packard Enterprise Development Company LP
+# Copyright 2016 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -36,9 +37,3 @@ def read_json_msg_body(req):
         LOG.debug(ex)
         raise falcon.HTTPBadRequest('Bad request',
                                     'Request body is not valid JSON')
-
-
-def validate_json_content_type(req):
-    if req.content_type not in ['application/json']:
-        raise falcon.HTTPBadRequest('Bad request', 'Bad content type. Must be '
-                                                   'application/json')

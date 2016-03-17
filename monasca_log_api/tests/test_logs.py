@@ -25,9 +25,16 @@ from monasca_log_api.reference.v2 import logs
 from monasca_log_api.tests import base
 
 
-class TestLogsVersion(unittest.TestCase):
+def _init_resource(test):
+    resource = logs.Logs()
+    test.api.add_route('/log/single', resource)
+    return resource
 
-    def test_should_return_v2_as_version(self):
+
+class TestLogsVersion(unittest.TestCase):
+    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    def test_should_return_v2_as_version(self, _, __):
         logs_resource = logs.Logs()
         self.assertEqual('v2.0', logs_resource.version)
 
@@ -35,15 +42,13 @@ class TestLogsVersion(unittest.TestCase):
 class TestLogs(testing.TestBase):
     def before(self):
         self.conf = base.mock_config(self)
-        self.logs_resource = logs.Logs()
-        self.api.add_route(
-            '/log/single',
-            self.logs_resource
-        )
 
-    def test_should_contain_deprecated_details_in_successful_response(self):
-        self.logs_resource._log_creator = mock.Mock()
-        self.logs_resource._kafka_publisher = mock.Mock()
+    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    def test_should_contain_deprecated_details_in_successful_response(self,
+                                                                      _,
+                                                                      __):
+        _init_resource(self)
 
         self.simulate_request(
             '/log/single',
@@ -60,7 +65,10 @@ class TestLogs(testing.TestBase):
         self.assertIn('deprecated', self.srmock.headers_dict)
         self.assertIn('link', self.srmock.headers_dict)
 
-    def test_should_fail_not_delegate_ok_cross_tenant_id(self):
+    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    def test_should_fail_not_delegate_ok_cross_tenant_id(self, _, __):
+        _init_resource(self)
         self.simulate_request(
             '/log/single',
             method='POST',
@@ -72,14 +80,13 @@ class TestLogs(testing.TestBase):
         self.assertEqual(falcon.HTTP_403, self.srmock.status)
 
     @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
-    @mock.patch(
-        'monasca_log_api.reference.v2.common.log_publisher.LogPublisher'
-    )
+    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
     def test_should_pass_empty_cross_tenant_id_wrong_role(self,
                                                           log_creator,
                                                           kafka_publisher):
-        self.logs_resource._log_creator = log_creator
-        self.logs_resource._kafka_publisher = kafka_publisher
+        logs_resource = _init_resource(self)
+        logs_resource._log_creator = log_creator
+        logs_resource._kafka_publisher = kafka_publisher
 
         self.simulate_request(
             '/log/single',
@@ -98,14 +105,13 @@ class TestLogs(testing.TestBase):
         self.assertEqual(1, log_creator.new_log_envelope.call_count)
 
     @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
-    @mock.patch(
-        'monasca_log_api.reference.v2.common.log_publisher.LogPublisher'
-    )
+    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
     def test_should_pass_empty_cross_tenant_id_ok_role(self,
                                                        log_creator,
                                                        kafka_publisher):
-        self.logs_resource._log_creator = log_creator
-        self.logs_resource._kafka_publisher = kafka_publisher
+        logs_resource = _init_resource(self)
+        logs_resource._log_creator = log_creator
+        logs_resource._kafka_publisher = kafka_publisher
 
         self.simulate_request(
             '/log/single',
@@ -124,14 +130,13 @@ class TestLogs(testing.TestBase):
         self.assertEqual(1, log_creator.new_log_envelope.call_count)
 
     @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
-    @mock.patch(
-        'monasca_log_api.reference.v2.common.log_publisher.LogPublisher'
-    )
+    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
     def test_should_pass_delegate_cross_tenant_id_ok_role(self,
                                                           log_creator,
                                                           log_publisher):
-        self.logs_resource._log_creator = log_creator
-        self.logs_resource._kafka_publisher = log_publisher
+        resource = _init_resource(self)
+        resource._log_creator = log_creator
+        resource._kafka_publisher = log_publisher
 
         self.simulate_request(
             '/log/single',
@@ -151,7 +156,9 @@ class TestLogs(testing.TestBase):
         self.assertEqual(1, log_creator.new_log_envelope.call_count)
 
     @mock.patch('monasca_common.rest.utils')
-    def test_should_fail_empty_dimensions_delegate(self, rest_utils):
+    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    def test_should_fail_empty_dimensions_delegate(self, _, rest_utils):
+        _init_resource(self)
         rest_utils.read_body.return_value = True
 
         self.simulate_request(
@@ -167,7 +174,11 @@ class TestLogs(testing.TestBase):
         )
         self.assertEqual(log_api_exceptions.HTTP_422, self.srmock.status)
 
-    def test_should_fail_for_invalid_content_type(self):
+    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    def test_should_fail_for_invalid_content_type(self, _, __):
+        _init_resource(self)
+
         self.simulate_request(
             '/log/single',
             method='POST',
@@ -180,13 +191,14 @@ class TestLogs(testing.TestBase):
         )
         self.assertEqual(falcon.HTTP_415, self.srmock.status)
 
-    def test_should_pass_payload_size_not_exceeded(self):
+    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    def test_should_pass_payload_size_not_exceeded(self, _, __):
+        _init_resource(self)
+
         max_log_size = 1000
         content_length = max_log_size - 100
         self.conf.config(max_log_size=max_log_size, group='service')
-
-        self.logs_resource._log_creator = mock.Mock()
-        self.logs_resource._kafka_publisher = mock.Mock()
 
         self.simulate_request(
             '/log/single',
@@ -200,14 +212,15 @@ class TestLogs(testing.TestBase):
         )
         self.assertEqual(falcon.HTTP_204, self.srmock.status)
 
-    def test_should_fail_payload_size_exceeded(self):
+    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    def test_should_fail_payload_size_exceeded(self, _, __):
+        _init_resource(self)
+
         max_log_size = 1000
         content_length = max_log_size + 100
         self.conf.config(max_log_size=max_log_size, group='service')
 
-        self.logs_resource._log_creator = mock.Mock()
-        self.logs_resource._kafka_publisher = mock.Mock()
-
         self.simulate_request(
             '/log/single',
             method='POST',
@@ -220,14 +233,15 @@ class TestLogs(testing.TestBase):
         )
         self.assertEqual(falcon.HTTP_413, self.srmock.status)
 
-    def test_should_fail_payload_size_equal(self):
+    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    def test_should_fail_payload_size_equal(self, _, __):
+        _init_resource(self)
+
         max_log_size = 1000
         content_length = max_log_size
         self.conf.config(max_log_size=max_log_size, group='service')
 
-        self.logs_resource._log_creator = mock.Mock()
-        self.logs_resource._kafka_publisher = mock.Mock()
-
         self.simulate_request(
             '/log/single',
             method='POST',
@@ -240,7 +254,11 @@ class TestLogs(testing.TestBase):
         )
         self.assertEqual(falcon.HTTP_413, self.srmock.status)
 
-    def test_should_fail_content_length(self):
+    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    def test_should_fail_content_length(self, _, __):
+        _init_resource(self)
+
         self.simulate_request(
             '/log/single',
             method='POST',
