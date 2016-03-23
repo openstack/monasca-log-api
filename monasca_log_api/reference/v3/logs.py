@@ -48,10 +48,10 @@ class Logs(logs_api.LogsApi):
         self._validate_cross_tenant_id(tenant_id, cross_tenant_id)
         request_body = helpers.read_json_msg_body(req)
         log_list = self._get_logs(request_body)
+        global_dimensions = self._get_global_dimensions(request_body)
         envelopes = []
         for log_element in log_list:
-            dimensions = self._get_dimensions(log_element)
-            service.Validations.validate_dimensions(dimensions)
+            dimensions = self._get_dimensions(log_element, global_dimensions)
             log_message = self._get_log_message(log_element)
             envelope = self._create_log_envelope(tenant_id, cross_tenant_id,
                                                  self._service_config.region,
@@ -70,12 +70,20 @@ class Logs(logs_api.LogsApi):
                     'Projects %s cannot POST cross tenant logs' % tenant_id
                 )
 
-    def _get_dimensions(self, log_element):
+    def _get_dimensions(self, log_element, global_dims):
         """Get the dimensions in the log element."""
-        if 'dimensions' not in log_element:
-            raise exceptions.HTTPUnprocessableEntity(
-                'Unprocessable Entity Dimensions not found')
-        return log_element['dimensions']
+        local_dims = log_element.get('dimensions', {})
+        if local_dims:
+            service.Validations.validate_dimensions(local_dims)
+            if global_dims:
+                dimensions = global_dims.copy()
+                dimensions.update(local_dims)
+            else:
+                dimensions = local_dims
+        else:
+            dimensions = global_dims
+
+        return dimensions
 
     def _get_log_message(self, log_element):
         """Get the message in the log element."""
@@ -83,6 +91,12 @@ class Logs(logs_api.LogsApi):
             raise exceptions.HTTPUnprocessableEntity(
                 'Unprocessable Entity Log message not found')
         return log_element['message']
+
+    def _get_global_dimensions(self, request_body):
+        """Get the top level dimensions in the HTTP request body."""
+        global_dims = request_body.get('dimensions', {})
+        service.Validations.validate_dimensions(global_dims)
+        return global_dims
 
     def _get_logs(self, request_body):
         """Get the logs in the HTTP request body."""
@@ -99,7 +113,8 @@ class Logs(logs_api.LogsApi):
         if dimensions is None:
             dimensions = {}
 
-        log_message['dimensions'] = dimensions
+        log = {'message': log_message,
+               'dimensions': dimensions}
 
         envelope = {
             'creation_time': timeutils.utcnow_ts(),
@@ -107,7 +122,7 @@ class Logs(logs_api.LogsApi):
                 'tenantId': tenant_id if tenant_id else cross_tenant_id,
                 'region': region
             },
-            'log': log_message
+            'log': log
         }
         return rest_utils.as_json(envelope)
 
