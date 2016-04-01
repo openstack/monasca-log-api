@@ -21,7 +21,7 @@ import unittest
 from falcon import testing
 import mock
 
-from monasca_log_api.reference.v2.common import log_publisher
+from monasca_log_api.reference.common import log_publisher
 from monasca_log_api.tests import base
 
 EPOCH_START = datetime.datetime(1970, 1, 1)
@@ -107,7 +107,7 @@ class TestSendMessage(testing.TestBase):
         self.conf = base.mock_config(self)
         return super(TestSendMessage, self).setUp()
 
-    @mock.patch('monasca_log_api.reference.v2.common.log_publisher.producer'
+    @mock.patch('monasca_log_api.reference.common.log_publisher.producer'
                 '.KafkaProducer')
     def test_should_not_send_empty_message(self, _):
         instance = log_publisher.LogPublisher()
@@ -123,7 +123,9 @@ class TestSendMessage(testing.TestBase):
         not_dict_value = 123
         instance.send_message(not_dict_value)
 
-    def test_should_not_send_message_missing_keys(self):
+    @mock.patch('monasca_log_api.reference.common.log_publisher.producer'
+                '.KafkaProducer')
+    def test_should_not_send_message_missing_keys(self, _):
         # checks every combination of missing keys
         # test does not rely on those keys having a value or not,
         # it simply assumes that values are set but important
@@ -145,7 +147,9 @@ class TestSendMessage(testing.TestBase):
                                   instance.send_message,
                                   message)
 
-    def test_should_not_send_message_missing_values(self):
+    @mock.patch('monasca_log_api.reference.common.log_publisher.producer'
+                '.KafkaProducer')
+    def test_should_not_send_message_missing_values(self, _):
         # original message assumes that every property has value
         # test modify each property one by one by removing that value
         # (i.e. creating false-like value)
@@ -167,11 +171,11 @@ class TestSendMessage(testing.TestBase):
                               instance.send_message,
                               tmp_message)
 
-    @mock.patch('monasca_log_api.reference.v2.common.log_publisher.producer'
+    @mock.patch('monasca_log_api.reference.common.log_publisher.producer'
                 '.KafkaProducer')
-    def test_should_send_message(self, _):
+    def test_should_send_message(self, kafka_producer):
         instance = log_publisher.LogPublisher()
-        instance._kafka_publisher = mock.Mock()
+        instance._kafka_publisher = kafka_producer
         instance.send_message({})
         expected_key = 'some_key'
         instance._build_key = mock.Mock(name='_build_key',
@@ -203,14 +207,15 @@ class TestSendMessage(testing.TestBase):
 
         instance._kafka_publisher.publish.assert_called_once_with(
             self.conf.conf.log_publisher.topics[0],
-            ujson.dumps(msg),
+            [ujson.dumps(msg)],
             expected_key)
 
-    @mock.patch('monasca_log_api.reference.v2.common.log_publisher.producer'
+    @mock.patch('monasca_log_api.reference.common.log_publisher.producer'
                 '.KafkaProducer')
     def test_should_send_message_multiple_topics(self, _):
         topics = ['logs', 'analyzer', 'tester']
         self.conf.config(topics=topics, group='log_publisher')
+        self.conf.config(max_log_size=5000, group='service')
 
         instance = log_publisher.LogPublisher()
         instance._kafka_publisher = mock.Mock()
@@ -249,5 +254,119 @@ class TestSendMessage(testing.TestBase):
         for topic in topics:
             instance._kafka_publisher.publish.assert_any_call(
                 topic,
-                json_msg,
+                [json_msg],
                 expected_key)
+
+    @mock.patch(
+        'monasca_log_api.reference.common.log_publisher.producer'
+        '.KafkaProducer')
+    def test_should_set_multiple_msgs_to_multiple_topics_diff_keys(self,
+                                                                   publisher):
+        topics = ['logs', 'analyzer', 'tester']
+        self.conf.config(topics=topics, group='log_publisher')
+        self.conf.config(max_log_size=5000, group='service')
+
+        instance = log_publisher.LogPublisher()
+        instance._kafka_publisher = publisher
+
+        num_of_msgs = 3
+        msgs_data = []
+        creation_time = ((datetime.datetime.utcnow() - EPOCH_START)
+                         .total_seconds())
+        for it in xrange(num_of_msgs):
+            msg = {
+                'log': {
+                    'message': it,
+                    'application_type': 'some_app_type',
+                    'dimensions': {
+                        'hostname': 'localhost',
+                        'path': '/var/log/test/%s/me.log' % it
+                    }
+                },
+                'creation_time': creation_time,
+                'meta': {
+                    'tenantId': 1
+                }
+            }
+            msgs_data.append(msg)
+
+        instance.send_message(msgs_data)
+
+        self.assertEqual(len(topics) * len(msgs_data),
+                         instance._kafka_publisher.publish.call_count)
+
+    @mock.patch(
+        'monasca_log_api.reference.common.log_publisher.producer'
+        '.KafkaProducer')
+    def test_should_set_multiple_msgs_to_multiple_topics_same_keys(self,
+                                                                   publisher):
+        topics = ['logs', 'analyzer', 'tester']
+        self.conf.config(topics=topics, group='log_publisher')
+        self.conf.config(max_log_size=5000, group='service')
+
+        instance = log_publisher.LogPublisher()
+        instance._kafka_publisher = publisher
+
+        num_of_msgs = 3
+        msgs_data = []
+        creation_time = ((datetime.datetime.utcnow() - EPOCH_START)
+                         .total_seconds())
+        for it in xrange(num_of_msgs):
+            msg = {
+                'log': {
+                    'message': it,
+                    'application_type': 'some_app_type',
+                    'dimensions': {
+                        'hostname': 'localhost',
+                        'path': '/var/log/test/same_key/me.log'
+                    }
+                },
+                'creation_time': creation_time,
+                'meta': {
+                    'tenantId': 1
+                }
+            }
+            msgs_data.append(msg)
+
+        instance.send_message(msgs_data)
+
+        self.assertEqual(len(topics),
+                         instance._kafka_publisher.publish.call_count)
+
+    @mock.patch(
+        'monasca_log_api.reference.common.log_publisher.producer'
+        '.KafkaProducer')
+    def test_should_set_multiple_msgs_to_single_topic_diff_keys(self,
+                                                                publisher):
+        topics = ['logs']
+        self.conf.config(topics=topics, group='log_publisher')
+        self.conf.config(max_log_size=5000, group='service')
+
+        instance = log_publisher.LogPublisher()
+        instance._kafka_publisher = publisher
+
+        num_of_msgs = 3
+        msgs_data = []
+        creation_time = ((datetime.datetime.utcnow() - EPOCH_START)
+                         .total_seconds())
+        for it in xrange(num_of_msgs):
+            msg = {
+                'log': {
+                    'message': it,
+                    'application_type': 'some_app_type',
+                    'dimensions': {
+                        'hostname': 'localhost',
+                        'path': '/var/log/test/%s/me.log' % it
+                    }
+                },
+                'creation_time': creation_time,
+                'meta': {
+                    'tenantId': 1
+                }
+            }
+            msgs_data.append(msg)
+
+        instance.send_message(msgs_data)
+
+        self.assertEqual(len(msgs_data),
+                         instance._kafka_publisher.publish.call_count)

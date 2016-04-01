@@ -13,12 +13,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import itertools
+
 from monasca_common.kafka import producer
 from monasca_common.rest import utils as rest_utils
 from oslo_config import cfg
 from oslo_log import log
 
-from monasca_log_api.reference.v2.common import service
+from monasca_log_api.reference.common import validation
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
@@ -65,11 +67,13 @@ class LogPublisher(object):
 
     def __init__(self):
         self._topics = CONF.log_publisher.topics
-        self._kafka_publisher = None
+        self._kafka_publisher = producer.KafkaProducer(
+            url=CONF.log_publisher.kafka_url
+        )
         LOG.info('Initializing LogPublisher <%s>', self)
 
     @staticmethod
-    def _build_key(tenant_it, obj):
+    def _build_key(tenant_it, obj=None):
         """Message key builder
 
         Builds message key using tenant_id and following details of
@@ -81,21 +85,25 @@ class LogPublisher(object):
         :return: key
         """
 
-        str_list = []
+        # TODO(trebskit) figure out candidates to build key
+        # that would match both v2 and v3 (note application_type not
+        # directly available in v3)
+        # proposal => tenant_id + region +
+        #       dimensions['component'] + dimensions['path']
+        # last two only use if available
 
-        if tenant_it:
-            str_list.append(str(tenant_it))
+        if obj is None:
+            obj = {}
+        if not (tenant_it or obj):
+            return ''
 
-        if obj:
-            if 'application_type' in obj and obj['application_type']:
-                str_list += obj['application_type']
+        str_list = [str(tenant_it), obj.get('application_type', '')]
 
-            if 'dimensions' in obj and obj['dimensions']:
-                dims = obj['dimensions']
-                sorted_dims = sorted(dims)
-                for name in sorted_dims:
-                    str_list += name
-                    str_list += str(dims[name])
+        dims = obj.get('dimensions', {})
+        sorted_dims = sorted(dims)
+        for name in sorted_dims:
+            str_list.append(name)
+            str_list.append(dims.get(name, ''))
 
         return ''.join(str_list)
 
@@ -127,14 +135,7 @@ class LogPublisher(object):
 
         return True
 
-    def _publisher(self):
-        if not self._kafka_publisher:
-            self._kafka_publisher = producer.KafkaProducer(
-                url=CONF.log_publisher.kafka_url
-            )
-        return self._kafka_publisher
-
-    def send_message(self, message):
+    def send_message(self, messages):
         """Sends message to each configured topic.
 
         Prior to sending a message, unique key is being
@@ -150,25 +151,63 @@ class LogPublisher(object):
         See :py:meth:`monasca_log_api.v2.common.service.LogCreator`
                     `.new_log_envelope`
 
-        :param dict message: instance of log envelope
+        :param dict|list messages: instance (or instances) of log envelope
         """
-        if not message:
+
+        if not messages:
             return
-        if not self._is_message_valid(message):
-            raise InvalidMessageException()
+        if not isinstance(messages, list):
+            messages = [messages]
 
-        key = self._build_key(message['meta']['tenantId'], message['log'])
-        msg = rest_utils.as_json(message).encode('utf8')
+        buckets = {}
+        sent_counter = 0
+        to_sent_counter = len(messages)
 
-        service.Validations.validate_envelope_size(msg)
-
-        LOG.debug('Build key [%s] for message', key)
-        LOG.debug('Sending message {topics=%s,key=%s,message=%s}',
-                  self._topics, key, msg)
+        LOG.debug('About to publish %d messages to %s topics',
+                  to_sent_counter, self._topics)
 
         try:
-            for topic in self._topics:
-                self._publisher().publish(topic, msg, key)
+            for message in messages:
+                if not self._is_message_valid(message):
+                    raise InvalidMessageException()
+
+                key = self._build_key(message['meta']['tenantId'],
+                                      message['log'])
+                msg = rest_utils.as_json(message).encode('utf8')
+
+                validation.validate_envelope_size(msg)
+
+                if key not in buckets:
+                    buckets[key] = []
+
+                buckets[key].append(msg)
+
+            all_keys = buckets.keys()
+            LOG.debug('Publishing %d buckets of messages', len(all_keys))
+
+            topic_to_key = itertools.product(self._topics, all_keys)
+            for topic, key in topic_to_key:
+
+                bucket = buckets.get(key)  # array of messages for the same key
+                if not bucket:
+                    LOG.warn('Empty bucket spotted, continue...')
+                    continue
+                self._kafka_publisher.publish(topic, bucket, key)
+                LOG.debug('Sent %d messages (topics=%s,key=%s)',
+                          len(bucket), topic, key)
+
+                # keep on track how many msgs have been sent
+                sent_counter += len(bucket)
         except Exception as ex:
-            LOG.error(ex.message)
+            LOG.error('Failure in publishing messages to kafka')
+            LOG.exception(ex)
             raise ex
+        finally:
+            if sent_counter == to_sent_counter:
+                LOG.info('Successfully published all [%d] messages',
+                         sent_counter)
+            else:
+                failed_to_send = to_sent_counter - sent_counter
+                error_str = ('Failed to sent all messages, %d '
+                             'messages out of %d have not been published')
+                LOG.error(error_str, failed_to_send, to_sent_counter)

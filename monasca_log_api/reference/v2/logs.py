@@ -17,7 +17,8 @@ import falcon
 
 from monasca_log_api.api import headers
 from monasca_log_api.api import logs_api
-from monasca_log_api.reference.v2.common import log_publisher
+from monasca_log_api.reference.common import log_publisher
+from monasca_log_api.reference.common import validation
 from monasca_log_api.reference.v2.common import service
 from monasca_log_api import uri_map
 
@@ -25,34 +26,26 @@ _DEPRECATED_INFO = ('%s has been deprecated. Please use %s.'
                     % (uri_map.V2_LOGS_URI, uri_map.V3_LOGS_URI))
 
 
-# TODO(idea) perhaps add it as pipeline call right before API, seems generic
-def _before_logs_post(req, res, payload, params):
-    cross_tenant_id = req.get_param('tenant_id')
-    tenant_id = req.get_header(*headers.X_TENANT_ID)
-
-    if not service.is_delegate(req.get_header(*headers.X_ROLES)):
-        if cross_tenant_id:
-            raise falcon.HTTPForbidden(
-                'Permission denied',
-                'Projects %s cannot POST cross tenant metrics' % tenant_id
-            )
-
-
 class Logs(logs_api.LogsApi):
     """Logs Api V2."""
 
     VERSION = 'v2.0'
+    SUPPORTED_CONTENT_TYPES = {'application/json', 'text/plain'}
 
     def __init__(self):
         self._log_creator = service.LogCreator()
         self._kafka_publisher = log_publisher.LogPublisher()
         super(Logs, self).__init__()
 
-    @falcon.before(_before_logs_post)
     @falcon.deprecated(_DEPRECATED_INFO)
     def on_post(self, req, res):
-        service.Validations.validate_payload_size(req)
-        service.Validations.validate_content_type(req)
+        validation.validate_cross_tenant(
+            tenant_id=req.get_header(*headers.X_TENANT_ID),
+            cross_tenant_id=req.get_param('tenant_id'),
+            roles=req.get_header(*headers.X_ROLES)
+        )
+        validation.validate_payload_size(req)
+        validation.validate_content_type(req, Logs.SUPPORTED_CONTENT_TYPES)
 
         cross_tenant_id = req.get_param('tenant_id')
         tenant_id = req.get_header(*headers.X_TENANT_ID)
