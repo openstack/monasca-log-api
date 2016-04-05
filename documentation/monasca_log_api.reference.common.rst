@@ -7,24 +7,23 @@ Submodules
 monasca_log_api.v2.common.log_publisher module
 ----------------------------------------------
 
-.. automodule:: monasca_log_api.v2.common.log_publisher
+.. automodule:: monasca_log_api.reference.common.log_publisher
     :members:
     :undoc-members:
     :show-inheritance:
 
-monasca_log_api.v2.common.service module
-----------------------------------------
+monasca_log_api.v2.common.model module
+--------------------------------------
 
-.. automodule:: monasca_log_api.v2.common.service
+.. automodule:: monasca_log_api.reference.common.model
     :members:
     :undoc-members:
     :show-inheritance:
 
+monasca_log_api.v2.common.validation module
+-------------------------------------------
 
-Module contents
----------------
-
-.. automodule:: monasca_log_api.v2.common
+.. automodule:: monasca_log_api.reference.common.validation
     :members:
     :undoc-members:
     :show-inheritance:
