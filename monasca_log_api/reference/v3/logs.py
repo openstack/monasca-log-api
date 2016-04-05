@@ -57,7 +57,7 @@ class Logs(logs_api.LogsApi):
         envelopes = []
         for log_element in log_list:
             try:
-                LOG.trace('Processing log %s', log)
+                LOG.trace('Processing log %s', log_element)
 
                 validation.validate_log_message(log_element)
 
@@ -69,7 +69,9 @@ class Logs(logs_api.LogsApi):
                                                      log_element)
                 envelopes.append(envelope)
 
-                LOG.trace('Log %s processed into envelope %s', envelope)
+                LOG.trace('Log %s processed into envelope %s',
+                          log_element,
+                          envelope)
             except Exception as ex:
                 LOG.error('Failed to process log %s', log_element)
                 LOG.exception(ex)

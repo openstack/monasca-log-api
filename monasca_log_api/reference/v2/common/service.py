@@ -128,10 +128,8 @@ class LogCreator(object):
 
         validation.validate_log_message(log_object)
 
-        log_object.update({
-            'application_type': application_type,
-            'dimensions': dimensions
-        })
+        dimensions['component'] = application_type
+        log_object.update({'dimensions': dimensions})
 
         return log_object
 

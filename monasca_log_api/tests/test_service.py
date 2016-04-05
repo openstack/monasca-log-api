@@ -404,8 +404,8 @@ class LogsCreatorNewLog(unittest.TestCase):
 
         expected_log = {
             'message': msg,
-            'application_type': app_type,
             'dimensions': {
+                'component': app_type,
                 'cpu_time': '30'
             },
             'path': path
@@ -428,8 +428,8 @@ class LogsCreatorNewLog(unittest.TestCase):
 
         expected_log = {
             'message': msg,
-            'application_type': app_type,
             'dimensions': {
+                'component': app_type,
                 dimension_name: str(dimension_value)
             }
         }

@@ -49,9 +49,9 @@ class TestBuildKey(unittest.TestCase):
         tenant_id = 'monasca'
         application_type = 'monasca-log-api'
         log_object = {
-            'application_type': application_type
+            'dimensions': {'component': application_type}
         }
-        expected_key = tenant_id + application_type
+        expected_key = ':'.join([tenant_id, application_type])
 
         self.assertEqual(expected_key,
                          log_publisher.LogPublisher._build_key(tenant_id,
@@ -62,16 +62,14 @@ class TestBuildKey(unittest.TestCase):
         # application_type and single dimension
         tenant_id = 'monasca'
         application_type = 'monasca-log-api'
-        dimension_name = 'cpu_time'
-        dimension_value = '50'
+        host = '/var/log/test'
         log_object = {
-            'application_type': application_type,
             'dimensions': {
-                dimension_name: dimension_value
+                'host': host,
+                'component': application_type
             }
         }
-        expected_key = tenant_id + application_type + dimension_name + str(
-            dimension_value)
+        expected_key = ':'.join([tenant_id, application_type, host])
 
         self.assertEqual(expected_key,
                          log_publisher.LogPublisher._build_key(tenant_id,
@@ -81,21 +79,15 @@ class TestBuildKey(unittest.TestCase):
         # Evaluates if key matches value for defined tenant_id and
         # application_type and two dimensions dimensions given unsorted
         tenant_id = 'monasca'
-        application_type = 'monasca-log-api'
-        dimension_1_name = 'disk_usage'
-        dimension_1_value = '50'
-        dimension_2_name = 'cpu_time'
-        dimension_2_value = '60'
+        component = 'monasca-log-api'
+        service = 'laas'
         log_object = {
-            'application_type': application_type,
             'dimensions': {
-                dimension_1_name: dimension_1_value,
-                dimension_2_name: dimension_2_value
+                'component': component,
+                'service': service
             }
         }
-        expected_key = ''.join([tenant_id, application_type,
-                                dimension_2_name, dimension_2_value,
-                                dimension_1_name, dimension_1_value])
+        expected_key = ':'.join([tenant_id, component, service])
 
         self.assertEqual(expected_key,
                          log_publisher.LogPublisher._build_key(tenant_id,
@@ -277,9 +269,9 @@ class TestSendMessage(testing.TestBase):
             msg = {
                 'log': {
                     'message': it,
-                    'application_type': 'some_app_type',
                     'dimensions': {
                         'hostname': 'localhost',
+                        'component': 'some_component.%d' % it,
                         'path': '/var/log/test/%s/me.log' % it
                     }
                 },
@@ -353,9 +345,9 @@ class TestSendMessage(testing.TestBase):
             msg = {
                 'log': {
                     'message': it,
-                    'application_type': 'some_app_type',
                     'dimensions': {
                         'hostname': 'localhost',
+                        'component': 'some_app_type.%d' % it,
                         'path': '/var/log/test/%s/me.log' % it
                     }
                 },

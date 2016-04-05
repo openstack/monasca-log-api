@@ -72,40 +72,35 @@ class LogPublisher(object):
         )
         LOG.info('Initializing LogPublisher <%s>', self)
 
+    # TODO(trebskit) caching of computed keys should be done
+    # TODO(trebskit) cache should have expires_at_like functionality
     @staticmethod
     def _build_key(tenant_it, obj=None):
         """Message key builder
 
-        Builds message key using tenant_id and following details of
-        log message:
-        - application_type
-        - dimensions
-        :param tenant_it: tenant id
-        :param obj: log instance
-        :return: key
-        """
+        Builds message key using tenant_id and dimensions (only values).
+        Used values are concatenated with ':' character for readability.
 
-        # TODO(trebskit) figure out candidates to build key
-        # that would match both v2 and v3 (note application_type not
-        # directly available in v3)
-        # proposal => tenant_id + region +
-        #       dimensions['component'] + dimensions['path']
-        # last two only use if available
+        :param str tenant_it: tenant id
+        :param dict obj: log instance
+        :return: key
+        :rtype: str
+        """
 
         if obj is None:
             obj = {}
         if not (tenant_it or obj):
             return ''
 
-        str_list = [str(tenant_it), obj.get('application_type', '')]
+        str_list = [str(tenant_it)]
 
-        dims = obj.get('dimensions', {})
-        sorted_dims = sorted(dims)
-        for name in sorted_dims:
-            str_list.append(name)
-            str_list.append(dims.get(name, ''))
+        dims = obj.get('dimensions', None)
+        if dims:
+            sorted_dims = sorted(dims)
+            for name in sorted_dims:
+                str_list.append(dims[name])
 
-        return ''.join(str_list)
+        return ':'.join(filter(None, str_list))
 
     @staticmethod
     def _is_message_valid(message):
@@ -138,18 +133,13 @@ class LogPublisher(object):
     def send_message(self, messages):
         """Sends message to each configured topic.
 
-        Prior to sending a message, unique key is being
-        calculated for the given message using:
-
-        * tenant id
-        * application type
-        * dimensions
-
         Note:
             Falsy messages (i.e. empty) are not shipped to kafka
 
-        See :py:meth:`monasca_log_api.v2.common.service.LogCreator`
-                    `.new_log_envelope`
+        See also
+            :py:class:`monasca_log_api.common.model.Envelope'
+            :py:meth:`._is_message_valid'
+            :py:meth:`._build_key'
 
         :param dict|list messages: instance (or instances) of log envelope
         """
