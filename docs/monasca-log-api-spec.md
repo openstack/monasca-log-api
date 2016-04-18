@@ -1,8 +1,8 @@
 # Monasca Log API
 
-Date: January 22, 2016
+Date: April 18, 2016
 
-Document Version: v2.2
+Document Version: v2.2.1
 
 # Logs
 The logs resource allows logs to be created.
@@ -10,82 +10,7 @@ The logs resource allows logs to be created.
 ## Create Logs
 Create logs.
 
-### POST /v2.0/log/single (deprecated)
 
-#### Headers
-* X-Auth-Token (string, required) - Keystone auth token
-* Content-Type (string, required) - application/json; text/plain
-* X-Application-Type (string(255), optional) - Type of application
-* X-Dimensions ({string(255):string(255)}, required) - A dictionary consisting of (key, value) pairs used to structure logs.
-
-#### Path Parameters
-None.
-
-#### Query Parameters
-* tenant_id (string, optional, restricted) - Tenant ID to create log on behalf of. Usage of this query parameter requires the `monitoring-delegate` role.
-
-#### Request Body
-Consists of a single plain text message or a JSON object which can have a maximum length of 1048576 characters.
-
-#### Request Examples
-
-##### Plain text log - single line
-POST a single line of plain text log.
-
-```
-POST /v2.0/log/single HTTP/1.1
-Host: 192.168.10.4:8080
-Content-Type: text/plain
-X-Auth-Token: 27feed73a0ce4138934e30d619b415b0
-X-Application-Type: apache
-X-Dimensions: applicationname:WebServer01,environment:production
-Cache-Control: no-cache
-
-Hello World
-```
-
-##### Plain text log - multi lines
-POST a multiple lines of plain text log.
-
-```
-POST /v2.0/log/single HTTP/1.1
-Host: 192.168.10.4:8080
-Content-Type: text/plain
-X-Auth-Token: 27feed73a0ce4138934e30d619b415b0
-X-Application-Type: apache
-X-Dimensions: applicationname:WebServer01,environment:production
-Cache-Control: no-cache
-
-Hello\nWorld
-```
-
-##### JSON log
-POST a JSON log
-
-```
-POST /v2.0/log/single HTTP/1.1
-Host: 192.168.10.4:8080
-Content-Type: application/json
-X-Auth-Token: 27feed73a0ce4138934e30d619b415b0
-X-Application-Type: apache
-X-Dimensions: applicationname:WebServer01,environment:production
-Cache-Control: no-cache
-
-{
-  "message":"Hello World!",
-  "from":"hoover"
-}
-
-```
-
-### Response
-#### Status Code
-* 204 - No content
-
-#### Response Body
-This request does not return a response body.
-
-=======
 ### POST /v3.0/logs
 
 #### Headers
@@ -100,7 +25,8 @@ None.
 
 #### Request Body
 JSON object which can have a maximum size of 5 MB. It consists of global
-dimensions (optional) and array of logs.
+dimensions (optional) and array of logs. Each single log message with 
+resulting Kafka envelope can have a maximum size of 1 MB. 
 Dimensions is a dictionary of key-value pairs and should be consistent with
 metric dimensions.
 
@@ -192,3 +118,94 @@ If the *Monasca Log API* is running the following response code: ```204``` is ex
 
 Example:
 ```curl -XHEAD 192.168.10.4:8080/healthcheck```
+
+
+=======
+### POST /v2.0/log/single (deprecated)
+
+#### Headers
+* X-Auth-Token (string, required) - Keystone auth token
+* Content-Type (string, required) - application/json; text/plain
+* X-Application-Type (string(255), optional) - Type of application
+* X-Dimensions ({string(255):string(255)}, required) - A dictionary consisting of (key, value) pairs used to structure logs.
+
+#### Path Parameters
+None.
+
+#### Query Parameters
+* tenant_id (string, optional, restricted) - Tenant ID to create log on behalf of. Usage of this query parameter requires the `monitoring-delegate` role.
+
+#### Request Body
+Consists of a single plain text message or a JSON object which can have a maximum length of 1048576 characters.
+
+#### Request Examples
+
+##### Plain text log - single line
+POST a single line of plain text log.
+
+```
+POST /v2.0/log/single HTTP/1.1
+Host: 192.168.10.4:8080
+Content-Type: text/plain
+X-Auth-Token: 27feed73a0ce4138934e30d619b415b0
+X-Application-Type: apache
+X-Dimensions: applicationname:WebServer01,environment:production
+Cache-Control: no-cache
+
+Hello World
+```
+
+##### Plain text log - multi lines
+POST a multiple lines of plain text log.
+
+```
+POST /v2.0/log/single HTTP/1.1
+Host: 192.168.10.4:8080
+Content-Type: text/plain
+X-Auth-Token: 27feed73a0ce4138934e30d619b415b0
+X-Application-Type: apache
+X-Dimensions: applicationname:WebServer01,environment:production
+Cache-Control: no-cache
+
+Hello\nWorld
+```
+
+##### JSON log
+POST a JSON log
+
+```
+POST /v2.0/log/single HTTP/1.1
+Host: 192.168.10.4:8080
+Content-Type: application/json
+X-Auth-Token: 27feed73a0ce4138934e30d619b415b0
+X-Application-Type: apache
+X-Dimensions: applicationname:WebServer01,environment:production
+Cache-Control: no-cache
+
+{
+  "message":"Hello World!",
+  "from":"hoover"
+}
+
+```
+
+### Response
+#### Status Code
+* 204 - No content
+
+#### Response Body
+This request does not return a response body.
+
+    # Copyright 2016 FUJITSU LIMITED
+    #
+    # Licensed under the Apache License, Version 2.0 (the "License"); you may
+    # not use this file except in compliance with the License. You may obtain
+    # a copy of the License at
+    #
+    #      http://www.apache.org/licenses/LICENSE-2.0
+    #
+    # Unless required by applicable law or agreed to in writing, software
+    # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+    # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+    # License for the specific language governing permissions and limitations
+    # under the License.

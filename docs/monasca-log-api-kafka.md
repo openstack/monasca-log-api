@@ -1,8 +1,8 @@
 # Monasca Log API - Kafka
 
-Date: November 18, 2015
+Date: April 18, 2016
 
-Document Version: v0.1
+Document Version: v0.2
 
 ## Introduction
 
@@ -28,7 +28,6 @@ elements:
 Log property should have at least following form:
 
     "message": <string>,
-    "application_type": <string>,
     "dimensions": <object>
 
 Meta property should have following form:
@@ -41,8 +40,7 @@ Full example as json:
   {
     "log": {
       "message": "2015-11-13 12:44:42.411 27297 DEBUG kafka [-] Read 31/31 bytes from Kafka _read_bytes /opt/monasca/monasca-log-api/lib/python2.7/site-packages/kafka/conn.py:103",
-      "application_type": "monasca-log-api",
-      "dimension": {
+      "dimensions": {
         "hostname": "devstack"
       }
     },
@@ -57,16 +55,15 @@ Full example as json:
 ### Fields explanation
 
 * log - contains log specific information collected from the system. In the
-most lean case that would be: **message**, **application_type**, **dimensions**
+most lean case that would be: **message**, **dimensions**
  * message - normally that represent a single line from a log file
- * application_type - represent the application that log was collected
  * dimensions - informations such as hostname where application is running
 * creation_time - UNIX timestamp representing moment when log message was created
 by monasca-log-api
 * meta - contains tenantId and its region
 
-**log** entry main of course contain many more fields that are considered valid
-in given case. However three mentioned in this documentation are required.
+**log** entry may of course contain many more fields that are considered valid
+in given case. However two mentioned in this documentation are required.
 
 All fields, apart from **creation_time** and **log**, are created from HTTP headers.
 Description is available [here](/docs/monasca-log-api-spec.md).
@@ -104,3 +101,17 @@ kafka_url = 'localhost:8900'
 There are only two relevant options:
 * topics - comma delimited list of topics where data should be sent
 * kafka_url - adress where kafka server is running
+
+    # Copyright 2016 FUJITSU LIMITED
+    #
+    # Licensed under the Apache License, Version 2.0 (the "License"); you may
+    # not use this file except in compliance with the License. You may obtain
+    # a copy of the License at
+    #
+    #      http://www.apache.org/licenses/LICENSE-2.0
+    #
+    # Unless required by applicable law or agreed to in writing, software
+    # distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+    # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+    # License for the specific language governing permissions and limitations
+    # under the License.
