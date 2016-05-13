@@ -14,7 +14,7 @@
 
 from oslo_serialization import jsonutils as json
 from tempest import config
-from tempest.common import service_client
+from tempest.lib.common import rest_client
 
 CONF = config.CONF
 
@@ -23,7 +23,15 @@ def _uri(url):
     return CONF.monitoring.api_version + url
 
 
-class LogApiClient(service_client.ServiceClient):
+class LogApiClient(rest_client.RestClient):
+
+    def __init__(self, auth_provider, service, region):
+        super(LogApiClient, self).__init__(
+            auth_provider,
+            service,
+            region
+        )
+
     def get_version(self):
         resp, response_body = self.send_request('GET', '/')
         return resp, response_body

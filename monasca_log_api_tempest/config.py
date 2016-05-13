@@ -32,5 +32,13 @@ monitoring_group = cfg.OptGroup(name='monitoring',
 MonitoringGroup = [
     cfg.StrOpt('api_version',
                default='v2.0',
-               help='monasca-log-api API version')
+               help='monasca-log-api API version'),
 ]
+
+IdentityGroup = [
+    cfg.StrOpt('kibana_version',
+               default='4.4.0',
+               help='Kibana version')
+]
+
+cfg.CONF.register_opts(IdentityGroup, group='identity')

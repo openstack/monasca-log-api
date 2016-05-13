@@ -23,10 +23,13 @@ _RETRY_WAIT = 2
 class TestSingleLog(base.BaseLogsTestCase):
     def _run_and_wait(self, key, data, content_type='application/json',
                       headers=None):
-        def wait():
-            return self.logs_search_client.count_search_messages(key) > 0
 
-        self.assertEqual(0, self.logs_search_client.count_search_messages(key),
+        headers = base._get_headers(headers, content_type)
+
+        def wait():
+            return self.logs_search_client.count_search_messages(key, headers) > 0
+
+        self.assertEqual(0, self.logs_search_client.count_search_messages(key, headers),
                          'Find log message in elasticsearch: {0}'.format(key))
 
         headers = base._get_headers(headers, content_type)
@@ -36,7 +39,7 @@ class TestSingleLog(base.BaseLogsTestCase):
         self.assertEqual(204, response.status)
 
         test.call_until_true(wait, _RETRY_COUNT, _RETRY_WAIT)
-        response = self.logs_search_client.search_messages(key)
+        response = self.logs_search_client.search_messages(key, headers)
         self.assertEqual(1, len(response))
 
         return response
@@ -74,7 +77,7 @@ class TestSingleLog(base.BaseLogsTestCase):
         headers = {'X-Application-Type': 'application-type-test'}
         response = self._run_and_wait(sid, message, headers=headers)
         self.assertEqual('application-type-test',
-                         response[0]['_source']['application_type'])
+                         response[0]['_source']['component'])
 
     @test.attr(type="gate")
     def test_send_header_dimensions(self):

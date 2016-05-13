@@ -14,7 +14,7 @@
 
 from tempest import test
 
-from tempest_lib import exceptions
+from tempest.lib import exceptions
 from monasca_log_api_tempest.tests import base
 
 
@@ -56,8 +56,16 @@ class TestLogApiConstraints(base.BaseLogsTestCase):
     def test_should_reject_too_big_message(self):
         _, message = base.generate_rejectable_message()
         headers = base._get_headers(self.logs_client.get_headers())
+        data = base._get_data(message)
+        # Add 'Connection: Keep-Alive' to send large message before
+        # connection is closed by client. In class ClosingHttp is added
+        # header 'connection:close' (which will cause closing socket before sending whole message).
+        # Data are send in small TCP packages.
+        # Without this header set to Keep-Alive Tempest lib will try to retry connection and finally
+        # raise ProtocolError.
+        headers.update({'Connection': 'Keep-Alive'})
         try:
-            self.logs_client.send_single_log(message, headers)
+            self.logs_client.send_single_log(data, headers)
         except exceptions.OverLimit as urc:
             self.assertEqual(413, urc.resp.status)
             return
@@ -69,8 +77,16 @@ class TestLogApiConstraints(base.BaseLogsTestCase):
         _, message = base.generate_rejectable_message()
         message = message.replace(' ', '\n')
         headers = base._get_headers(self.logs_client.get_headers())
+        data = base._get_data(message)
+        # Add Connection: Keep-Alive to send large message before
+        # connection is closed by client. In class ClosingHttp is added
+        # header connection:close (which will cause closing socket before sending whole message).
+        # Data are send in small TCP packages.
+        # Without this header set to Keep-Alive Tempest lib will try to retry connection and finally
+        # raise ProtocolError.
+        headers.update({'Connection': 'Keep-Alive'})
         try:
-            self.logs_client.send_single_log(message, headers)
+            self.logs_client.send_single_log(data, headers)
         except exceptions.OverLimit as urc:
             self.assertEqual(413, urc.resp.status)
             return
@@ -80,7 +96,7 @@ class TestLogApiConstraints(base.BaseLogsTestCase):
     @test.attr(type='gate')
     def test_should_accept_message_but_reject_after_adding_metadata(self):
         _, message = base.generate_unique_message(
-            size=base._get_message_size(0.9999))
+            size=base._get_message_size(0.99981))
         headers = base._get_headers(self.logs_client.get_headers())
         data = base._get_data(message)
 

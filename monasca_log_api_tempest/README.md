@@ -22,25 +22,25 @@ Therefore it is possible to proceed with installation as described
 # Configuration
 1. Clone the OpenStack Tempest repo, and cd to it.
 
- ```
- git clone https://git.openstack.org/openstack/tempest.git
- cd tempest
- ```
+```
+    git clone https://git.openstack.org/openstack/tempest.git
+    cd tempest
+```
 
 2. Create a virtualenv for running the Tempest tests and activate it.
 For example in the Tempest root dir
 
- ```
- virtualenv .venv
- source .venv/bin/activate
- ```
+```
+    virtualenv .venv
+    source .venv/bin/activate
+```
 
 3. Install the Tempest requirements in the virtualenv.
 
- ```
- pip install -r requirements.txt -r test-requirements.txt
- pip install nose
- ```
+```
+    pip install -r requirements.txt -r test-requirements.txt
+    pip install nose
+```
 
 4. Create ```etc/tempest.conf``` in the Tempest root dir by
 running the following command:
@@ -54,7 +54,7 @@ running the following command:
 
  ```
  [identity]
- auth_version = v2
+ auth_version = v3
  admin_domain_name = Default
  admin_tenant_name = admin
  admin_password = admin
@@ -70,6 +70,7 @@ running the following command:
  force_tenant_isolation = False
  allow_tenant_isolation = False
  disable_ssl_certificate_validation = True
+ kibana_version = 4.4.0
 
  [auth]
  allow_tenant_isolation = true

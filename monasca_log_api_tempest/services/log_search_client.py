@@ -13,11 +13,18 @@
 # under the License.
 
 from oslo_serialization import jsonutils as json
-from tempest.common import service_client
+from tempest.lib.common import rest_client
 
 
-class LogsSearchClient(service_client.ServiceClient):
+class LogsSearchClient(rest_client.RestClient):
     uri_prefix = "/elasticsearch"
+
+    def __init__(self, auth_provider, service, region):
+        super(LogsSearchClient, self).__init__(
+            auth_provider,
+            service,
+            region,
+        )
 
     @staticmethod
     def deserialize(body):
@@ -37,20 +44,19 @@ class LogsSearchClient(service_client.ServiceClient):
             body = self.deserialize(body)
         return response, body
 
-    def count_search_messages(self, message):
-        return len(self.search_messages(message))
+    def count_search_messages(self, message, headers):
+        return len(self.search_messages(message, headers))
 
-    def search_messages(self, message):
-        uri = '_search'
-        body = self.serialize(dict(
-            query=dict(
-                term=dict(message=message)
-            )
-        ))
-        response, body = self.post(self._uri(uri), body)
+    def search_messages(self, message, headers):
+        uri = '_msearch'
+        body = """
+               {"index" : "*", "search_type" : "dfs_query_then_fetch"}
+               {"query" : {"match" : {"message":" """+message+""" "}}}
+        """
+        response, body = self.post(self._uri(uri), body, headers)
         self.expected_success(200, response.status)
         body = self.deserialize(body)
-        return body.get('hits', {}).get('hits', [])
+        return body['responses'][0].get('hits', {}).get('hits', [])
 
     def _uri(self, url):
         return '{}/{}'.format(self.uri_prefix, url)
