@@ -13,6 +13,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import falcon
 import itertools
 
 from monasca_common.kafka import producer
@@ -182,7 +183,12 @@ class LogPublisher(object):
                 if not bucket:
                     LOG.warn('Empty bucket spotted, continue...')
                     continue
-                self._kafka_publisher.publish(topic, bucket, key)
+                try:
+                    self._kafka_publisher.publish(topic, bucket, key)
+                except Exception as ex:
+                    raise falcon.HTTPServiceUnavailable('Service unavailable',
+                                                        ex.message, 60)
+
                 LOG.debug('Sent %d messages (topics=%s,key=%s)',
                           len(bucket), topic, key)
 

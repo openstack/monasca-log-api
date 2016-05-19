@@ -131,5 +131,4 @@ class Logs(logs_api.LogsApi):
             self._log_publisher.send_message(logs)
         except Exception as ex:
             LOG.exception(ex)
-            raise falcon.HTTPServiceUnavailable('Service unavailable',
-                                                ex.message, 60)
+            raise ex
