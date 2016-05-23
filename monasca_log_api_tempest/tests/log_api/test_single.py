@@ -86,3 +86,16 @@ class TestSingleLog(base.BaseLogsTestCase):
         response = self._run_and_wait(sid, message, headers=headers)
         self.assertEqual('production', response[0]['_source']['environment'])
         self.assertEqual('WebServer01', response[0]['_source']['server'])
+
+    # TODO(trebski) following test not passing - failed to retrieve
+    # big message from elasticsearch
+
+    # @test.attr(type='gate')
+    # def test_should_truncate_big_message(self):
+    #     message_size = base._get_message_size(0.9999)
+    #     sid, message = base.generate_unique_message(size=message_size)
+    #
+    #     headers = base._get_headers(self.logs_client.get_headers())
+    #     response = self._run_and_wait(sid, message, headers=headers)
+    #
+    #     self.assertTrue(False, 'API should respond with 500')

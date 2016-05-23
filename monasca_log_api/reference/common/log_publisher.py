@@ -13,17 +13,24 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import time
+
 from monasca_common.kafka import producer
 from monasca_common.rest import utils as rest_utils
 from oslo_config import cfg
 from oslo_log import log
 
-from monasca_log_api.reference.common import validation
-
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
 
 _MAX_MESSAGE_SIZE = 1048576
+_RETRY_AFTER = 60
+_TIMESTAMP_KEY_SIZE = len(
+    bytearray(str(int(time.time() * 1000)).encode('utf-8')))
+_TRUNCATED_PROPERTY_SIZE = len(
+    bytearray('"truncated": true'.encode('utf-8')))
+_KAFKA_META_DATA_SIZE = 32
+_TRUNCATION_SAFE_OFFSET = 1
 
 log_publisher_opts = [
     cfg.StrOpt('kafka_url',
@@ -106,6 +113,52 @@ class LogPublisher(object):
 
         return True
 
+    def _truncate(self, envelope):
+        """Truncates the message if needed.
+
+        Each message send to kafka is verified.
+        Method checks if message serialized to json
+        exceeds maximum allowed size that can be posted to kafka
+        queue. If so, method truncates message property of the log
+        by difference between message and allowed size.
+
+        :param Envelope envelope: envelope to check
+        :return: truncated message if size is exceeded, otherwise message
+                 is left unmodified
+        """
+
+        msg_str = rest_utils.as_json(envelope)
+
+        max_size = CONF.log_publisher.max_message_size
+        envelope_size = ((len(bytearray(msg_str)) +
+                          _TIMESTAMP_KEY_SIZE +
+                          _KAFKA_META_DATA_SIZE)
+                         if msg_str is not None else -1)
+
+        size_diff = (envelope_size - max_size) + _TRUNCATION_SAFE_OFFSET
+
+        LOG.debug('_truncate(max_message_size=%d, message_size=%d, diff=%d)',
+                  max_size, envelope_size, size_diff)
+
+        if size_diff > 1:
+            truncate_by = size_diff + _TRUNCATED_PROPERTY_SIZE
+
+            LOG.warn(('Detected message that exceeds %d bytes,'
+                      'message will be truncated by %d bytes'),
+                     max_size,
+                     truncate_by)
+
+            log_msg = envelope['log']['message']
+            truncated_log_msg = log_msg[:-truncate_by]
+
+            envelope['log']['truncated'] = True
+            envelope['log']['message'] = truncated_log_msg
+
+            # will just transform message once again without truncation
+            return rest_utils.as_json(envelope)
+
+        return msg_str
+
     def send_message(self, messages):
         """Sends message to each configured topic.
 
@@ -136,12 +189,12 @@ class LogPublisher(object):
                 if not self._is_message_valid(message):
                     raise InvalidMessageException()
 
-                msg = rest_utils.as_json(message)
-                validation.validate_envelope_size(msg)
+                msg = self._truncate(message)
                 send_messages.append(msg)
 
             for topic in self._topics:
                 self._kafka_publisher.publish(topic, send_messages)
+
             sent_counter = to_sent_counter
         except Exception as ex:
             LOG.error('Failure in publishing messages to kafka')

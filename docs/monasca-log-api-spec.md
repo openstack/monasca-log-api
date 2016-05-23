@@ -1,15 +1,14 @@
 # Monasca Log API
 
-Date: April 18, 2016
+Date: May 27, 2016
 
-Document Version: v2.2.1
+Document Version: v2.2.2
 
 # Logs
 The logs resource allows logs to be created.
 
 ## Create Logs
 Create logs.
-
 
 ### POST /v3.0/logs
 
@@ -26,7 +25,7 @@ None.
 #### Request Body
 JSON object which can have a maximum size of 5 MB. It consists of global
 dimensions (optional) and array of logs. Each single log message with 
-resulting Kafka envelope can have a maximum size of 1 MB. 
+resulting envelope can have a maximum size of 1 MB.
 Dimensions is a dictionary of key-value pairs and should be consistent with
 metric dimensions.
 

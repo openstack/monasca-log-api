@@ -92,24 +92,3 @@ class TestLogApiConstraints(base.BaseLogsTestCase):
             return
 
         self.assertTrue(False, 'API should respond with 413')
-
-    @test.attr(type='gate')
-    def test_should_accept_message_but_reject_after_adding_metadata(self):
-        _, message = base.generate_unique_message(
-            size=base._get_message_size(0.99981))
-        headers = base._get_headers(self.logs_client.get_headers())
-        data = base._get_data(message)
-
-        try:
-            self.logs_client.send_single_log(data, headers)
-        except exceptions.ServerFault as urc:
-            self.assertEqual(500, urc.resp.status)
-            msg = urc.resp_body.get('title', None)
-            # in Java that is under message
-            if msg is None:
-                msg = urc.resp_body.get('message', None)
-            self.assertIsNotNone(msg, 'Should get status message')
-            self.assertEqual('Envelope size exceeded', msg)
-            return
-
-        self.assertTrue(False, 'API should respond with 500')

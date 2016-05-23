@@ -68,6 +68,31 @@ in given case. However two mentioned in this documentation are required.
 All fields, apart from **creation_time** and **log**, are created from HTTP headers.
 Description is available [here](/docs/monasca-log-api-spec.md).
 
+## Truncating too large message
+
+    Following section mostly applies to monasca-log-api v3.0
+
+Each *envelope* sent to Kafka is serialized into JSON string. This string must
+comply to Kafka limitation about [maximum message size](https://kafka.apache.org/08/configuration.html).
+If JSON message is too big following actions are taken
+1) difference between maximum allowed size and JSON message size (both in bytes).
+   ```diff = (size(json_envelope) + size(envelope_key) + KAFKA_METADATA_SIZE) - maximum_allowed_size + TRUNCATION_SAFE_OFFSET```.
+   **KAFKA_METADATA_SIZE** is amount of bytes Kafka adds during transformation
+   of each message prior to sending it
+2) log is enriched with property **truncated** set to **true** (```log['truncated'] = True```)
+3) log's message is truncated by ```diff + TRUNCATED_PROPERTY_SIZE```.
+  **TRUNCATED_PROPERTY_SIZE** is the size of newly added property.
+
+Variables explanation:
+
+* **envelope_key** is the key used when routing logs into specific kafka partitions.
+Its byte size is always fixed (determined from the byte size of timestamp represented as string).
+```len(bytearray(str(int(time.time() * 1000)).encode('utf-8')))```
+* **KAFKA_METADATA_SIZE** equals to 200 bytes.
+* **TRUNCATION_SAFE_OFFSET** is equal to 1 ensuring that diff size will be always positive number
+* **TRUNCATED_PROPERTY_SIZE** is calculated as byte size of expression ```log['truncated'] = True```
+for each run of log-api.
+
 ## Configuration
 
 ### Java

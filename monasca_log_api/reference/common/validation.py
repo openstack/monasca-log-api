@@ -13,7 +13,6 @@
 # under the License.
 
 import re
-import sys
 
 import falcon
 from oslo_config import cfg
@@ -210,33 +209,6 @@ def validate_payload_size(req):
         raise falcon.HTTPRequestEntityTooLarge(
             title='Log payload size exceeded',
             description='Maximum allowed size is %d bytes' % max_size
-        )
-
-
-def validate_envelope_size(envelope=None):
-    """Validates envelope size before sending to kafka.
-
-    Validates the case similar to what
-    :py:meth:`.Validations.validate_payload_size`. Difference is
-    that this method checks if log envelope (already serialized)
-    can be safely sent to Kafka.
-
-    For more information check kafka documentation regarding
-    Message Size Too Large exception.
-
-    :param str envelope: serialized envelope
-    :exception: :py:class:`falcon.HTTPInternalServerError`
-    """
-    max_size = CONF.log_publisher.max_message_size
-    envelope_size = sys.getsizeof(envelope) if envelope is not None else -1
-
-    LOG.debug('Envelope size is %s', envelope_size)
-
-    if envelope_size >= max_size:
-        error_msg = (envelope_size, max_size)
-        raise falcon.HTTPInternalServerError(
-            title='Kafka message size exceeded',
-            description='%d exceeds maximum allowed size %d bytes' % error_msg
         )
 
 

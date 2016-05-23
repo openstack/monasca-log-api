@@ -14,8 +14,6 @@
 # under the License.
 
 import datetime
-import random
-import string
 import unittest
 
 from falcon import errors
@@ -319,49 +317,6 @@ class PayloadSizeValidations(testing.TestBase):
             errors.HTTPRequestEntityTooLarge,
             validation.validate_payload_size,
             req
-        )
-
-
-class EnvelopeSizeValidations(testing.TestBase):
-
-    @staticmethod
-    def _rand_str(size):
-        return ''.join((random.choice(string.letters) for _ in range(size)))
-
-    def setUp(self):
-        self.conf = base.mock_config(self)
-        return super(EnvelopeSizeValidations, self).setUp()
-
-    def test_should_pass_envelope_size_ok(self):
-        envelope = self._rand_str(120)
-        max_message_size = 240
-        self.conf.config(max_message_size=max_message_size,
-                         group='log_publisher')
-
-        validation.validate_envelope_size(envelope)
-
-    def test_should_pass_envelope_size_exceeded(self):
-        envelope = self._rand_str(360)
-        max_message_size = 240
-        self.conf.config(max_message_size=max_message_size,
-                         group='log_publisher')
-
-        self.assertRaises(
-            errors.HTTPInternalServerError,
-            validation.validate_envelope_size,
-            envelope
-        )
-
-    def test_should_pass_envelope_size_equal(self):
-        envelope = self._rand_str(240)
-        max_message_size = 240
-        self.conf.config(max_message_size=max_message_size,
-                         group='log_publisher')
-
-        self.assertRaises(
-            errors.HTTPInternalServerError,
-            validation.validate_envelope_size,
-            envelope
         )
 
 
