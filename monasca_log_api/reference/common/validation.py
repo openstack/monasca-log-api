@@ -227,15 +227,16 @@ def validate_envelope_size(envelope=None):
     :param str envelope: serialized envelope
     :exception: :py:class:`falcon.HTTPInternalServerError`
     """
-    max_size = CONF.service.max_log_size
+    max_size = CONF.log_publisher.max_message_size
     envelope_size = sys.getsizeof(envelope) if envelope is not None else -1
 
     LOG.debug('Envelope size is %s', envelope_size)
 
     if envelope_size >= max_size:
+        error_msg = (envelope_size, max_size)
         raise falcon.HTTPInternalServerError(
-            title='Envelope size exceeded',
-            description='Maximum allowed size is %d bytes' % max_size
+            title='Kafka message size exceeded',
+            description='%d exceeds maximum allowed size %d bytes' % error_msg
         )
 
 

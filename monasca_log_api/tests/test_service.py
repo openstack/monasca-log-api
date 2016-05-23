@@ -334,17 +334,17 @@ class EnvelopeSizeValidations(testing.TestBase):
 
     def test_should_pass_envelope_size_ok(self):
         envelope = self._rand_str(120)
-        max_log_size = 240
-        self.conf.config(max_log_size=max_log_size,
-                         group='service')
+        max_message_size = 240
+        self.conf.config(max_message_size=max_message_size,
+                         group='log_publisher')
 
         validation.validate_envelope_size(envelope)
 
     def test_should_pass_envelope_size_exceeded(self):
         envelope = self._rand_str(360)
-        max_log_size = 240
-        self.conf.config(max_log_size=max_log_size,
-                         group='service')
+        max_message_size = 240
+        self.conf.config(max_message_size=max_message_size,
+                         group='log_publisher')
 
         self.assertRaises(
             errors.HTTPInternalServerError,
@@ -354,9 +354,9 @@ class EnvelopeSizeValidations(testing.TestBase):
 
     def test_should_pass_envelope_size_equal(self):
         envelope = self._rand_str(240)
-        max_log_size = 240
-        self.conf.config(max_log_size=max_log_size,
-                         group='service')
+        max_message_size = 240
+        self.conf.config(max_message_size=max_message_size,
+                         group='log_publisher')
 
         self.assertRaises(
             errors.HTTPInternalServerError,

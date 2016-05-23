@@ -26,14 +26,22 @@ from monasca_log_api.reference.common import validation
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
 
+_MAX_MESSAGE_SIZE = 1048576
+
 log_publisher_opts = [
     cfg.StrOpt('kafka_url',
                required=True,
                help='Url to kafka server'),
     cfg.MultiStrOpt('topics',
                     default=['logs'],
-                    help='Consumer topics')
+                    help='Consumer topics'),
+    cfg.IntOpt('max_message_size',
+               default=_MAX_MESSAGE_SIZE,
+               required=True,
+               help=('Message max size that can be sent '
+                     'to kafka, default to %d bytes' % _MAX_MESSAGE_SIZE))
 ]
+
 log_publisher_group = cfg.OptGroup(name='log_publisher', title='log_publisher')
 
 cfg.CONF.register_group(log_publisher_group)
