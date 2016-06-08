@@ -13,12 +13,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import falcon
 import time
 
 from monasca_common.kafka import producer
 from monasca_common.rest import utils as rest_utils
 from oslo_config import cfg
 from oslo_log import log
+
+from monasca_log_api.monitoring import client
+from monasca_log_api.monitoring import metrics
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
@@ -83,6 +87,23 @@ class LogPublisher(object):
         self._kafka_publisher = producer.KafkaProducer(
             url=CONF.log_publisher.kafka_url
         )
+
+        self._statsd = client.get_client()
+
+        # setup counter, gauges etc
+        self._logs_published_counter = self._statsd.get_counter(
+            metrics.LOGS_PUBLISHED_METRIC
+        )
+        self._publish_time_ms = self._statsd.get_timer(
+            metrics.LOGS_PUBLISH_TIME_METRIC
+        )
+        self._logs_lost_counter = self._statsd.get_counter(
+            metrics.LOGS_PUBLISHED_LOST_METRIC
+        )
+        self._logs_truncated_gauge = self._statsd.get_gauge(
+            metrics.LOGS_TRUNCATED_METRIC
+        )
+
         LOG.info('Initializing LogPublisher <%s>', self)
 
     @staticmethod
@@ -143,6 +164,11 @@ class LogPublisher(object):
         if size_diff > 1:
             truncate_by = size_diff + _TRUNCATED_PROPERTY_SIZE
 
+            self._logs_truncated_gauge.send(
+                name=None,
+                value=truncate_by
+            )
+
             LOG.warn(('Detected message that exceeds %d bytes,'
                       'message will be truncated by %d bytes'),
                      max_size,
@@ -156,6 +182,8 @@ class LogPublisher(object):
 
             # will just transform message once again without truncation
             return rest_utils.as_json(envelope)
+
+        self._logs_truncated_gauge.send(name=None, value=0)
 
         return msg_str
 
@@ -192,15 +220,16 @@ class LogPublisher(object):
                 msg = self._truncate(message)
                 send_messages.append(msg)
 
-            for topic in self._topics:
-                self._kafka_publisher.publish(topic, send_messages)
+            with self._publish_time_ms.time(name=None):
+                self._publish(send_messages)
 
-            sent_counter = to_sent_counter
+            sent_counter = len(send_messages)
         except Exception as ex:
             LOG.error('Failure in publishing messages to kafka')
             LOG.exception(ex)
             raise ex
         finally:
+            self._logs_published_counter.increment(value=sent_counter)
             if sent_counter == to_sent_counter:
                 LOG.info('Successfully published all [%d] messages',
                          sent_counter)
@@ -209,3 +238,23 @@ class LogPublisher(object):
                 error_str = ('Failed to sent all messages, %d '
                              'messages out of %d have not been published')
                 LOG.error(error_str, failed_to_send, to_sent_counter)
+
+                self._logs_lost_counter.increment(
+                    value=failed_to_send
+                )
+
+    def _publish(self, messages):
+        to_sent = len(messages)
+
+        LOG.debug('Publishing %d messages', to_sent)
+
+        try:
+            for topic in self._topics:
+                self._kafka_publisher.publish(
+                    topic,
+                    messages
+                )
+                LOG.debug('Sent %d messages to topic %s', to_sent, topic)
+        except Exception as ex:
+            raise falcon.HTTPServiceUnavailable('Service unavailable',
+                                                ex.message, 60)

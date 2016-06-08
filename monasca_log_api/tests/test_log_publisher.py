@@ -188,6 +188,9 @@ class TestSendMessage(testing.TestBase):
                 [json_msg])
 
 
+@mock.patch(
+    'monasca_log_api.reference.common.log_publisher.producer'
+    '.KafkaProducer')
 class TestTruncation(testing.TestBase):
     EXTRA_CHARS_SIZE = len(bytearray(ujson.dumps({
         'log': {
@@ -203,24 +206,15 @@ class TestTruncation(testing.TestBase):
         super(TestTruncation, self).setUp()
         self._conf = base.mock_config(self)
 
-    @mock.patch(
-        'monasca_log_api.reference.common.log_publisher.producer'
-        '.KafkaProducer')
     def test_should_not_truncate_message_if_size_is_smaller(self, _):
         diff_size = random.randint(1, 100)
         self._run_truncate_test(log_size_factor=-diff_size,
                                 truncate_by=0)
 
-    @mock.patch(
-        'monasca_log_api.reference.common.log_publisher.producer'
-        '.KafkaProducer')
     def test_should_not_truncate_message_if_size_equal_to_max(self, _):
         self._run_truncate_test(log_size_factor=0,
                                 truncate_by=0)
 
-    @mock.patch(
-        'monasca_log_api.reference.common.log_publisher.producer'
-        '.KafkaProducer')
     def test_should_truncate_too_big_message(self, _):
         diff_size = random.randint(1, 100)
         max_size = 1000
@@ -258,6 +252,7 @@ class TestTruncation(testing.TestBase):
         }
 
         instance = log_publisher.LogPublisher()
+        instance._logs_truncated_gauge.send = meter = mock.Mock()
 
         envelope_copy = copy.deepcopy(envelope)
         json_envelope = instance._truncate(envelope_copy)
@@ -275,3 +270,5 @@ class TestTruncation(testing.TestBase):
                              parsed_log_message)
 
         self.assertEqual(expected_log_message_size, parsed_log_message_len)
+        self.assertEqual(1, meter.call_count)
+        self.assertEqual(truncate_by, meter.mock_calls[0][2]['value'])

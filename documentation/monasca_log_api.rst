@@ -11,6 +11,7 @@ Subpackages
     monasca_log_api.reference.v3
     monasca_log_api.reference.common
     monasca_log_api.middleware
+    monasca_log_api.monitoring
     monasca_log_api.healthcheck
 
 Submodules

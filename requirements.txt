@@ -12,3 +12,4 @@ pbr>=1.6.0
 simport
 monasca-common>=0.0.6
 eventlet>=0.17.4,!=0.18.0
+monasca-statsd

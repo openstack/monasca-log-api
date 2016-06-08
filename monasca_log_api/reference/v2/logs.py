@@ -39,33 +39,45 @@ class Logs(logs_api.LogsApi):
 
     @falcon.deprecated(_DEPRECATED_INFO)
     def on_post(self, req, res):
-        validation.validate_cross_tenant(
-            tenant_id=req.get_header(*headers.X_TENANT_ID),
-            cross_tenant_id=req.get_param('tenant_id'),
-            roles=req.get_header(*headers.X_ROLES)
-        )
-        validation.validate_payload_size(req)
-        validation.validate_content_type(req, Logs.SUPPORTED_CONTENT_TYPES)
+        with self._logs_processing_time.time(name=None):
+            try:
+                validation.validate_payload_size(req)
+                validation.validate_content_type(req,
+                                                 Logs.SUPPORTED_CONTENT_TYPES)
+                validation.validate_cross_tenant(
+                    tenant_id=req.get_header(*headers.X_TENANT_ID),
+                    cross_tenant_id=req.get_param('tenant_id'),
+                    roles=req.get_header(*headers.X_ROLES)
+                )
 
-        cross_tenant_id = req.get_param('tenant_id')
-        tenant_id = req.get_header(*headers.X_TENANT_ID)
+                cross_tenant_id = req.get_param('tenant_id')
+                tenant_id = req.get_header(*headers.X_TENANT_ID)
 
-        log = self.get_log(request=req)
-        envelope = self.get_envelope(
-            log=log,
-            tenant_id=tenant_id if tenant_id else cross_tenant_id
-        )
+                log = self.get_log(request=req)
+                envelope = self.get_envelope(
+                    log=log,
+                    tenant_id=tenant_id if tenant_id else cross_tenant_id
+                )
 
-        self._kafka_publisher.send_message(envelope)
+                self._logs_size_gauge.send(name=None,
+                                           value=int(req.content_length))
+                self._logs_in_counter.increment()
+            except Exception:
+                # any validation that failed means
+                # log is invalid and rejected
+                self._logs_rejected_counter.increment()
+                raise
 
-        res.status = falcon.HTTP_204
-        res.add_link(
-            target=str(_get_v3_link(req)),
-            rel='current',  # [RFC5005]
-            title='V3 Logs',
-            type_hint='application/json'
-        )
-        res.append_header('DEPRECATED', 'true')
+            self._kafka_publisher.send_message(envelope)
+
+            res.status = falcon.HTTP_204
+            res.add_link(
+                target=str(_get_v3_link(req)),
+                rel='current',  # [RFC5005]
+                title='V3 Logs',
+                type_hint='application/json'
+            )
+            res.append_header('DEPRECATED', 'true')
 
     def get_envelope(self, log, tenant_id):
         return self._log_creator.new_log_envelope(
