@@ -17,3 +17,9 @@ monasca_log_api.reference.v3 module
     :undoc-members:
     :show-inheritance:
 
+.. automodule:: monasca_log_api.reference.v3.common.bulk_processor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+

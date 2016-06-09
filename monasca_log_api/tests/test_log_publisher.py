@@ -24,6 +24,7 @@ from falcon import testing
 import mock
 
 from monasca_log_api.reference.common import log_publisher
+from monasca_log_api.reference.common import model
 from monasca_log_api.tests import base
 
 EPOCH_START = datetime.datetime(1970, 1, 1)
@@ -122,8 +123,9 @@ class TestSendMessage(testing.TestBase):
         dimension_1_value = '50'
         dimension_2_name = 'cpu_time'
         dimension_2_value = '60'
-        msg = {
-            'log': {
+
+        msg = model.Envelope(
+            log={
                 'message': 1,
                 'application_type': application_type,
                 'dimensions': {
@@ -131,12 +133,11 @@ class TestSendMessage(testing.TestBase):
                     dimension_2_name: dimension_2_value
                 }
             },
-            'creation_time': creation_time,
-            'meta': {
+            meta={
                 'tenantId': 1
             }
-        }
-
+        )
+        msg['creation_time'] = creation_time
         instance.send_message(msg)
 
         instance._kafka_publisher.publish.assert_called_once_with(
@@ -162,8 +163,8 @@ class TestSendMessage(testing.TestBase):
         dimension_2_name = 'cpu_time'
         dimension_2_value = '60'
         application_type = 'monasca-log-api'
-        msg = {
-            'log': {
+        msg = model.Envelope(
+            log={
                 'message': 1,
                 'application_type': application_type,
                 'dimensions': {
@@ -171,11 +172,11 @@ class TestSendMessage(testing.TestBase):
                     dimension_2_name: dimension_2_value
                 }
             },
-            'creation_time': creation_time,
-            'meta': {
+            meta={
                 'tenantId': 1
             }
-        }
+        )
+        msg['creation_time'] = creation_time
         json_msg = ujson.dumps(msg)
 
         instance.send_message(msg)

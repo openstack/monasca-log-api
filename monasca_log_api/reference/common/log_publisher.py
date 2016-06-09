@@ -23,6 +23,7 @@ from oslo_log import log
 
 from monasca_log_api.monitoring import client
 from monasca_log_api.monitoring import metrics
+from monasca_log_api.reference.common import model
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
@@ -55,9 +56,6 @@ log_publisher_group = cfg.OptGroup(name='log_publisher', title='log_publisher')
 cfg.CONF.register_group(log_publisher_group)
 cfg.CONF.register_opts(log_publisher_opts, log_publisher_group)
 
-ENVELOPE_SCHEMA = ['log', 'meta', 'creation_time']
-"""Log envelope (i.e.) message keys"""
-
 
 class InvalidMessageException(Exception):
     pass
@@ -83,7 +81,10 @@ class LogPublisher(object):
     """
 
     def __init__(self):
+
         self._topics = CONF.log_publisher.topics
+        self.max_message_size = CONF.log_publisher.max_message_size
+
         self._kafka_publisher = producer.KafkaProducer(
             url=CONF.log_publisher.kafka_url
         )
@@ -106,87 +107,6 @@ class LogPublisher(object):
 
         LOG.info('Initializing LogPublisher <%s>', self)
 
-    @staticmethod
-    def _is_message_valid(message):
-        """Validates message before sending.
-
-        Methods checks if message is :py:class:`dict`.
-        If so dictionary is verified against having following keys:
-
-        * meta
-        * log
-        * creation_time
-
-        If keys are found, each key must have a valueH.
-
-        If at least none of the conditions is met
-        :py:class:`.InvalidMessageException` is raised
-
-        :raises InvalidMessageException: if message does not comply to schema
-
-        """
-        if not isinstance(message, dict):
-            return False
-
-        for key in ENVELOPE_SCHEMA:
-            if not (key in message and message.get(key)):
-                return False
-
-        return True
-
-    def _truncate(self, envelope):
-        """Truncates the message if needed.
-
-        Each message send to kafka is verified.
-        Method checks if message serialized to json
-        exceeds maximum allowed size that can be posted to kafka
-        queue. If so, method truncates message property of the log
-        by difference between message and allowed size.
-
-        :param Envelope envelope: envelope to check
-        :return: truncated message if size is exceeded, otherwise message
-                 is left unmodified
-        """
-
-        msg_str = rest_utils.as_json(envelope)
-
-        max_size = CONF.log_publisher.max_message_size
-        envelope_size = ((len(bytearray(msg_str)) +
-                          _TIMESTAMP_KEY_SIZE +
-                          _KAFKA_META_DATA_SIZE)
-                         if msg_str is not None else -1)
-
-        size_diff = (envelope_size - max_size) + _TRUNCATION_SAFE_OFFSET
-
-        LOG.debug('_truncate(max_message_size=%d, message_size=%d, diff=%d)',
-                  max_size, envelope_size, size_diff)
-
-        if size_diff > 1:
-            truncate_by = size_diff + _TRUNCATED_PROPERTY_SIZE
-
-            self._logs_truncated_gauge.send(
-                name=None,
-                value=truncate_by
-            )
-
-            LOG.warn(('Detected message that exceeds %d bytes,'
-                      'message will be truncated by %d bytes'),
-                     max_size,
-                     truncate_by)
-
-            log_msg = envelope['log']['message']
-            truncated_log_msg = log_msg[:-truncate_by]
-
-            envelope['log']['truncated'] = True
-            envelope['log']['message'] = truncated_log_msg
-
-            # will just transform message once again without truncation
-            return rest_utils.as_json(envelope)
-
-        self._logs_truncated_gauge.send(name=None, value=0)
-
-        return msg_str
-
     def send_message(self, messages):
         """Sends message to each configured topic.
 
@@ -194,8 +114,8 @@ class LogPublisher(object):
             Falsy messages (i.e. empty) are not shipped to kafka
 
         See also
-            :py:class:`monasca_log_api.common.model.Envelope'
-            :py:meth:`._is_message_valid'
+            * :py:class:`monasca_log_api.common.model.Envelope`
+            * :py:meth:`._is_message_valid`
 
         :param dict|list messages: instance (or instances) of log envelope
         """
@@ -206,18 +126,16 @@ class LogPublisher(object):
             messages = [messages]
 
         sent_counter = 0
-        to_sent_counter = len(messages)
+        num_of_msgs = len(messages)
 
         LOG.debug('About to publish %d messages to %s topics',
-                  to_sent_counter, self._topics)
+                  num_of_msgs, self._topics)
 
         try:
             send_messages = []
-            for message in messages:
-                if not self._is_message_valid(message):
-                    raise InvalidMessageException()
 
-                msg = self._truncate(message)
+            for message in messages:
+                msg = self._transform_message(message)
                 send_messages.append(msg)
 
             with self._publish_time_ms.time(name=None):
@@ -229,24 +147,80 @@ class LogPublisher(object):
             LOG.exception(ex)
             raise ex
         finally:
-            self._logs_published_counter.increment(value=sent_counter)
-            if sent_counter == to_sent_counter:
-                LOG.info('Successfully published all [%d] messages',
-                         sent_counter)
-            else:
-                failed_to_send = to_sent_counter - sent_counter
-                error_str = ('Failed to sent all messages, %d '
-                             'messages out of %d have not been published')
-                LOG.error(error_str, failed_to_send, to_sent_counter)
+            self._after_publish(sent_counter, num_of_msgs)
 
-                self._logs_lost_counter.increment(
-                    value=failed_to_send
-                )
+    def _transform_message(self, message):
+        """Transforms message into JSON.
+
+        Method executes transformation operation for
+        single element. Operation is set of following
+        operations:
+
+        * checking if message is valid
+            (:py:func:`.LogPublisher._is_message_valid`)
+        * truncating message if necessary
+            (:py:func:`.LogPublisher._truncate`)
+
+        :param model.Envelope message: instance of message
+        :return: serialized message
+        :rtype: str
+        """
+        if not self._is_message_valid(message):
+            raise InvalidMessageException()
+        return self._truncate(message)
+
+    def _truncate(self, envelope):
+        """Truncates the message if needed.
+
+        Each message send to kafka is verified.
+        Method checks if message serialized to json
+        exceeds maximum allowed size that can be posted to kafka
+        queue. If so, method truncates message property of the log
+        by difference between message and allowed size.
+
+        :param Envelope envelope: original envelope
+        :return: serialized message
+        :rtype: str
+        """
+
+        msg_str = rest_utils.as_json(envelope)
+        envelope_size = ((len(bytearray(msg_str)) +
+                          _TIMESTAMP_KEY_SIZE +
+                          _KAFKA_META_DATA_SIZE)
+                         if msg_str is not None else -1)
+
+        diff_size = ((envelope_size - self.max_message_size) +
+                     _TRUNCATION_SAFE_OFFSET)
+
+        if diff_size > 1:
+            truncated_by = diff_size + _TRUNCATED_PROPERTY_SIZE
+
+            LOG.warn(('Detected message that exceeds %d bytes,'
+                      'message will be truncated by %d bytes'),
+                     self.max_message_size,
+                     truncated_by)
+
+            log_msg = envelope['log']['message']
+            truncated_log_msg = log_msg[:-truncated_by]
+
+            envelope['log']['truncated'] = True
+            envelope['log']['message'] = truncated_log_msg
+            self._logs_truncated_gauge.send(name=None, value=truncated_by)
+
+            msg_str = rest_utils.as_json(envelope)
+        else:
+            self._logs_truncated_gauge.send(name=None, value=0)
+
+        return msg_str
 
     def _publish(self, messages):
-        to_sent = len(messages)
+        """Publishes messages to kafka.
 
-        LOG.debug('Publishing %d messages', to_sent)
+        :param list messages: list of messages
+        """
+        num_of_msg = len(messages)
+
+        LOG.debug('Publishing %d messages', num_of_msg)
 
         try:
             for topic in self._topics:
@@ -254,7 +228,39 @@ class LogPublisher(object):
                     topic,
                     messages
                 )
-                LOG.debug('Sent %d messages to topic %s', to_sent, topic)
+                LOG.debug('Sent %d messages to topic %s', num_of_msg, topic)
         except Exception as ex:
             raise falcon.HTTPServiceUnavailable('Service unavailable',
                                                 ex.message, 60)
+
+    @staticmethod
+    def _is_message_valid(message):
+        """Validates message before sending.
+
+        Methods checks if message is :py:class:`model.Envelope`.
+        By being instance of this class it is ensured that all required
+        keys are found and they will have their values.
+
+        """
+        return message and isinstance(message, model.Envelope)
+
+    def _after_publish(self, send_count, to_send_count):
+        """Executed after publishing to sent metrics.
+
+        :param int send_count: how many messages have been sent
+        :param int to_send_count: how many messages should be sent
+
+        """
+
+        failed_to_send = to_send_count - send_count
+
+        if failed_to_send == 0:
+            LOG.debug('Successfully published all [%d] messages',
+                      send_count)
+        else:
+            error_str = ('Failed to send all messages, %d '
+                         'messages out of %d have not been published')
+            LOG.error(error_str, failed_to_send, to_send_count)
+
+        self._logs_published_counter.increment(value=send_count)
+        self._logs_lost_counter.increment(value=failed_to_send)

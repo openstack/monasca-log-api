@@ -19,6 +19,9 @@ import falcon
 from monasca_common.rest import utils as rest_utils
 from oslo_log import log
 
+from monasca_log_api.api import exceptions
+from monasca_log_api.reference.common import validation
+
 LOG = log.getLogger(__name__)
 
 
@@ -37,3 +40,18 @@ def read_json_msg_body(req):
         LOG.debug(ex)
         raise falcon.HTTPBadRequest('Bad request',
                                     'Request body is not valid JSON')
+
+
+def get_global_dimensions(request_body):
+    """Get the top level dimensions in the HTTP request body."""
+    global_dims = request_body.get('dimensions', {})
+    validation.validate_dimensions(global_dims)
+    return global_dims
+
+
+def get_logs(request_body):
+    """Get the logs in the HTTP request body."""
+    if 'logs' not in request_body:
+        raise exceptions.HTTPUnprocessableEntity(
+            'Unprocessable Entity Logs not found')
+    return request_body['logs']

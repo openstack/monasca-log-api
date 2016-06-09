@@ -66,25 +66,28 @@ def _generate_v3_payload(log_count):
 
 
 class TestLogsVersion(unittest.TestCase):
-    @mock.patch('monasca_log_api.reference.v3.logs.log_publisher'
-                '.LogPublisher')
+
+    @mock.patch('monasca_log_api.reference.v3.common.'
+                'bulk_processor.BulkProcessor')
     def test_should_return_v3_as_version(self, _):
         logs_resource = logs.Logs()
         self.assertEqual('v3.0', logs_resource.version)
 
 
+@mock.patch('monasca_log_api.reference.common.log_publisher.producer.'
+            'KafkaProducer')
+@mock.patch('monasca_log_api.monitoring.client.monascastatsd.Connection')
 class TestLogsMonitoring(testing.TestBase):
 
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
-    def test_monitor_bulk_rejected(self, _):
-        resource = _init_resource(self)
+    def test_monitor_bulk_rejected(self, __, _):
+        res = _init_resource(self)
 
-        resource._logs_in_counter = in_counter = mock.Mock()
-        resource._logs_rejected_counter = rejected_counter = mock.Mock()
-        resource._bulks_rejected_counter = bulk_counter = mock.Mock()
-        resource._logs_size_gauge = size_gauge = mock.Mock()
+        in_counter = res._logs_in_counter.increment = mock.Mock()
+        bulk_counter = res._bulks_rejected_counter.increment = mock.Mock()
+        rejected_counter = res._logs_rejected_counter.increment = mock.Mock()
+        size_gauge = res._logs_size_gauge.send = mock.Mock()
 
-        resource._get_logs = mock.Mock(
+        res._get_logs = mock.Mock(
             side_effect=log_api_exceptions.HTTPUnprocessableEntity(''))
 
         log_count = 1
@@ -104,19 +107,18 @@ class TestLogsMonitoring(testing.TestBase):
             body=payload
         )
 
-        self.assertEqual(1, bulk_counter.increment.call_count)
-        self.assertEqual(0, in_counter.increment.call_count)
-        self.assertEqual(0, rejected_counter.increment.call_count)
-        self.assertEqual(0, size_gauge.send.call_count)
+        self.assertEqual(1, bulk_counter.call_count)
+        self.assertEqual(0, in_counter.call_count)
+        self.assertEqual(0, rejected_counter.call_count)
+        self.assertEqual(0, size_gauge.call_count)
 
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
-    def test_monitor_not_all_logs_ok(self, _):
-        resource = _init_resource(self)
+    def test_monitor_not_all_logs_ok(self, __, _):
+        res = _init_resource(self)
 
-        resource._logs_in_counter = in_counter = mock.Mock()
-        resource._logs_rejected_counter = rejected_counter = mock.Mock()
-        resource._bulks_rejected_counter = bulk_counter = mock.Mock()
-        resource._logs_size_gauge = size_gauge = mock.Mock()
+        in_counter = res._logs_in_counter.increment = mock.Mock()
+        bulk_counter = res._bulks_rejected_counter.increment = mock.Mock()
+        rejected_counter = res._logs_rejected_counter.increment = mock.Mock()
+        size_gauge = res._logs_size_gauge.send = mock.Mock()
 
         log_count = 5
         reject_logs = 1
@@ -124,10 +126,10 @@ class TestLogsMonitoring(testing.TestBase):
         payload = json.dumps(v3_body)
         content_length = len(payload)
 
-        side_effects = [{} for __ in xrange(log_count - reject_logs)]
+        side_effects = [{} for ___ in xrange(log_count - reject_logs)]
         side_effects.append(log_api_exceptions.HTTPUnprocessableEntity(''))
 
-        resource._get_dimensions = mock.Mock(side_effect=side_effects)
+        res._processor._get_dimensions = mock.Mock(side_effect=side_effects)
 
         self.simulate_request(
             ENDPOINT,
@@ -141,30 +143,31 @@ class TestLogsMonitoring(testing.TestBase):
             body=payload
         )
 
-        self.assertEqual(1, bulk_counter.increment.call_count)
+        self.assertEqual(1, bulk_counter.call_count)
         self.assertEqual(0,
-                         bulk_counter.increment.mock_calls[0][2]['value'])
+                         bulk_counter.mock_calls[0][2]['value'])
 
-        self.assertEqual(0, in_counter.increment.call_count)
+        self.assertEqual(1, in_counter.call_count)
+        self.assertEqual(log_count - reject_logs,
+                         in_counter.mock_calls[0][2]['value'])
 
-        self.assertEqual(1, rejected_counter.increment.call_count)
-        self.assertEqual(log_count,
-                         rejected_counter.increment.mock_calls[0][2]['value'])
+        self.assertEqual(1, rejected_counter.call_count)
+        self.assertEqual(reject_logs,
+                         rejected_counter.mock_calls[0][2]['value'])
 
-        self.assertEqual(1, size_gauge.send.call_count)
+        self.assertEqual(1, size_gauge.call_count)
         self.assertEqual(content_length,
-                         size_gauge.send.mock_calls[0][2]['value'])
+                         size_gauge.mock_calls[0][2]['value'])
 
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
-    def test_monitor_all_logs_ok(self, _):
-        resource = _init_resource(self)
+    def test_monitor_all_logs_ok(self, __, _):
+        res = _init_resource(self)
 
-        resource._logs_in_counter = in_counter = mock.Mock()
-        resource._logs_rejected_counter = rejected_counter = mock.Mock()
-        resource._bulks_rejected_counter = bulk_counter = mock.Mock()
-        resource._logs_size_gauge = size_gauge = mock.Mock()
+        in_counter = res._logs_in_counter.increment = mock.Mock()
+        bulk_counter = res._bulks_rejected_counter.increment = mock.Mock()
+        rejected_counter = res._logs_rejected_counter.increment = mock.Mock()
+        size_gauge = res._logs_size_gauge.send = mock.Mock()
 
-        resource._send_logs = mock.Mock()
+        res._send_logs = mock.Mock()
 
         log_count = 10
 
@@ -184,16 +187,18 @@ class TestLogsMonitoring(testing.TestBase):
             body=payload
         )
 
-        self.assertEqual(1, bulk_counter.increment.call_count)
+        self.assertEqual(1, bulk_counter.call_count)
         self.assertEqual(0,
-                         bulk_counter.increment.mock_calls[0][2]['value'])
+                         bulk_counter.mock_calls[0][2]['value'])
 
-        self.assertEqual(1, in_counter.increment.call_count)
+        self.assertEqual(1, in_counter.call_count)
         self.assertEqual(log_count,
-                         in_counter.increment.mock_calls[0][2]['value'])
+                         in_counter.mock_calls[0][2]['value'])
 
-        self.assertEqual(0, rejected_counter.increment.call_count)
+        self.assertEqual(1, rejected_counter.call_count)
+        self.assertEqual(0,
+                         rejected_counter.mock_calls[0][2]['value'])
 
-        self.assertEqual(1, size_gauge.send.call_count)
+        self.assertEqual(1, size_gauge.call_count)
         self.assertEqual(content_length,
-                         size_gauge.send.mock_calls[0][2]['value'])
+                         size_gauge.mock_calls[0][2]['value'])

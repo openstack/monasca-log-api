@@ -84,23 +84,8 @@ def validate_application_type(application_type=None):
         validate_match()
 
 
-def validate_dimensions(dimensions):
-    """Validates dimensions type.
-
-       Empty dimensions are not being validated.
-       For details see:
-
-       :param dict dimensions: dimensions to validate
-
-       * :py:data:`DIMENSION_NAME_CONSTRAINTS`
-       * :py:data:`DIMENSION_VALUE_CONSTRAINTS`
-       """
-
-    def validate_name(name):
-        if not name:
-            raise exceptions.HTTPUnprocessableEntity(
-                'Dimension name cannot be empty'
-            )
+def _validate_dimension_name(name):
+    try:
         if len(name) > DIMENSION_NAME_CONSTRAINTS['MAX_LENGTH']:
             raise exceptions.HTTPUnprocessableEntity(
                 'Dimension name %s must be 255 characters or less' %
@@ -116,26 +101,42 @@ def validate_dimensions(dimensions):
                 'Dimension name %s may not contain: %s' %
                 (name, '> < = { } ( ) \' " , ; &')
             )
+    except (TypeError, IndexError):
+        raise exceptions.HTTPUnprocessableEntity(
+            'Dimension name cannot be empty'
+        )
 
-    def validate_value(value):
-        if not value:
-            raise exceptions.HTTPUnprocessableEntity(
-                'Dimension value cannot be empty'
-            )
+
+def _validate_dimension_value(value):
+    try:
+        value[0]
         if len(value) > DIMENSION_VALUE_CONSTRAINTS['MAX_LENGTH']:
             raise exceptions.HTTPUnprocessableEntity(
                 'Dimension value %s must be 255 characters or less' %
                 value
             )
+    except (TypeError, IndexError):
+        raise exceptions.HTTPUnprocessableEntity(
+            'Dimension value cannot be empty'
+        )
 
-    if (isinstance(dimensions, dict) and not
-            isinstance(dimensions, basestring)):
 
-        for dim_name in dimensions:
-            validate_name(dim_name)
-            validate_value(dimensions[dim_name])
+def validate_dimensions(dimensions):
+    """Validates dimensions type.
 
-    else:
+       Empty dimensions are not being validated.
+       For details see:
+
+       :param dict dimensions: dimensions to validate
+
+       * :py:data:`DIMENSION_NAME_CONSTRAINTS`
+       * :py:data:`DIMENSION_VALUE_CONSTRAINTS`
+       """
+    try:
+        for dim_name, dim_value in dimensions.iteritems():
+            _validate_dimension_name(dim_name)
+            _validate_dimension_value(dim_value)
+    except AttributeError:
         raise exceptions.HTTPUnprocessableEntity(
             'Dimensions %s must be a dictionary (map)' % dimensions)
 

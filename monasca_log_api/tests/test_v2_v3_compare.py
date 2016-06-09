@@ -21,12 +21,13 @@ from monasca_log_api.api import logs_api
 from monasca_log_api.reference.v2 import logs as v2_logs
 from monasca_log_api.reference.v3 import logs as v3_logs
 
-from monasca_log_api.reference.common import model
-
 
 class SameV2V3Output(testing.TestBase):
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
-    def test_send_identical_messages(self, publisher):
+
+    # noinspection PyProtectedMember
+    @mock.patch('monasca_log_api.reference.common.'
+                'log_publisher.producer.KafkaProducer')
+    def test_send_identical_messages(self, _):
         # mocks only log publisher, so the last component that actually
         # sends data to kafka
         # case is to verify if publisher was called with same arguments
@@ -35,8 +36,10 @@ class SameV2V3Output(testing.TestBase):
         v2 = v2_logs.Logs()
         v3 = v3_logs.Logs()
 
-        v2._kafka_publisher = publisher
-        v3._log_publisher = publisher
+        publish_mock = mock.Mock()
+
+        v2._kafka_publisher._kafka_publisher.publish = publish_mock
+        v3._processor._kafka_publisher.publish = publish_mock
 
         component = 'monasca-log-api'
         service = 'laas'
@@ -92,17 +95,24 @@ class SameV2V3Output(testing.TestBase):
             body=json.dumps(v3_body)
         )
 
-        self.assertEqual(2, publisher.call_count)
+        self.assertEqual(2, publish_mock.call_count)
 
         # in v2 send_messages is called with single envelope
-        v2_send_msg_arg = publisher.method_calls[0][1][0]
+        v2_send_msg_arg = publish_mock.mock_calls[0][1][1]
 
         # in v3 it is always called with list of envelopes
-        v3_send_msg_arg = publisher.method_calls[1][1][0][0]
+        v3_send_msg_arg = publish_mock.mock_calls[1][1][1]
 
         self.maxDiff = None
 
         # at this point we know that both args should be identical
         self.assertEqual(type(v2_send_msg_arg), type(v3_send_msg_arg))
-        self.assertIsInstance(v3_send_msg_arg, model.Envelope)
-        self.assertDictEqual(v2_send_msg_arg, v3_send_msg_arg)
+        self.assertIsInstance(v3_send_msg_arg, list)
+
+        self.assertEqual(len(v2_send_msg_arg), len(v3_send_msg_arg))
+        self.assertEqual(1, len(v2_send_msg_arg))
+
+        v2_msg_as_dict = json.loads(v2_send_msg_arg[0])
+        v3_msg_as_dict = json.loads(v3_send_msg_arg[0])
+
+        self.assertDictEqual(v2_msg_as_dict, v3_msg_as_dict)
