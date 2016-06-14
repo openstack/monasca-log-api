@@ -13,9 +13,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import falcon
-import itertools
-
 from monasca_common.kafka import producer
 from monasca_common.rest import utils as rest_utils
 from oslo_config import cfg
@@ -81,36 +78,6 @@ class LogPublisher(object):
         )
         LOG.info('Initializing LogPublisher <%s>', self)
 
-    # TODO(trebskit) caching of computed keys should be done
-    # TODO(trebskit) cache should have expires_at_like functionality
-    @staticmethod
-    def _build_key(tenant_it, obj=None):
-        """Message key builder
-
-        Builds message key using tenant_id and dimensions (only values).
-        Used values are concatenated with ':' character for readability.
-
-        :param str tenant_it: tenant id
-        :param dict obj: log instance
-        :return: key
-        :rtype: str
-        """
-
-        if obj is None:
-            obj = {}
-        if not (tenant_it or obj):
-            return ''
-
-        str_list = [str(tenant_it)]
-
-        dims = obj.get('dimensions', None)
-        if dims:
-            sorted_dims = sorted(dims)
-            for name in sorted_dims:
-                str_list.append(dims[name])
-
-        return ':'.join(filter(None, str_list))
-
     @staticmethod
     def _is_message_valid(message):
         """Validates message before sending.
@@ -148,7 +115,6 @@ class LogPublisher(object):
         See also
             :py:class:`monasca_log_api.common.model.Envelope'
             :py:meth:`._is_message_valid'
-            :py:meth:`._build_key'
 
         :param dict|list messages: instance (or instances) of log envelope
         """
@@ -158,7 +124,6 @@ class LogPublisher(object):
         if not isinstance(messages, list):
             messages = [messages]
 
-        buckets = {}
         sent_counter = 0
         to_sent_counter = len(messages)
 
@@ -166,42 +131,18 @@ class LogPublisher(object):
                   to_sent_counter, self._topics)
 
         try:
+            send_messages = []
             for message in messages:
                 if not self._is_message_valid(message):
                     raise InvalidMessageException()
 
-                key = self._build_key(message['meta']['tenantId'],
-                                      message['log'])
-                msg = rest_utils.as_json(message).encode('utf8')
-
+                msg = rest_utils.as_json(message)
                 validation.validate_envelope_size(msg)
+                send_messages.append(msg)
 
-                if key not in buckets:
-                    buckets[key] = []
-
-                buckets[key].append(msg)
-
-            all_keys = buckets.keys()
-            LOG.debug('Publishing %d buckets of messages', len(all_keys))
-
-            topic_to_key = itertools.product(self._topics, all_keys)
-            for topic, key in topic_to_key:
-
-                bucket = buckets.get(key)  # array of messages for the same key
-                if not bucket:
-                    LOG.warn('Empty bucket spotted, continue...')
-                    continue
-                try:
-                    self._kafka_publisher.publish(topic, bucket, key)
-                except Exception as ex:
-                    raise falcon.HTTPServiceUnavailable('Service unavailable',
-                                                        ex.message, 60)
-
-                LOG.debug('Sent %d messages (topics=%s,key=%s)',
-                          len(bucket), topic, key)
-
-                # keep on track how many msgs have been sent
-                sent_counter += len(bucket)
+            for topic in self._topics:
+                self._kafka_publisher.publish(topic, send_messages)
+            sent_counter = to_sent_counter
         except Exception as ex:
             LOG.error('Failure in publishing messages to kafka')
             LOG.exception(ex)

@@ -27,73 +27,6 @@ from monasca_log_api.tests import base
 EPOCH_START = datetime.datetime(1970, 1, 1)
 
 
-class TestBuildKey(unittest.TestCase):
-    def test_should_return_empty_for_none_params(self):
-        self.assertFalse(log_publisher.LogPublisher._build_key(None, None))
-
-    def test_should_return_tenant_id_for_tenant_id_defined_1(self):
-        tenant_id = 'monasca'
-        self.assertEqual(
-            tenant_id,
-            log_publisher.LogPublisher._build_key(tenant_id, None)
-        )
-
-    def test_should_return_tenant_id_for_tenant_id_defined_2(self):
-        tenant_id = 'monasca'
-        self.assertEqual(tenant_id,
-                         log_publisher.LogPublisher._build_key(tenant_id, {}))
-
-    def test_should_return_ok_key_1(self):
-        # Evaluates if key matches value for defined tenant_id and
-        # application_type
-        tenant_id = 'monasca'
-        application_type = 'monasca-log-api'
-        log_object = {
-            'dimensions': {'component': application_type}
-        }
-        expected_key = ':'.join([tenant_id, application_type])
-
-        self.assertEqual(expected_key,
-                         log_publisher.LogPublisher._build_key(tenant_id,
-                                                               log_object))
-
-    def test_should_return_ok_key_2(self):
-        # Evaluates if key matches value for defined tenant_id and
-        # application_type and single dimension
-        tenant_id = 'monasca'
-        application_type = 'monasca-log-api'
-        host = '/var/log/test'
-        log_object = {
-            'dimensions': {
-                'host': host,
-                'component': application_type
-            }
-        }
-        expected_key = ':'.join([tenant_id, application_type, host])
-
-        self.assertEqual(expected_key,
-                         log_publisher.LogPublisher._build_key(tenant_id,
-                                                               log_object))
-
-    def test_should_return_ok_key_3(self):
-        # Evaluates if key matches value for defined tenant_id and
-        # application_type and two dimensions dimensions given unsorted
-        tenant_id = 'monasca'
-        component = 'monasca-log-api'
-        service = 'laas'
-        log_object = {
-            'dimensions': {
-                'component': component,
-                'service': service
-            }
-        }
-        expected_key = ':'.join([tenant_id, component, service])
-
-        self.assertEqual(expected_key,
-                         log_publisher.LogPublisher._build_key(tenant_id,
-                                                               log_object))
-
-
 class TestSendMessage(testing.TestBase):
     def setUp(self):
         self.conf = base.mock_config(self)
@@ -169,9 +102,6 @@ class TestSendMessage(testing.TestBase):
         instance = log_publisher.LogPublisher()
         instance._kafka_publisher = kafka_producer
         instance.send_message({})
-        expected_key = 'some_key'
-        instance._build_key = mock.Mock(name='_build_key',
-                                        return_value=expected_key)
 
         creation_time = ((datetime.datetime.utcnow() - EPOCH_START)
                          .total_seconds())
@@ -199,8 +129,7 @@ class TestSendMessage(testing.TestBase):
 
         instance._kafka_publisher.publish.assert_called_once_with(
             self.conf.conf.log_publisher.topics[0],
-            [ujson.dumps(msg)],
-            expected_key)
+            [ujson.dumps(msg)])
 
     @mock.patch('monasca_log_api.reference.common.log_publisher.producer'
                 '.KafkaProducer')
@@ -212,9 +141,6 @@ class TestSendMessage(testing.TestBase):
         instance = log_publisher.LogPublisher()
         instance._kafka_publisher = mock.Mock()
         instance.send_message({})
-        expected_key = 'some_key'
-        instance._build_key = mock.Mock(name='_build_key',
-                                        return_value=expected_key)
 
         creation_time = ((datetime.datetime.utcnow() - EPOCH_START)
                          .total_seconds())
@@ -246,8 +172,7 @@ class TestSendMessage(testing.TestBase):
         for topic in topics:
             instance._kafka_publisher.publish.assert_any_call(
                 topic,
-                [json_msg],
-                expected_key)
+                [json_msg])
 
     @mock.patch(
         'monasca_log_api.reference.common.log_publisher.producer'
@@ -284,7 +209,7 @@ class TestSendMessage(testing.TestBase):
 
         instance.send_message(msgs_data)
 
-        self.assertEqual(len(topics) * len(msgs_data),
+        self.assertEqual(len(topics),
                          instance._kafka_publisher.publish.call_count)
 
     @mock.patch(
@@ -360,5 +285,5 @@ class TestSendMessage(testing.TestBase):
 
         instance.send_message(msgs_data)
 
-        self.assertEqual(len(msgs_data),
+        self.assertEqual(len(topics),
                          instance._kafka_publisher.publish.call_count)
