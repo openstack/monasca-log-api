@@ -74,6 +74,13 @@ Or you can use "\*" as a wild card, like below.
 
 Select @timestamp as time-field name.
 
+# Using Vagrant
+
+Vagrant can be used to deploy a VM with Devstack and Monasca Logging
+running in it using the Vagrantfile. After installing Vagrant,
+just run the command `vagrant up` as usual in the `monasca-log-api/devstack`
+directory.
+
 ```
 # Copyright 2016 FUJITSU LIMITED
 #
