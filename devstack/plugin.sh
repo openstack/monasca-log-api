@@ -22,6 +22,9 @@ set -o xtrace
 ERREXIT=$(set +o | grep errexit)
 set -o errexit
 
+# Per default keep existing tarballs
+export ALWAYS_DOWNLOAD_TARBALLS=${ALWAYS_DOWNLOAD_TARBALLS:-false}
+
 PLUGIN_FILES="$MONASCA_BASE"/monasca-log-api/devstack/files
 
 function pre_install_monasca_log {
@@ -106,9 +109,14 @@ function install_monasca_log_api {
 function install_logstash {
     echo_summary "install logstash"
 
-    sudo curl -L http://download.elastic.co/logstash/logstash/logstash-${LOGSTASH_VERSION}.tar.gz -o /opt/logstash-${LOGSTASH_VERSION}.tar.gz
-    sudo tar xzf /opt/logstash-${LOGSTASH_VERSION}.tar.gz -C /opt
-    sudo rm -f /opt/logstash-${LOGSTASH_VERSION}.tar.gz
+    local logstash_tarball=logstash-${LOGSTASH_VERSION}.tar.gz
+    if [[ ${ALWAYS_DOWNLOAD_TARBALLS} == true || \
+          ! -f /opt/monasca_download_dir/${logstash_tarball}  ]]; then
+        sudo curl -L \
+            http://download.elastic.co/logstash/logstash/${logstash_tarball} \
+            -o /opt/monasca_download_dir/${logstash_tarball}
+    fi
+    sudo tar xzf /opt/monasca_download_dir/${logstash_tarball} -C /opt
 
     sudo ln -sf /opt/logstash-${LOGSTASH_VERSION} /opt/logstash
 
@@ -130,9 +138,14 @@ function install_monasca_elasticsearch {
     sudo groupadd --system elastic || true
     sudo useradd --system -g elastic elastic || true
 
-    sudo curl -L http://download.elasticsearch.org/elasticsearch/elasticsearch/elasticsearch-${ELASTICSEARCH_VERSION}.tar.gz -o /opt/elasticsearch-${ELASTICSEARCH_VERSION}.tar.gz
-    sudo tar xzf /opt/elasticsearch-${ELASTICSEARCH_VERSION}.tar.gz -C /opt
-    sudo rm -f /opt/elasticsearch-${ELASTICSEARCH_VERSION}.tar.gz
+    local es_tarball=elasticsearch-${ELASTICSEARCH_VERSION}.tar.gz
+    if [[ ${ALWAYS_DOWNLOAD_TARBALLS} == true || \
+          ! -f /opt/monasca_download_dir/${es_tarball}  ]]; then
+        sudo curl -L \
+            http://download.elasticsearch.org/elasticsearch/elasticsearch/${es_tarball} \
+            -o /opt/monasca_download_dir/${es_tarball}
+    fi
+    sudo tar xzf /opt/monasca_download_dir/${es_tarball} -C /opt
 
     sudo chown -R elastic:elastic /opt/elasticsearch-${ELASTICSEARCH_VERSION}
 
@@ -260,9 +273,14 @@ function install_kibana {
     sudo groupadd --system kibana || true
     sudo useradd --system -g kibana kibana || true
 
-    sudo curl -L http://download.elastic.co/kibana/kibana/kibana-${KIBANA_VERSION}.tar.gz -o /opt/kibana-${KIBANA_VERSION}.tar.gz
-    sudo tar xzf /opt/kibana-${KIBANA_VERSION}.tar.gz -C /opt
-    sudo rm -f /opt/kibana-${KIBANA_VERSION}.tar.gz
+    local kibana_tarball=kibana-${KIBANA_VERSION}.tar.gz
+    if [[ ${ALWAYS_DOWNLOAD_TARBALLS} == true || \
+          ! -f /opt/monasca_download_dir/${kibana_tarball}  ]]; then
+        sudo curl -L \
+            http://download.elastic.co/kibana/kibana/${kibana_tarball} \
+            -o /opt/monasca_download_dir/${kibana_tarball}
+    fi
+    sudo tar xzf /opt/monasca_download_dir/${kibana_tarball} -C /opt
 
     sudo chown -R kibana:kibana /opt/kibana-${KIBANA_VERSION}
 
