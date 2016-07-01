@@ -37,6 +37,7 @@ function install_monasca_log {
     install_monasca_elasticsearch
     configure_log_persister
     configure_log_transformer
+    configure_log_metrics
     install_monasca_log_api
     install_kibana
 }
@@ -241,7 +242,7 @@ function configure_log_persister {
 }
 
 function configure_log_transformer {
-    echo_summary "configure_log_persister"
+    echo_summary "configure_log_transformer"
 
     sudo useradd --system -g monasca mon-transformer || true
 
@@ -265,6 +266,40 @@ function configure_log_transformer {
     sudo chmod 0640 /etc/init/monasca-log-transformer.conf
 
     sudo start monasca-log-transformer || sudo restart monasca-log-transformer
+}
+
+function configure_log_metrics {
+    echo_summary "configure_log_metrics"
+
+    sudo useradd --system -g monasca mon-log-metrics || true
+
+    sudo mkdir -p /var/log/monasca/monasca-log-metrics || true
+    sudo chown mon-log-metrics:monasca /var/log/monasca/monasca-log-metrics
+    sudo chmod 0750 /var/log/monasca/monasca-log-metrics
+
+    local log_metrics_conf=/etc/monasca/log/log-metrics.conf
+    sudo cp -f ${PLUGIN_FILES}/monasca-log-metrics/log-metrics.conf \
+        ${log_metrics_conf}
+    sudo chown mon-log-metrics:monasca ${log_metrics_conf}
+    sudo chmod 0640 ${log_metrics_conf}
+
+    if [[ ${SERVICE_HOST} ]]; then
+        # set zookeeper ip address
+        sudo sed -i \
+            "s/zk_connect => \"127\.0\.0\.1:2181\"/zk_connect => \"${SERVICE_HOST}:2181\"/g" \
+            ${log_metrics_conf}
+        # set kafka ip address
+        sudo sed -i \
+            "s/bootstrap_servers => \"127\.0\.0\.1:9092\"/bootstrap_servers => \"${SERVICE_HOST}:9092\"/g" \
+            ${log_metrics_conf}
+    fi
+
+    sudo cp -f ${PLUGIN_FILES}/monasca-log-metrics/monasca-log-metrics.conf \
+        /etc/init/monasca-log-metrics.conf
+    sudo chown mon-log-metrics:monasca /etc/init/monasca-log-metrics.conf
+    sudo chmod 0640 /etc/init/monasca-log-metrics.conf
+
+    sudo start monasca-log-metrics || sudo restart monasca-log-metrics
 }
 
 function install_kibana {
@@ -357,6 +392,7 @@ function unstack_monasca_log {
     sudo stop monasca-log-agent || true
     sudo stop monasca-log-api || true
     sudo stop monasca-log-transformer || true
+    sudo stop monasca-log-metrics || true
     sudo stop monasca-log-persister || true
     sudo stop kibana || true
     sudo stop elasticsearch || true
@@ -408,6 +444,17 @@ function clean_monasca_log_transformer {
 
     sudo userdel mon-transformer || true
 }
+
+function clean_monasca_log_metrics {
+    echo_summary "clean log metrics"
+
+    sudo rm -rf /var/log/monasca/monasca-log-metrics
+    sudo rm -rf /etc/monasca/log
+    sudo rm -f /etc/init/monasca-log-metrics
+
+    sudo userdel mon-log-metrics || true
+}
+
 
 function clean_monasca_log_persister {
     echo_summary "clean log persister"
