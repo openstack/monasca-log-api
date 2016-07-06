@@ -22,6 +22,8 @@ set -o xtrace
 ERREXIT=$(set +o | grep errexit)
 set -o errexit
 
+PLUGIN_FILES="$MONASCA_BASE"/monasca-log-api/devstack/files
+
 function pre_install_monasca_log {
 :
 }
@@ -60,7 +62,7 @@ function install_monasca_log_api {
 
     sudo useradd --system -g monasca mon-log-api || true
 
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/monasca-log-api/monasca-log-api.conf /etc/init/monasca-log-api.conf
+    sudo cp -f "${PLUGIN_FILES}"/monasca-log-api/monasca-log-api.conf /etc/init/monasca-log-api.conf
     sudo chown root:root /etc/init/monasca-log-api.conf
     sudo chmod 0744 /etc/init/monasca-log-api.conf
 
@@ -76,7 +78,7 @@ function install_monasca_log_api {
     sudo chown root:monasca /etc/monasca
     sudo chmod 0755 /etc/monasca
 
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/monasca-log-api/log-api-config.conf /etc/monasca/log-api-config.conf
+    sudo cp -f "${PLUGIN_FILES}"/monasca-log-api/log-api-config.conf /etc/monasca/log-api-config.conf
     sudo chown mon-log-api:root /etc/monasca/log-api-config.conf
     sudo chmod 0660 /etc/monasca/log-api-config.conf
 
@@ -89,7 +91,7 @@ function install_monasca_log_api {
     fi
     sudo ln -sf /etc/monasca/log-api-config.conf /etc/log-api-config.conf
 
-    sudo cp  -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/monasca-log-api/log-api-config.ini /etc/monasca/log-api-config.ini
+    sudo cp  -f "${PLUGIN_FILES}"/monasca-log-api/log-api-config.ini /etc/monasca/log-api-config.ini
     sudo chown mon-log-api:root /etc/monasca/log-api-config.ini
     sudo chmod 0660 /etc/monasca/log-api-config.ini
 
@@ -114,9 +116,12 @@ function install_logstash {
 }
 
 function install_logstash_monasca_output_plugin {
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/monasca-log-agent/logstash-output-monasca_log_api-0.3.3.gem /opt/logstash/logstash-output-monasca_log_api-0.3.3.gem
-    sudo /opt/logstash/bin/plugin install /opt/logstash/logstash-output-monasca_log_api-0.3.3.gem
-    sudo rm -f /opt/logstash/logstash-output-monasca_log_api-0.3.3.gem
+    local monasca_log_agent_version=0.5
+    local ls_plugin_filename=logstash-output-monasca_log_api-${monasca_log_agent_version}.gem
+    sudo cp -f "${PLUGIN_FILES}"/monasca-log-agent/${ls_plugin_filename} \
+        /opt/logstash/${ls_plugin_filename}
+    sudo /opt/logstash/bin/plugin install /opt/logstash/${ls_plugin_filename}
+    sudo rm -f /opt/logstash/${ls_plugin_filename}
 }
 
 function install_monasca_elasticsearch {
@@ -145,7 +150,7 @@ function install_monasca_elasticsearch {
     sudo chown elastic:elastic /var/data/elasticsearch
     sudo chmod 750 /var/data/elasticsearch
 
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/elasticsearch/elasticsearch.yml /opt/elasticsearch/config/elasticsearch.yml
+    sudo cp -f "${PLUGIN_FILES}"/elasticsearch/elasticsearch.yml /opt/elasticsearch/config/elasticsearch.yml
     sudo chown elastic:elastic /opt/elasticsearch/config/elasticsearch.yml
     sudo chmod 0640 /opt/elasticsearch/config/elasticsearch.yml
 
@@ -154,7 +159,7 @@ function install_monasca_elasticsearch {
         sudo sed -i "s/network.publish_host: 127\.0\.0\.1/network.publish_host: ${SERVICE_HOST}/g" /opt/elasticsearch/config/elasticsearch.yml
     fi
 
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/elasticsearch/elasticsearch.conf /etc/init/elasticsearch.conf
+    sudo cp -f "${PLUGIN_FILES}"/elasticsearch/elasticsearch.conf /etc/init/elasticsearch.conf
     sudo chown elastic:elastic /etc/init/elasticsearch.conf
     sudo chmod 0640 /etc/init/elasticsearch.conf
 
@@ -175,7 +180,7 @@ function add_log_api_service {
     pip_install python-keystoneclient
 
     unset PIP_VIRTUAL_ENV
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/keystone/create_monasca_log_service.py /usr/local/bin/create_monasca_log_service.py
+    sudo cp -f "${PLUGIN_FILES}"/keystone/create_monasca_log_service.py /usr/local/bin/create_monasca_log_service.py
     sudo chmod 0700 /usr/local/bin/create_monasca_log_service.py
 
     if [[ ${SERVICE_HOST} ]]; then
@@ -198,7 +203,7 @@ function configure_log_persister {
     sudo chown root:monasca /etc/monasca/log
     sudo chmod 0755 /etc/monasca/log
 
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/monasca-log-persister/persister.conf /etc/monasca/log/persister.conf
+    sudo cp -f "${PLUGIN_FILES}"/monasca-log-persister/persister.conf /etc/monasca/log/persister.conf
     sudo chown mon-persister:monasca /etc/monasca/log/persister.conf
     sudo chmod 0640 /etc/monasca/log/persister.conf
 
@@ -215,7 +220,7 @@ function configure_log_persister {
     sudo chown mon-persister:monasca /var/log/monasca/monasca-log-persister
     sudo chmod 0750 /var/log/monasca/monasca-log-persister
 
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/monasca-log-persister/monasca-log-persister.conf /etc/init/monasca-log-persister.conf
+    sudo cp -f "${PLUGIN_FILES}"/monasca-log-persister/monasca-log-persister.conf /etc/init/monasca-log-persister.conf
     sudo chown mon-persister:monasca /etc/init/monasca-log-persister.conf
     sudo chmod 0640 /etc/init/monasca-log-persister.conf
 
@@ -231,7 +236,7 @@ function configure_log_transformer {
     sudo chown mon-transformer:monasca /var/log/monasca/monasca-log-transformer
     sudo chmod 0750 /var/log/monasca/monasca-log-transformer
 
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/monasca-log-transformer/transformer.conf /etc/monasca/log/transformer.conf
+    sudo cp -f "${PLUGIN_FILES}"/monasca-log-transformer/transformer.conf /etc/monasca/log/transformer.conf
     sudo chown mon-transformer:monasca /etc/monasca/log/transformer.conf
     sudo chmod 0640 /etc/monasca/log/transformer.conf
 
@@ -242,7 +247,7 @@ function configure_log_transformer {
         sudo sed -i "s/bootstrap_servers => \"127\.0\.0\.1:9092\"/bootstrap_servers => \"${SERVICE_HOST}:9092\"/g" /etc/monasca/log/transformer.conf
     fi
 
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/monasca-log-transformer/monasca-log-transformer.conf /etc/init/monasca-log-transformer.conf
+    sudo cp -f "${PLUGIN_FILES}"/monasca-log-transformer/monasca-log-transformer.conf /etc/init/monasca-log-transformer.conf
     sudo chown mon-transformer:monasca /etc/init/monasca-log-transformer.conf
     sudo chmod 0640 /etc/init/monasca-log-transformer.conf
 
@@ -264,7 +269,7 @@ function install_kibana {
     sudo ln -sf /opt/kibana-${KIBANA_VERSION} /opt/kibana
 
     sudo mkdir -p /opt/kibana/config || true
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/kibana/kibana.yml /opt/kibana/config/kibana.yml
+    sudo cp -f "${PLUGIN_FILES}"/kibana/kibana.yml /opt/kibana/config/kibana.yml
 
     if [[ ${SERVICE_HOST} ]]; then
         # set bind host ip address
@@ -275,7 +280,7 @@ function install_kibana {
     sudo chown kibana:kibana /var/log/kibana
     sudo chmod 0750 /var/log/kibana
 
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/kibana/kibana.conf /etc/init/kibana.conf
+    sudo cp -f "${PLUGIN_FILES}"/kibana/kibana.conf /etc/init/kibana.conf
     sudo chown kibana:kibana /etc/init/kibana.conf
     sudo chmod 0640 /etc/init/kibana.conf
 
@@ -312,16 +317,18 @@ function configure_log_agent {
     sudo chown mon-log-agent:monasca /etc/monasca/monasca-log-agent
     sudo chmod 0750 /etc/monasca/monasca-log-agent
 
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/monasca-log-agent/agent.conf /etc/monasca/monasca-log-agent/agent.conf
+    sudo cp -f "${PLUGIN_FILES}"/monasca-log-agent/agent.conf /etc/monasca/monasca-log-agent/agent.conf
     sudo chown mon-log-agent:monasca /etc/monasca/monasca-log-agent/agent.conf
     sudo chmod 0640 /etc/monasca/monasca-log-agent/agent.conf
 
     if [[ ${SERVICE_HOST} ]]; then
         # set log api ip address
-        sudo sed -i "s/monasca_log_api => \"http:\/\/127\.0\.0\.1:5607\"/monasca_log_api => \"http:\/\/${SERVICE_HOST}:5607\"/g" /etc/monasca/monasca-log-agent/agent.conf
+        sudo sed -i \
+            "s/monasca_log_api_url => \"http:\/\/127\.0\.0\.1:5607/monasca_log_api_url => \"http:\/\/${SERVICE_HOST}:5607/g" \
+            /etc/monasca/monasca-log-agent/agent.conf
     fi
 
-    sudo cp -f "${MONASCA_BASE}"/monasca-log-api/devstack/files/monasca-log-agent/monasca-log-agent.conf /etc/init/monasca-log-agent.conf
+    sudo cp -f "${PLUGIN_FILES}"/monasca-log-agent/monasca-log-agent.conf /etc/init/monasca-log-agent.conf
     sudo chown mon-log-agent:monasca /etc/init/monasca-log-agent.conf
     sudo chmod 0640 /etc/init/monasca-log-agent.conf
 
