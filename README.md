@@ -77,6 +77,7 @@ Requests flow through the following architectural layers from top to bottom:
 
 * API Specification: [/docs/monasca-log-api-spec.md](/docs/monasca-log-api-spec.md).
 * Kafka communication: [/docs/monasca-log-api-kafka.md](/docs/monasca-log-api-kafka.md).
+* API Monitoring: [/docs/monasca-log-api-metrics.md](/docs/monasca-log-api-metrics.md).
 
 ## Python monasca-log-api implementation
 

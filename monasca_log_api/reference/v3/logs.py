@@ -20,6 +20,7 @@ from oslo_log import log
 from monasca_log_api.api import exceptions
 from monasca_log_api.api import headers
 from monasca_log_api.api import logs_api
+from monasca_log_api.monitoring import metrics
 from monasca_log_api.reference.common import log_publisher
 from monasca_log_api.reference.common import model
 from monasca_log_api.reference.common import validation
@@ -38,48 +39,80 @@ class Logs(logs_api.LogsApi):
         super(Logs, self).__init__()
         self._log_publisher = log_publisher.LogPublisher()
 
-    def on_post(self, req, res):
-        validation.validate_payload_size(req)
-        validation.validate_content_type(req, Logs.SUPPORTED_CONTENT_TYPES)
-
-        cross_tenant_id = req.get_param('tenant_id')
-        tenant_id = req.get_header(*headers.X_TENANT_ID)
-        validation.validate_cross_tenant(
-            tenant_id=tenant_id,
-            cross_tenant_id=cross_tenant_id,
-            roles=req.get_header(*headers.X_ROLES)
+        self._bulks_rejected_counter = self._statsd.get_counter(
+            name=metrics.LOGS_BULKS_REJECTED_METRIC,
+            dimensions=self._metrics_dimensions
         )
 
-        request_body = helpers.read_json_msg_body(req)
-        log_list = self._get_logs(request_body)
-        global_dimensions = self._get_global_dimensions(request_body)
-
-        envelopes = []
-        for log_element in log_list:
+    def on_post(self, req, res):
+        with self._logs_processing_time.time(name=None):
             try:
-                LOG.trace('Processing log %s', log_element)
+                validation.validate_payload_size(req)
+                validation.validate_content_type(req,
+                                                 Logs.SUPPORTED_CONTENT_TYPES)
 
-                validation.validate_log_message(log_element)
+                cross_tenant_id = req.get_param('tenant_id')
+                tenant_id = req.get_header(*headers.X_TENANT_ID)
 
-                dimensions = self._get_dimensions(log_element,
-                                                  global_dimensions)
-                envelope = self._create_log_envelope(tenant_id,
-                                                     cross_tenant_id,
-                                                     dimensions,
-                                                     log_element)
-                envelopes.append(envelope)
+                validation.validate_cross_tenant(
+                    tenant_id=tenant_id,
+                    cross_tenant_id=cross_tenant_id,
+                    roles=req.get_header(*headers.X_ROLES)
+                )
 
-                LOG.trace('Log %s processed into envelope %s',
-                          log_element,
-                          envelope)
+                request_body = helpers.read_json_msg_body(req)
+
+                log_list = self._get_logs(request_body)
+                global_dimensions = self._get_global_dimensions(request_body)
+
+            except Exception as ex:
+                LOG.error('Entire bulk package has been rejected')
+                LOG.exception(ex)
+
+                self._bulks_rejected_counter.increment(value=1)
+
+                raise ex
+
+            self._bulks_rejected_counter.increment(value=0)
+            self._logs_size_gauge.send(name=None,
+                                       value=int(req.content_length))
+
+            envelopes = []
+            try:
+                for log_element in log_list:
+                    LOG.trace('Processing log %s', log_element)
+
+                    validation.validate_log_message(log_element)
+
+                    dimensions = self._get_dimensions(log_element,
+                                                      global_dimensions)
+                    envelope = self._create_log_envelope(tenant_id,
+                                                         cross_tenant_id,
+                                                         dimensions,
+                                                         log_element)
+                    envelopes.append(envelope)
+
+                    LOG.trace('Log %s processed into envelope %s',
+                              log_element,
+                              envelope)
             except Exception as ex:
                 LOG.error('Failed to process log %s', log_element)
                 LOG.exception(ex)
                 res.status = getattr(ex, 'status', falcon.HTTP_500)
                 return
+            finally:
+                rejected_logs = len(envelopes) - len(log_list)
+                # if entire bulk is rejected because of single error
+                # that means only one counter must be called
+                if rejected_logs < 0:
+                    self._logs_rejected_counter.increment(value=len(log_list))
+                else:
+                    self._logs_in_counter.increment(value=len(log_list))
 
-        self._send_logs(envelopes)
-        res.status = falcon.HTTP_204
+            # at this point only possible metrics regard
+            # publishing phase
+            self._send_logs(envelopes)
+            res.status = falcon.HTTP_204
 
     def _get_dimensions(self, log_element, global_dims):
         """Get the dimensions in the log element."""

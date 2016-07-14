@@ -74,7 +74,8 @@ class TestLogs(testing.TestBase):
             method='POST',
             query_string='tenant_id=1',
             headers={
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Content-Length': '0'
             }
         )
         self.assertEqual(falcon.HTTP_403, self.srmock.status)
