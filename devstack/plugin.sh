@@ -326,8 +326,30 @@ function install_kibana {
 
     if [[ ${SERVICE_HOST} ]]; then
         # set bind host ip address
-        sudo sed -i "s/server.host: 127\.0\.0\.1/server.host: ${SERVICE_HOST}/g" /opt/kibana/config/kibana.yml
+        sudo sed -i \
+            "s/server.host: 127\.0\.0\.1/server.host: ${SERVICE_HOST}/g" \
+            /opt/kibana/config/kibana.yml
+        sudo sed -i \
+            "s/fts-keystone.url: http:\/\/127\.0\.0\.1/fts-keystone.url: http:\/\/${SERVICE_HOST}/g" \
+            /opt/kibana/config/kibana.yml
     fi
+
+    cd "${MONASCA_BASE}"
+    if [ ! -e fts-keystone ]; then
+        git clone https://github.com/FujitsuEnablingSoftwareTechnologyGmbH/fts-keystone.git
+    fi
+    cd fts-keystone
+    local fts_keystone_version="$(python -c 'import json; \
+        obj = json.load(open("package.json")); print obj["version"]')"
+
+    set -i
+    (source "${HOME}"/.nvm/nvm.sh >> /dev/null; nvm use 4.0.0; npm install)
+    (source "${HOME}"/.nvm/nvm.sh >> /dev/null; nvm use 4.0.0; npm run package)
+    set +i
+
+    sudo -u kibana /opt/kibana/bin/kibana plugin -r fts-keystone
+    sudo -u kibana /opt/kibana/bin/kibana plugin -i fts-keystone \
+        -u file://${PWD}/target/fts-keystone-${fts_keystone_version}.tar.gz
 
     sudo mkdir -p /var/log/kibana || true
     sudo chown kibana:kibana /var/log/kibana

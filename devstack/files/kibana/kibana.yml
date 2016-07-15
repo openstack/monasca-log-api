@@ -73,3 +73,10 @@ logging.silent: false
 logging.quiet: false
 # Set this to true to log all events, including system usage information and all requests.
 logging.verbose: true
+
+# fts-keystone configuration
+fts-keystone.port: 35357
+fts-keystone.url: http://127.0.0.1
+fts-keystone.enabled: True
+
+optimize.useBundleCache: False
