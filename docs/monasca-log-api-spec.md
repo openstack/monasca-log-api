@@ -103,7 +103,7 @@ are healthy too.
 * 503 - API is running but problems with peripheral components have been spotted.
 
 Example:
-```curl -XGET 192.168.10.4:8080/healthcheck```
+```curl -XGET 192.168.10.4:5607/healthcheck```
 
 ### Peripheral checks
 
@@ -116,7 +116,7 @@ It does not return any data because it is accessible only for ```HEAD``` request
 If the *Monasca Log API* is running the following response code: ```204``` is expected.
 
 Example:
-```curl -XHEAD 192.168.10.4:8080/healthcheck```
+```curl -XHEAD 192.168.10.4:5607/healthcheck```
 
 
 =======
@@ -144,7 +144,7 @@ POST a single line of plain text log.
 
 ```
 POST /v2.0/log/single HTTP/1.1
-Host: 192.168.10.4:8080
+Host: 192.168.10.4:5607
 Content-Type: text/plain
 X-Auth-Token: 27feed73a0ce4138934e30d619b415b0
 X-Application-Type: apache
@@ -159,7 +159,7 @@ POST a multiple lines of plain text log.
 
 ```
 POST /v2.0/log/single HTTP/1.1
-Host: 192.168.10.4:8080
+Host: 192.168.10.4:5607
 Content-Type: text/plain
 X-Auth-Token: 27feed73a0ce4138934e30d619b415b0
 X-Application-Type: apache
@@ -174,7 +174,7 @@ POST a JSON log
 
 ```
 POST /v2.0/log/single HTTP/1.1
-Host: 192.168.10.4:8080
+Host: 192.168.10.4:5607
 Content-Type: application/json
 X-Auth-Token: 27feed73a0ce4138934e30d619b415b0
 X-Application-Type: apache

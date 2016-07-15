@@ -108,5 +108,5 @@ def get_wsgi_app(config_base_path=None):
 
 if __name__ == '__main__':
     wsgi_app = get_wsgi_app()
-    httpd = simple_server.make_server('127.0.0.1', 8074, wsgi_app)
+    httpd = simple_server.make_server('127.0.0.1', 5607, wsgi_app)
     httpd.serve_forever()
