@@ -43,6 +43,7 @@ function install_monasca_log {
 }
 
 function extra_monasca_log {
+    install_kibana_keystone_plugin
     enable_log_management
     add_log_api_service
     configure_log_agent
@@ -334,6 +335,20 @@ function install_kibana {
             /opt/kibana/config/kibana.yml
     fi
 
+    sudo mkdir -p /var/log/kibana || true
+    sudo chown kibana:kibana /var/log/kibana
+    sudo chmod 0750 /var/log/kibana
+
+    sudo cp -f "${PLUGIN_FILES}"/kibana/kibana.conf /etc/init/kibana.conf
+    sudo chown kibana:kibana /etc/init/kibana.conf
+    sudo chmod 0640 /etc/init/kibana.conf
+
+    sudo start kibana || sudo restart kibana
+}
+
+function install_kibana_keystone_plugin {
+    echo_summary "install Kibana plugin"
+
     cd "${MONASCA_BASE}"
     if [ ! -e fts-keystone ]; then
         git clone https://github.com/FujitsuEnablingSoftwareTechnologyGmbH/fts-keystone.git
@@ -350,14 +365,6 @@ function install_kibana {
     sudo -u kibana /opt/kibana/bin/kibana plugin -r fts-keystone
     sudo -u kibana /opt/kibana/bin/kibana plugin -i fts-keystone \
         -u file://${PWD}/target/fts-keystone-${fts_keystone_version}.tar.gz
-
-    sudo mkdir -p /var/log/kibana || true
-    sudo chown kibana:kibana /var/log/kibana
-    sudo chmod 0750 /var/log/kibana
-
-    sudo cp -f "${PLUGIN_FILES}"/kibana/kibana.conf /etc/init/kibana.conf
-    sudo chown kibana:kibana /etc/init/kibana.conf
-    sudo chmod 0640 /etc/init/kibana.conf
 
     sudo start kibana || sudo restart kibana
 }
