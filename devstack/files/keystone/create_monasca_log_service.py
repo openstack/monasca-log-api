@@ -91,6 +91,18 @@ def main(argv):
     if not add_service_endpoint(key, 'logs', 'Monasca log service', 'logs', monasca_log_url, 'RegionOne'):
         return 1
 
+    monasca_log_v2_url = 'http://' + service_host + ':5607/v2.0'
+    if not add_service_endpoint(key, 'logs_v2', 'Monasca log v2 service',
+                                'logs_v2', monasca_log_v2_url, 'RegionOne'):
+        return 1
+
+    monasca_log_search_url = 'http://' + service_host + ':5601/'
+    if not add_service_endpoint(key, 'logs-search',
+        'Monasca log search service', 'logs-search', monasca_log_search_url,
+        'RegionOne'):
+
+        return 1
+
     return 0
 
 

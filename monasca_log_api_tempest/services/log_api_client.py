@@ -19,11 +19,9 @@ from tempest.lib.common import rest_client
 CONF = config.CONF
 
 
-def _uri(url):
-    return CONF.monitoring.api_version + url
-
-
 class LogApiClient(rest_client.RestClient):
+
+    _uri = "/log/single"
 
     def __init__(self, auth_provider, service, region):
         super(LogApiClient, self).__init__(
@@ -45,14 +43,11 @@ class LogApiClient(rest_client.RestClient):
             'X-Dimensions': 'dev:tempest'
         }
         default_headers.update(headers)
-
-        uri = "/log/single"
         msg = json.dumps(log)
 
-        resp, body = self.post(_uri(uri), msg, default_headers)
+        resp, body = self.post(LogApiClient._uri, msg, default_headers)
 
         return resp, body
 
     def custom_request(self, method, headers=None, body=None):
-        uri = '/' + _uri("/log/single")
-        self.request(method=method, url=uri, headers=headers, body=body)
+        self.request(method=method, url=LogApiClient._uri, headers=headers, body=body)

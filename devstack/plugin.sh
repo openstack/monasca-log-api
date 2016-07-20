@@ -40,10 +40,10 @@ function install_monasca_log {
     configure_log_metrics
     install_monasca_log_api
     install_kibana
+    install_kibana_keystone_plugin
 }
 
 function extra_monasca_log {
-    install_kibana_keystone_plugin
     enable_log_management
     add_log_api_service
     configure_log_agent
@@ -78,6 +78,11 @@ function install_monasca_log_api {
     sudo mkdir -p /var/log/monasca/log-api || true
     sudo chown mon-log-api:monasca /var/log/monasca/log-api
     sudo chmod 0755 /var/log/monasca/log-api
+
+    if [[ -n ${SCREEN_LOGDIR} ]]; then
+        sudo ln -sf /var/log/monasca/log-api/monasca-log-api.log \
+            ${SCREEN_LOGDIR}/screen-monasca-log-api.log
+    fi
 
     sudo mkdir -p /etc/monasca || true
     sudo chown root:monasca /etc/monasca
@@ -155,19 +160,24 @@ function install_monasca_elasticsearch {
 
     sudo mkdir -p /var/log/elasticsearch || true
     sudo chown elastic:elastic /var/log/elasticsearch
-    sudo chmod 750 /var/log/elasticsearch
+    sudo chmod 755 /var/log/elasticsearch
+
+    if [[ -n ${SCREEN_LOGDIR} ]]; then
+        sudo ln -sf /var/log/elasticsearch/monasca_elastic.log \
+            ${SCREEN_LOGDIR}/screen-monasca_elastic.log
+    fi
 
     sudo mkdir -p /opt/elasticsearch/config/templates || true
     sudo chown elastic:elastic /opt/elasticsearch/config/templates
-    sudo chmod 750 /opt/elasticsearch/config/templates
+    sudo chmod 755 /opt/elasticsearch/config/templates
 
     sudo mkdir -p /var/data/elasticsearch || true
     sudo chown elastic:elastic /var/data/elasticsearch
-    sudo chmod 750 /var/data/elasticsearch
+    sudo chmod 755 /var/data/elasticsearch
 
     sudo cp -f "${PLUGIN_FILES}"/elasticsearch/elasticsearch.yml /opt/elasticsearch/config/elasticsearch.yml
     sudo chown elastic:elastic /opt/elasticsearch/config/elasticsearch.yml
-    sudo chmod 0640 /opt/elasticsearch/config/elasticsearch.yml
+    sudo chmod 0644 /opt/elasticsearch/config/elasticsearch.yml
 
     if [[ ${SERVICE_HOST} ]]; then
         # set ip address
@@ -176,7 +186,7 @@ function install_monasca_elasticsearch {
 
     sudo cp -f "${PLUGIN_FILES}"/elasticsearch/elasticsearch.conf /etc/init/elasticsearch.conf
     sudo chown elastic:elastic /etc/init/elasticsearch.conf
-    sudo chmod 0640 /etc/init/elasticsearch.conf
+    sudo chmod 0644 /etc/init/elasticsearch.conf
 
     sudo start elasticsearch || sudo restart elasticsearch
 }
@@ -308,6 +318,7 @@ function install_kibana {
 
     sudo groupadd --system kibana || true
     sudo useradd --system -g kibana kibana || true
+    sudo usermod -aG sudo kibana
 
     local kibana_tarball=kibana-${KIBANA_VERSION}.tar.gz
     if [[ ${ALWAYS_DOWNLOAD_TARBALLS} == true || \
@@ -339,6 +350,10 @@ function install_kibana {
     sudo chown kibana:kibana /var/log/kibana
     sudo chmod 0750 /var/log/kibana
 
+    if [[ -n ${SCREEN_LOGDIR} ]]; then
+        sudo ln -sf /var/log/kibana/kibana.log ${SCREEN_LOGDIR}/screen-kibana.log
+    fi
+
     sudo cp -f "${PLUGIN_FILES}"/kibana/kibana.conf /etc/init/kibana.conf
     sudo chown kibana:kibana /etc/init/kibana.conf
     sudo chmod 0640 /etc/init/kibana.conf
@@ -346,13 +361,28 @@ function install_kibana {
     sudo start kibana || sudo restart kibana
 }
 
+function install_node_nvm {
+
+    echo_summary "Install Node with NVM"
+
+    if [[ "$OFFLINE" != "True" ]]; then
+        curl https://raw.githubusercontent.com/creationix/nvm/v0.31.1/install.sh | bash
+        set -i
+        (source "${HOME}"/.nvm/nvm.sh >> /dev/null; nvm install 4.0.0; nvm use 4.0.0)
+        set +i
+    fi
+}
+
 function install_kibana_keystone_plugin {
     echo_summary "install Kibana plugin"
+
+    install_node_nvm
 
     cd "${MONASCA_BASE}"
     if [ ! -e fts-keystone ]; then
         git clone https://github.com/FujitsuEnablingSoftwareTechnologyGmbH/fts-keystone.git
     fi
+
     cd fts-keystone
     local fts_keystone_version="$(python -c 'import json; \
         obj = json.load(open("package.json")); print obj["version"]')"
@@ -362,8 +392,8 @@ function install_kibana_keystone_plugin {
     (source "${HOME}"/.nvm/nvm.sh >> /dev/null; nvm use 4.0.0; npm run package)
     set +i
 
-    sudo -u kibana /opt/kibana/bin/kibana plugin -r fts-keystone
-    sudo -u kibana /opt/kibana/bin/kibana plugin -i fts-keystone \
+    sudo /opt/kibana/bin/kibana plugin -r fts-keystone
+    sudo /opt/kibana/bin/kibana plugin -i fts-keystone \
         -u file://${PWD}/target/fts-keystone-${fts_keystone_version}.tar.gz
 
     sudo start kibana || sudo restart kibana
@@ -371,15 +401,24 @@ function install_kibana_keystone_plugin {
 
 function enable_log_management {
     echo_summary "configure_horizon"
-    sudo sed -i "s/ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', False)/ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', True)/g" /opt/stack/horizon/monitoring/config/local_settings.py
-    if [[ ${SERVICE_HOST} ]]; then
-        sudo sed -i "s/KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http:\/\/192\.168\.10\.4:5601\/')/KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http:\/\/${SERVICE_HOST}:5601\/')/g" /opt/stack/horizon/monitoring/config/local_settings.py
-    else
-        sudo sed -i "s/KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http:\/\/192\.168\.10\.4:5601\/')/KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http:\/\/127\.0\.0\.1:5601\/')/g" /opt/stack/horizon/monitoring/config/local_settings.py
-    fi
 
-    sudo /etc/init.d/apache2 stop || true
-    sudo /etc/init.d/apache2 start
+    if is_service_enabled horizon; then
+        sudo sed -i \
+            "s/ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', False)/ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', True)/g" \
+            ${MONASCA_BASE}/horizon/monitoring/config/local_settings.py
+        if [[ ${SERVICE_HOST} ]]; then
+            sudo sed -i \
+                "s/KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http:\/\/192\.168\.10\.4:5601\/')/KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http:\/\/${SERVICE_HOST}:5601\/')/g" \
+                ${MONASCA_BASE}/horizon/monitoring/config/local_settings.py
+        else
+            sudo sed -i \
+                "s/KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http:\/\/192\.168\.10\.4:5601\/')/KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http:\/\/127\.0\.0\.1:5601\/')/g" \
+                ${MONASCA_BASE}/horizon/monitoring/config/local_settings.py
+        fi
+
+        sudo /etc/init.d/apache2 stop || true
+        sudo /etc/init.d/apache2 start
+    fi
 }
 
 function post_config_monasca_log {

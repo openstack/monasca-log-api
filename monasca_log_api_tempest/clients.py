@@ -23,7 +23,7 @@ class Manager(clients.Manager):
         super(Manager, self).__init__(credentials, service)
         self.log_api_client = log_api_client.LogApiClient(
             self.auth_provider,
-            'logs',
+            'logs_v2',
             None
         )
         self.log_search_client = log_search_client.LogsSearchClient(

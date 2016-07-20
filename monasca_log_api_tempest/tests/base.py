@@ -100,8 +100,11 @@ class BaseLogsTestCase(test.BaseTestCase):
     def resource_setup(cls):
         super(BaseLogsTestCase, cls).resource_setup()
         auth_version = CONF.identity.auth_version
-        cred_provider = cred_factory.LegacyCredentialProvider(auth_version)
-        credentials = cred_provider.get_primary_creds()
+        cred_provider = cred_factory.get_credentials_provider(
+            cls.__name__,
+            identity_version=auth_version)
+        credentials = cred_provider.get_creds_by_roles(
+            ['monasca-user']).credentials
         cls.os = clients.Manager(credentials=credentials)
 
         cls.logs_client = cls.os.log_api_client
