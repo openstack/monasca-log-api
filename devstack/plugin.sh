@@ -131,7 +131,7 @@ function install_logstash {
 }
 
 function install_logstash_monasca_output_plugin {
-    local monasca_log_agent_version=0.5
+    local monasca_log_agent_version=0.5.2
     local ls_plugin_filename=logstash-output-monasca_log_api-${monasca_log_agent_version}.gem
     sudo cp -f "${PLUGIN_FILES}"/monasca-log-agent/${ls_plugin_filename} \
         /opt/logstash/${ls_plugin_filename}
