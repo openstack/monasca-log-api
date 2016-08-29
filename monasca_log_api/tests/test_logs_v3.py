@@ -48,13 +48,13 @@ def _generate_unique_message(size):
 
 def _generate_v3_payload(log_count):
     v3_logs = [{
-                   'message': _generate_unique_message(100),
-                   'dimensions': {
-                       'hostname': 'host_%d' % it,
-                       'component': 'component_%d' % it,
-                       'service': 'service_%d' % it
-                   }
-               } for it in xrange(log_count)]
+        'message': _generate_unique_message(100),
+        'dimensions': {
+            'hostname': 'host_%d' % it,
+            'component': 'component_%d' % it,
+            'service': 'service_%d' % it
+            }
+        } for it in xrange(log_count)]
     v3_body = {
         'dimensions': {
             'origin': __name__

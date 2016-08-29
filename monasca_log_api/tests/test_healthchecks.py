@@ -29,8 +29,8 @@ class TestHealthChecks(testing.TestBase):
         self.conf = base.mock_config(self)
         self.resource = healthchecks.HealthChecks()
         self.api.add_route(
-                ENDPOINT,
-                self.resource
+            ENDPOINT,
+            self.resource
         )
 
     def test_should_return_200_for_head(self):
