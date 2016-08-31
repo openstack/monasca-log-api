@@ -19,12 +19,12 @@ from tempest.lib.common import rest_client
 CONF = config.CONF
 
 
-class LogApiClient(rest_client.RestClient):
+class LogApiV3Client(rest_client.RestClient):
 
-    _uri = "/log/single"
+    _uri = "/logs"
 
     def __init__(self, auth_provider, service, region):
-        super(LogApiClient, self).__init__(
+        super(LogApiV3Client, self).__init__(
             auth_provider,
             service,
             region
@@ -34,20 +34,17 @@ class LogApiClient(rest_client.RestClient):
         resp, response_body = self.send_request('GET', '/')
         return resp, response_body
 
-    def send_single_log(self,
-                        log,
-                        headers=None):
+    def send_single_log(self, log, headers=None):
         default_headers = {
             'X-Tenant-Id': 'b4265b0a48ae4fd3bdcee0ad8c2b6012',
             'X-Roles': 'admin',
-            'X-Dimensions': 'dev:tempest'
         }
         default_headers.update(headers)
         msg = json.dumps(log)
 
-        resp, body = self.post(LogApiClient._uri, msg, default_headers)
+        resp, body = self.post(LogApiV3Client._uri, msg, default_headers)
 
         return resp, body
 
     def custom_request(self, method, headers=None, body=None):
-        self.request(method=method, url=LogApiClient._uri, headers=headers, body=body)
+        self.request(method=method, url=LogApiV3Client._uri, headers=headers, body=body)

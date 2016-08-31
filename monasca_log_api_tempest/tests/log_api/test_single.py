@@ -21,8 +21,8 @@ _RETRY_WAIT = 2
 
 
 class TestSingleLog(base.BaseLogsTestCase):
-    def _run_and_wait(self, key, data, content_type='application/json',
-                      headers=None):
+    def _run_and_wait(self, key, data, version,
+                      content_type='application/json', headers=None):
 
         headers = base._get_headers(headers, content_type)
 
@@ -33,9 +33,9 @@ class TestSingleLog(base.BaseLogsTestCase):
                          'Find log message in elasticsearch: {0}'.format(key))
 
         headers = base._get_headers(headers, content_type)
-        data = base._get_data(data, content_type)
+        data = base._get_data(data, content_type, version=version)
 
-        response, _ = self.logs_client.send_single_log(data, headers)
+        response, _ = self.logs_clients[version].send_single_log(data, headers)
         self.assertEqual(204, response.status)
 
         test.call_until_true(wait, _RETRY_COUNT, _RETRY_WAIT)
@@ -46,44 +46,53 @@ class TestSingleLog(base.BaseLogsTestCase):
 
     @test.attr(type="gate")
     def test_small_message(self):
-        self._run_and_wait(*base.generate_small_message())
+        for ver in self.logs_clients:
+            self._run_and_wait(*base.generate_small_message(), version=ver)
 
     @test.attr(type="gate")
     def test_medium_message(self):
-        self._run_and_wait(*base.generate_medium_message())
+        for ver in self.logs_clients:
+            self._run_and_wait(*base.generate_medium_message(), version=ver)
 
     @test.attr(type="gate")
     def test_big_message(self):
-        self._run_and_wait(*base.generate_large_message())
+        for ver in self.logs_clients:
+            self._run_and_wait(*base.generate_large_message(), version=ver)
 
     @test.attr(type="gate")
     def test_small_message_multiline(self):
-        sid, message = base.generate_small_message()
-        self._run_and_wait(sid, message.replace(' ', '\n'))
+        for ver in self.logs_clients:
+            sid, message = base.generate_small_message()
+            self._run_and_wait(sid, message.replace(' ', '\n'), version=ver)
 
     @test.attr(type="gate")
     def test_medium_message_multiline(self):
-        sid, message = base.generate_medium_message()
-        self._run_and_wait(sid, message.replace(' ', '\n'))
+        for ver in self.logs_clients:
+            sid, message = base.generate_medium_message()
+            self._run_and_wait(sid, message.replace(' ', '\n'), version=ver)
 
     @test.attr(type="gate")
     def test_big_message_multiline(self):
-        sid, message = base.generate_large_message()
-        self._run_and_wait(sid, message.replace(' ', '\n'))
+        for ver in self.logs_clients:
+            sid, message = base.generate_large_message()
+            self._run_and_wait(sid, message.replace(' ', '\n'), version=ver)
 
     @test.attr(type="gate")
     def test_send_header_application_type(self):
         sid, message = base.generate_unique_message()
         headers = {'X-Application-Type': 'application-type-test'}
-        response = self._run_and_wait(sid, message, headers=headers)
+        response = self._run_and_wait(sid, message, headers=headers,
+                                      version="v2")
         self.assertEqual('application-type-test',
                          response[0]['_source']['component'])
 
     @test.attr(type="gate")
     def test_send_header_dimensions(self):
         sid, message = base.generate_unique_message()
-        headers = {'X-Dimensions': 'server:WebServer01,environment:production'}
-        response = self._run_and_wait(sid, message, headers=headers)
+        headers = {'X-Dimensions':
+                   'server:WebServer01,environment:production'}
+        response = self._run_and_wait(sid, message, headers=headers,
+                                      version="v2")
         self.assertEqual('production', response[0]['_source']['environment'])
         self.assertEqual('WebServer01', response[0]['_source']['server'])
 
@@ -95,7 +104,7 @@ class TestSingleLog(base.BaseLogsTestCase):
     #     message_size = base._get_message_size(0.9999)
     #     sid, message = base.generate_unique_message(size=message_size)
     #
-    #     headers = base._get_headers(self.logs_client.get_headers())
+    #     headers = base._get_headers(self.logs_clients.get_headers())
     #     response = self._run_and_wait(sid, message, headers=headers)
     #
     #     self.assertTrue(False, 'API should respond with 500')
