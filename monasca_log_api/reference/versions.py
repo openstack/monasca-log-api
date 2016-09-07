@@ -15,11 +15,8 @@
 
 import falcon
 from monasca_common.rest import utils as rest_utils
-from oslo_log import log
 
 from monasca_log_api.api import versions_api
-
-LOG = log.getLogger(__name__)
 
 _VERSIONS_TPL_DICT = {
     'v2.0': {
