@@ -14,7 +14,6 @@
 # under the License.
 
 import falcon
-from oslo_config import cfg
 from oslo_log import log
 
 from monasca_log_api.api import exceptions
@@ -26,7 +25,6 @@ from monasca_log_api.reference.v3.common import bulk_processor
 from monasca_log_api.reference.v3.common import helpers
 
 LOG = log.getLogger(__name__)
-CONF = cfg.CONF
 
 
 class Logs(logs_api.LogsApi):
