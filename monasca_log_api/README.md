@@ -17,6 +17,7 @@ located::
 ```sh
     /etc/monasca/log-api-config.conf
     /etc/monasca/log-api-config.ini
+    /etc/monasca/log-api-logging.conf
 ```
 
 Once the configurations are modified to match your environment, you can start
