@@ -13,10 +13,7 @@
 # under the License.
 
 from oslo_serialization import jsonutils as json
-from tempest import config
 from tempest.lib.common import rest_client
-
-CONF = config.CONF
 
 
 class LogApiV2Client(rest_client.RestClient):
