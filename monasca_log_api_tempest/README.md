@@ -76,7 +76,7 @@ running the following command:
  allow_tenant_isolation = true
  ```
 
- Edit the the variable values in the identity section to match your particular
+ Edit the variable values in the identity section to match your particular
  monasca-vagrant environment.
 
 5. Create ```etc/logging.conf``` in the Tempest root dir by making a copying
