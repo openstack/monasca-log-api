@@ -11,10 +11,8 @@ The full API Specification can be found in [docs/monasca-log-api-spec.md](docs/m
 
 Requires monasca-common from https://github.com/openstack/monasca-common. Download and do mvn install. Then:
 
-```
-cd java
-mvn clean package
-```
+    $ cd java
+    $ mvn clean package
 
 # OpenStack Java Build
 
@@ -26,9 +24,7 @@ Currently this build is executed on the bare-precise nodes in OpenStack and they
 
 ## Usage
 
-```
-java -jar target/monasca-log-api.jar server config-file.yml
-```
+    $ java -jar target/monasca-log-api.jar server config-file.yml
 
 ## Keystone Configuration
 
