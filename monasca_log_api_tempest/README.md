@@ -2,22 +2,23 @@
 
 **Monasca-Log-Api** requires following components set up in the environment:
 
-* monasca-log-transformer - component receiving data from monasca-log-api
-* monasca-log-persister - component saves data to ElasticSearch
-* ElasticSearch - database that stores logs
+* monasca-log-transformer - component receiving data from monasca-log-api, [config](../devstack/files/transformer.conf)
+* monasca-log-persister - component saves data to ElasticSearch, [config](../devstack/files/persister.conf)
+* ElasticSearch - database that stores logs, [config](../devstack/files/elasticsearch.yml)
 
-Those three components are all part of [monasca-elkstack](https://github.com/FujitsuEnablingSoftwareTechnologyGmbH/ansible-monasca-elkstack)
-Ansible role.
+Those three components are all part of [devstack](https://github.com/openstack/monasca-api/tree/master/devstack).
 
-**Monasca-Log-Api** can be installed with following [role](https://github.com/FujitsuEnablingSoftwareTechnologyGmbH/ansible-monasca-log-api).
-In order to setup schema (kafka topics) please see [this](https://github.com/FujitsuEnablingSoftwareTechnologyGmbH/ansible-monasca-log-schema) role.
+* Logstash - it is a prerequisite for monasca-log-transformer and monasca-log-persister components
+
+**Monasca-Log-Api** can be installed using following [Github repo](https://github.com/openstack/monasca-log-api/).
+In order to setup schema (kafka topics) please see [this](https://github.com/openstack/monasca-log-api/blob/master/devstack/plugin.sh#L198).
 
 ## Installation next to monasca-api
 
 **Monasca-Api** and  **Monasca-Log-Api** can be installed next to each other.
 Each one has been designed to work with different aspects of monitoring.
 Therefore it is possible to proceed with installation as described
-[here](https://github.com/openstack/monasca-vagrant).
+[here](https://github.com/openstack/monasca-log-api/blob/master/devstack/).
 
 # Configuration
 1. Clone the OpenStack Tempest repo, and cd to it.
@@ -46,7 +47,7 @@ For example in the Tempest root dir
 running the following command:
 
  ```
- oslo-config-generator --config-file etc/config-generator.tempest.conf --output-file etc/tempest.conf
+ oslo-config-generator --config-file tempest/cmd/config-generator.tempest.conf --output-file etc/tempest.conf
  ```
 
  Add the following sections to ```tempest.conf``` for testing
