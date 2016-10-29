@@ -17,7 +17,6 @@ import falcon
 from oslo_log import log
 
 from monasca_log_api.api import exceptions
-from monasca_log_api.api import headers
 from monasca_log_api.api import logs_api
 from monasca_log_api.monitoring import metrics
 from monasca_log_api.reference.common import validation
@@ -47,18 +46,7 @@ class Logs(logs_api.LogsApi):
     def on_post(self, req, res):
         with self._logs_processing_time.time(name=None):
             try:
-                validation.validate_payload_size(req)
-                validation.validate_content_type(req,
-                                                 Logs.SUPPORTED_CONTENT_TYPES)
-
-                cross_tenant_id = req.get_param('tenant_id')
-                tenant_id = req.get_header(*headers.X_TENANT_ID)
-
-                validation.validate_cross_tenant(
-                    tenant_id=tenant_id,
-                    cross_tenant_id=cross_tenant_id,
-                    roles=req.get_header(*headers.X_ROLES)
-                )
+                req.validate(self.SUPPORTED_CONTENT_TYPES)
 
                 request_body = helpers.read_json_msg_body(req)
 
@@ -77,11 +65,14 @@ class Logs(logs_api.LogsApi):
             self._logs_size_gauge.send(name=None,
                                        value=int(req.content_length))
 
+            tenant_id = (req.project_id if req.project_id
+                         else req.cross_project_id)
+
             try:
                 self._processor.send_message(
                     logs=log_list,
                     global_dimensions=global_dimensions,
-                    log_tenant_id=tenant_id if tenant_id else cross_tenant_id
+                    log_tenant_id=tenant_id
                 )
             except Exception as ex:
                 res.status = getattr(ex, 'status', falcon.HTTP_500)

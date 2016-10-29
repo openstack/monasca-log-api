@@ -40,6 +40,14 @@ class IsDelegate(unittest.TestCase):
         roles = 'a_role,b_role'
         self.assertFalse(validation.validate_is_delegate(roles))
 
+    def test_is_delegate_ok_role_as_list(self):
+        roles = {logs_api.MONITORING_DELEGATE_ROLE}
+        self.assertTrue(validation.validate_is_delegate(roles))
+
+    def test_is_delegate_not_ok_role_as_list(self):
+        roles = {'a_role', 'b_role'}
+        self.assertFalse(validation.validate_is_delegate(roles))
+
 
 class ParseDimensions(unittest.TestCase):
     def test_should_fail_for_empty_dimensions(self):

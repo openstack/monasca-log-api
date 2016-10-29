@@ -17,6 +17,7 @@ import re
 import falcon
 from oslo_config import cfg
 from oslo_log import log
+import six
 
 from monasca_log_api.api import exceptions
 from monasca_log_api.api import logs_api
@@ -215,7 +216,7 @@ def validate_payload_size(req):
 
 def validate_is_delegate(role):
     if role:
-        role = role.split(',')
+        role = role.split(',') if isinstance(role, six.string_types) else role
         return logs_api.MONITORING_DELEGATE_ROLE in role
     return False
 

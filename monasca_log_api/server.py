@@ -1,5 +1,5 @@
 # Copyright 2015 kornicameister@gmail.com
-# Copyright 2016 FUJITSU LIMITED
+# Copyright 2016-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -22,6 +22,7 @@ from oslo_config import cfg
 from oslo_log import log
 import paste.deploy
 
+from monasca_log_api.api.core import request
 from monasca_log_api.reference.common import error_handlers
 from monasca_log_api import uri_map
 
@@ -61,7 +62,7 @@ def launch(conf, config_file='/etc/monasca/log-api-config.conf'):
          default_config_files=[config_file])
     log.setup(CONF, 'monasca_log_api')
 
-    app = falcon.API()
+    app = falcon.API(request_type=request.Request)
 
     load_versions_resource(app)
     load_logs_resource(app)

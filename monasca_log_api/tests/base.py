@@ -12,9 +12,34 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import falcon
+from oslo_config import fixture as oo_cfg
+from oslo_context import fixture as oo_ctx
 
-from oslo_config import fixture
+from monasca_log_api.api.core import request
 
 
 def mock_config(test):
-    return test.useFixture(fixture.Config())
+    return test.useFixture(oo_cfg.Config())
+
+
+def mock_context(test):
+    return test.useFixture(oo_ctx.ClearRequestContext())
+
+
+class MockedAPI(falcon.API):
+    """MockedAPI
+
+    Subclasses :py:class:`falcon.API` in order to overwrite
+    request_type property with custom :py:class:`request.Request`
+
+    """
+
+    def __init__(self):
+        super(MockedAPI, self).__init__(
+            media_type=falcon.DEFAULT_MEDIA_TYPE,
+            request_type=request.Request,
+            response_type=falcon.Response,
+            middleware=None,
+            router=None
+        )
