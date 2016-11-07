@@ -54,7 +54,7 @@ def _generate_v3_payload(log_count):
             'component': 'component_%d' % it,
             'service': 'service_%d' % it
             }
-        } for it in xrange(log_count)]
+        } for it in range(log_count)]
     v3_body = {
         'dimensions': {
             'origin': __name__
@@ -126,7 +126,7 @@ class TestLogsMonitoring(testing.TestBase):
         payload = json.dumps(v3_body)
         content_length = len(payload)
 
-        side_effects = [{} for ___ in xrange(log_count - reject_logs)]
+        side_effects = [{} for ___ in range(log_count - reject_logs)]
         side_effects.append(log_api_exceptions.HTTPUnprocessableEntity(''))
 
         res._processor._get_dimensions = mock.Mock(side_effect=side_effects)
