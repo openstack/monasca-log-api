@@ -287,7 +287,7 @@ class RolesMiddlewareLogicTest(unittest.TestCase):
         result = instance.process_request(req=req)
 
         self.assertIsNotNone(result)
-        self.assertTrue(isinstance(result, response.Response))
+        self.assertIsInstance(result, response.Response)
 
         status = result.status_code
         json_body = result.json_body
@@ -317,7 +317,7 @@ class RolesMiddlewareLogicTest(unittest.TestCase):
         result = instance.process_request(req=req)
 
         self.assertIsNotNone(result)
-        self.assertTrue(isinstance(result, response.Response))
+        self.assertIsInstance(result, response.Response)
 
         status = result.status_code
         json_body = result.json_body
