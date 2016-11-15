@@ -16,571 +16,691 @@
 #
 
 # Save trace setting
-XTRACE=$(set +o | grep xtrace)
+_XTRACE_LOG_API=$(set +o | grep xtrace)
 set -o xtrace
 
-ERREXIT=$(set +o | grep errexit)
+_ERREXIT_LOG_API=$(set +o | grep errexit)
 set -o errexit
 
-# Per default keep existing tarballs
-export ALWAYS_DOWNLOAD_TARBALLS=${ALWAYS_DOWNLOAD_TARBALLS:-false}
+# monasca-log-api settings
+if [[ ${USE_VENV} = True ]]; then
+    PROJECT_VENV["monasca-log-api"]=${MONASCA_LOG_API_DIR}.venv
+    MONASCA_LOG_API_BIN_DIR=${PROJECT_VENV["monasca-log-api"]}/bin
+else
+    MONASCA_LOG_API_BIN_DIR=$(get_python_exec_prefix)
+fi
 
-PLUGIN_FILES="$MONASCA_BASE"/monasca-log-api/devstack/files
+MONASCA_LOG_API_BASE_URI=${MONASCA_LOG_API_SERVICE_PROTOCOL}://${MONASCA_LOG_API_SERVICE_HOST}:${MONASCA_LOG_API_SERVICE_PORT}
+MONASCA_LOG_API_URI_V2=${MONASCA_LOG_API_BASE_URI}/v2.0
+MONASCA_LOG_API_URI_V3=${MONASCA_LOG_API_BASE_URI}/v3.0
 
-function pre_install_monasca_log {
-:
+# configuration bits
+LOG_PERSISTER_DIR=$DEST/monasca-log-persister
+LOG_TRANSFORMER_DIR=$DEST/monasca-log-transformer
+LOG_METRICS_DIR=$DEST/monasca-log-metrics
+LOG_AGENT_DIR=$DEST/monasca-log-agent
+
+ELASTICSEARCH_DIR=$DEST/elasticsearch
+ELASTICSEARCH_CFG_DIR=$ELASTICSEARCH_DIR/config
+ELASTICSEARCH_LOG_DIR=$LOGDIR/elasticsearch
+ELASTICSEARCH_DATA_DIR=$DATA_DIR/elasticsearch
+
+KIBANA_DIR=$DEST/kibana
+KIBANA_CFG_DIR=$KIBANA_DIR/config
+
+LOGSTASH_DIR=$DEST/logstash
+
+PLUGIN_FILES=$MONASCA_LOG_API_DIR/devstack/files
+
+# TOP_LEVEL functions called from devstack coordinator
+###############################################################################
+function pre_install {
+    install_elk
+    install_node_nvm
 }
 
 function install_monasca_log {
+    build_kibana_plugin
+    if is_service_enabled monasca-log-api; then
+      # install_monasca-log-api is not called directly
+      # stack_install_service calls it
+      stack_install_service monasca-log-api
+    fi
+    install_log_agent
+}
+
+function install_elk {
     install_logstash
-    configure_kafka
-    install_monasca_elasticsearch
-    configure_log_persister
-    configure_log_transformer
-    configure_log_metrics
-    install_monasca_log_api
+    install_elasticsearch
     install_kibana
-    install_kibana_keystone_plugin
 }
 
-function extra_monasca_log {
+function configure_monasca_log {
+    configure_kafka
+    configure_elasticsearch
+    configure_kibana
+    install_kibana_plugin
+
+    configure_monasca_log_api
+    configure_monasca_log_transformer
+    configure_monasca_log_metrics
+    configure_monasca_log_persister
+    configure_monasca_log_agent
+}
+
+function init_monasca_log {
     enable_log_management
-    add_log_api_service
-    configure_log_agent
+    create_log_management_accounts
 }
 
-function install_monasca_log_api {
-    echo_summary "install monasca log api"
-    sudo mkdir -p /opt/monasca-log-api
-    sudo chown $STACK_USER:monasca /opt/monasca-log-api
-    (cd /opt/monasca-log-api; virtualenv .)
+function stop_monasca_log {
+    stop_process "monasca-log-agent" || true
+    stop_process "monasca-log-api" || true
+    stop_process "monasca-log-metrics" || true
+    stop_process "monasca-log-persister" || true
+    stop_process "monasca-log-transformer" || true
+    stop_process "kibana" || true
+    stop_process "elasticsearch" || true
+}
 
-    PIP_VIRTUAL_ENV=/opt/monasca-log-api
+function start_monasca_log {
+    start_elasticsearch
+    start_kibana
+    start_monasca_log_transformer
+    start_monasca_log_metrics
+    start_monasca_log_persister
+    start_monasca_log_api
+    start_monasca_log_agent
+}
+
+function clean_monasca_log {
+    clean_monasca_log_agent
+    clean_monasca_log_api
+    clean_monasca_log_persister
+    clean_monasca_log_transformer
+    clean_kibana
+    clean_elasticsearch
+    clean_logstash
+    clean_node_nvm
+}
+###############################################################################
+
+function install_monasca-log-api {
+    echo_summary "Installing monasca-log-api"
+
+    git_clone $MONASCA_LOG_API_REPO $MONASCA_LOG_API_DIR $MONASCA_LOG_API_BRANCH
+    setup_develop $MONASCA_LOG_API_DIR
+
     pip_install gunicorn
-    pip_install python-memcached
+    pip_install_gr python-memcached
 
-    (cd "${MONASCA_BASE}"/monasca-log-api ; sudo python setup.py sdist)
-    MONASCA_LOG_API_SRC_DIST=$(ls -td "${MONASCA_BASE}"/monasca-log-api/dist/monasca-log-api-*.tar.gz)
-    pip_install ${MONASCA_LOG_API_SRC_DIST}
-
-    unset PIP_VIRTUAL_ENV
-
-    sudo useradd --system -g monasca mon-log-api || true
-
-    sudo cp -f "${PLUGIN_FILES}"/monasca-log-api/monasca-log-api.conf /etc/init/monasca-log-api.conf
-    sudo chown root:root /etc/init/monasca-log-api.conf
-    sudo chmod 0744 /etc/init/monasca-log-api.conf
-
-    sudo mkdir -p /var/log/monasca/ || true
-    sudo chown root:monasca /var/log/monasca
-    sudo chmod 0755 /var/log/monasca
-
-    sudo mkdir -p /var/log/monasca/log-api || true
-    sudo chown mon-log-api:monasca /var/log/monasca/log-api
-    sudo chmod 0755 /var/log/monasca/log-api
-
-    if [[ -n ${SCREEN_LOGDIR} ]]; then
-        sudo ln -sf /var/log/monasca/log-api/monasca-log-api.log \
-            ${SCREEN_LOGDIR}/screen-monasca-log-api.log
+    if use_library_from_git "monasca-common"; then
+        git_clone_by_name "monasca-common"
+        setup_dev_lib "monasca-common"
     fi
-
-    sudo mkdir -p /etc/monasca || true
-    sudo chown root:monasca /etc/monasca
-    sudo chmod 0755 /etc/monasca
-
-    sudo cp -f "${PLUGIN_FILES}"/monasca-log-api/log-api-config.conf /etc/monasca/log-api-config.conf
-    sudo chown mon-log-api:root /etc/monasca/log-api-config.conf
-    sudo chmod 0660 /etc/monasca/log-api-config.conf
-
-    sudo cp -f "${PLUGIN_FILES}"/monasca-log-api/log-api-logging.conf /etc/monasca/log-api-logging.conf
-    sudo chown mon-log-api:root /etc/monasca/log-api-logging.conf
-    sudo chmod 0660 /etc/monasca/log-api-logging.conf
-
-    if [[ ${SERVICE_HOST} ]]; then
-        # set kafka ip address
-        sudo sed -i "s/127\.0\.0\.1:9092/${SERVICE_HOST}:9092/g" /etc/monasca/log-api-config.conf
-        # set keystone ip address
-        sudo sed -i "s/identity_uri = http:\/\/127\.0\.0\.1:35357/identity_uri = http:\/\/${SERVICE_HOST}:35357/g" /etc/monasca/log-api-config.conf
-        sudo sed -i "s/auth_uri = http:\/\/127\.0\.0\.1:5000/auth_uri = http:\/\/${SERVICE_HOST}:5000/g" /etc/monasca/log-api-config.conf
+    if use_library_from_git "monasca-statsd"; then
+        git_clone_by_name "monasca-statsd"
+        setup_dev_lib "monasca-statsd"
     fi
-    sudo ln -sf /etc/monasca/log-api-config.conf /etc/log-api-config.conf
+}
 
-    sudo cp  -f "${PLUGIN_FILES}"/monasca-log-api/log-api-config.ini /etc/monasca/log-api-config.ini
-    sudo chown mon-log-api:root /etc/monasca/log-api-config.ini
-    sudo chmod 0660 /etc/monasca/log-api-config.ini
+function configure_monasca_log_api {
+    if is_service_enabled monasca-log-api; then
+        echo_summary "Configuring monasca-log-api"
 
-    if [[ ${SERVICE_HOST} ]]; then
-        # set influxdb ip address
-        sudo sed -i "s/host = 127\.0\.0\.1/host = ${SERVICE_HOST}/g" /etc/monasca/log-api-config.ini
+        # Put config files in ``$MONASCA_LOG_API_CONF_DIR`` for everyone to find
+        sudo install -d -o $STACK_USER $MONASCA_LOG_API_CONF_DIR
+        create_log_api_cache_dir
+
+        if [[ "$MONASCA_LOG_API_CONF_DIR" != "$MONASCA_LOG_API_DIR/etc/monasca" ]]; then
+            install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-config.conf $MONASCA_LOG_API_CONF
+            install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-config.ini $MONASCA_LOG_API_PASTE_INI
+            install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-logging.conf $MONASCA_LOG_API_LOGGING_CONF
+        fi
+
+        # configure log-api-config.conf
+        iniset "$MONASCA_LOG_API_CONF" DEFAULT log_config_append $MONASCA_LOG_API_LOGGING_CONF
+        iniset "$MONASCA_LOG_API_CONF" service region $REGION_NAME
+        iniset "$MONASCA_LOG_API_CONF" log_publisher kafka_url $KAFKA_SERVICE_HOST:$KAFKA_SERVICE_PORT
+        iniset "$MONASCA_LOG_API_CONF" kafka_healthcheck kafka_url $KAFKA_SERVICE_HOST:$KAFKA_SERVICE_PORT
+
+        # configure keystone middleware
+        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken auth_url $KEYSTONE_AUTH_URI
+        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken auth_uri $KEYSTONE_AUTH_URI
+        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken identity_uri $KEYSTONE_SERVICE_URI
+        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken admin_user "admin"
+        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken admin_password $ADMIN_PASSWORD
+        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken admin_tenant_name "admin"
+
+        # certs
+        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken cafile $SSL_BUNDLE_FILE
+        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken signing_dir $MONASCA_LOG_API_CACHE_DIR
+
+        # memcached
+        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken memcached_servers $SERVICE_HOST:11211
+
+        # insecure
+        if is_service_enabled tls-proxy; then
+            iniset "$MONASCA_LOG_API_CONF" keystone_authtoken insecure False
+        fi
+
+        # configure log-api-config.ini
+        iniset "$MONASCA_LOG_API_PASTE_INI" server:main host $MONASCA_LOG_API_SERVICE_HOST
+        iniset "$MONASCA_LOG_API_PASTE_INI" server:main port $MONASCA_LOG_API_SERVICE_PORT
+        iniset "$MONASCA_LOG_API_PASTE_INI" server:main chdir $MONASCA_LOG_API_DIR
     fi
-    sudo ln -sf /etc/monasca/log-api-config.ini /etc/log-api-config.ini
-    sudo start monasca-log-api || sudo restart monasca-log-api
+}
+
+function create_log_api_cache_dir {
+    sudo install -m 700 -d -o $STACK_USER $MONASCA_LOG_API_CACHE_DIR
+}
+
+function clean_monasca_log_api {
+    if is_service_enabled monasca-log-api; then
+        echo_summary "Cleaning monasca-log-api"
+
+        sudo rm -f $MONASCA_LOG_API_CONF || true
+        sudo rm -f $MONASCA_LOG_API_PASTE_INI  || true
+        sudo rm -f $MONASCA_LOG_API_LOGGING_CONF || true
+        sudo rm -rf $MONASCA_LOG_API_CACHE_DIR || true
+        sudo rm -rf $MONASCA_LOG_API_CONF_DIR || true
+
+        sudo rm -rf $MONASCA_LOG_API_DIR || true
+    fi
+}
+
+function start_monasca_log_api {
+    if is_service_enabled monasca-log-api; then
+        echo_summary "Starting monasca-log-api"
+        local gunicorn="$MONASCA_LOG_API_BIN_DIR/gunicorn"
+        restart_service memcached
+        run_process "monasca-log-api" "$gunicorn -n monasca-log-api -k eventlet --paste $MONASCA_LOG_API_PASTE_INI"
+    fi
 }
 
 function install_logstash {
-    echo_summary "install logstash"
+    if is_logstash_required; then
+        echo_summary "Installing Logstash ${LOGSTASH_VERSION}"
 
-    local logstash_tarball=logstash-${LOGSTASH_VERSION}.tar.gz
-    if [[ ${ALWAYS_DOWNLOAD_TARBALLS} == true || \
-          ! -f /opt/monasca_download_dir/${logstash_tarball}  ]]; then
-        sudo curl -L \
-            http://download.elastic.co/logstash/logstash/${logstash_tarball} \
-            -o /opt/monasca_download_dir/${logstash_tarball}
+        local logstash_tarball=logstash-${LOGSTASH_VERSION}.tar.gz
+        local logstash_url=http://download.elastic.co/logstash/logstash/${logstash_tarball}
+        local logstash_dest=${FILES}/${logstash_tarball}
+
+        download_file ${logstash_url} ${logstash_dest}
+        tar xzf ${logstash_dest} -C $DEST
+
+        sudo chown -R $STACK_USER $DEST/logstash-${LOGSTASH_VERSION}
+        ln -sf $DEST/logstash-${LOGSTASH_VERSION} $LOGSTASH_DIR
     fi
-    sudo tar xzf /opt/monasca_download_dir/${logstash_tarball} -C /opt
-
-    sudo ln -sf /opt/logstash-${LOGSTASH_VERSION} /opt/logstash
-
-    install_logstash_monasca_output_plugin
 }
 
-function install_logstash_monasca_output_plugin {
-    local monasca_log_agent_version=0.5.2
-    local ls_plugin_filename=logstash-output-monasca_log_api-${monasca_log_agent_version}.gem
-    sudo cp -f "${PLUGIN_FILES}"/monasca-log-agent/${ls_plugin_filename} \
-        /opt/logstash/${ls_plugin_filename}
-    sudo /opt/logstash/bin/plugin install /opt/logstash/${ls_plugin_filename}
-    sudo rm -f /opt/logstash/${ls_plugin_filename}
+function clean_logstash {
+    if is_logstash_required; then
+        echo_summary "Cleaning Logstash ${LOGSTASH_VERSION}"
+
+        sudo rm -rf $LOGSTASH_DIR || true
+        sudo rm -rf $FILES/logstash-${LOGSTASH_VERSION}.tar.gz ||  true
+        sudo rm -rf $DEST/logstash-${LOGSTASH_VERSION} || true
+    fi
 }
 
-function install_monasca_elasticsearch {
-    echo_summary "install elastic search"
+function install_elasticsearch {
+    if is_service_enabled elasticsearch; then
+        echo_summary "Installing ElasticSearch ${ELASTICSEARCH_VERSION}"
 
-    sudo groupadd --system elastic || true
-    sudo useradd --system -g elastic elastic || true
+        local es_tarball=elasticsearch-${ELASTICSEARCH_VERSION}.tar.gz
+        local es_url=http://download.elasticsearch.org/elasticsearch/elasticsearch/${es_tarball}
+        local es_dest=${FILES}/${es_tarball}
 
-    local es_tarball=elasticsearch-${ELASTICSEARCH_VERSION}.tar.gz
-    if [[ ${ALWAYS_DOWNLOAD_TARBALLS} == true || \
-          ! -f /opt/monasca_download_dir/${es_tarball}  ]]; then
-        sudo curl -L \
-            http://download.elasticsearch.org/elasticsearch/elasticsearch/${es_tarball} \
-            -o /opt/monasca_download_dir/${es_tarball}
+        download_file ${es_url} ${es_dest}
+        tar xzf ${es_dest} -C $DEST
+
+        sudo chown -R $STACK_USER $DEST/elasticsearch-${ELASTICSEARCH_VERSION}
+        ln -sf $DEST/elasticsearch-${ELASTICSEARCH_VERSION} $ELASTICSEARCH_DIR
     fi
-    sudo tar xzf /opt/monasca_download_dir/${es_tarball} -C /opt
+}
 
-    sudo chown -R elastic:elastic /opt/elasticsearch-${ELASTICSEARCH_VERSION}
+function configure_elasticsearch {
+    if is_service_enabled elasticsearch; then
+        echo_summary "Configuring ElasticSearch ${ELASTICSEARCH_VERSION}"
 
-    sudo ln -sf /opt/elasticsearch-${ELASTICSEARCH_VERSION} /opt/elasticsearch
+        local templateDir=$ELASTICSEARCH_CFG_DIR/templates
 
-    sudo mkdir -p /var/log/elasticsearch || true
-    sudo chown elastic:elastic /var/log/elasticsearch
-    sudo chmod 755 /var/log/elasticsearch
+        for dir in $ELASTICSEARCH_LOG_DIR $templateDir $ELASTICSEARCH_DATA_DIR; do
+            sudo install -m 755 -d -o $STACK_USER $dir
+        done
 
-    if [[ -n ${SCREEN_LOGDIR} ]]; then
-        sudo ln -sf /var/log/elasticsearch/monasca_elastic.log \
-            ${SCREEN_LOGDIR}/screen-monasca_elastic.log
+        sudo cp -f "${PLUGIN_FILES}"/elasticsearch/elasticsearch.yml $ELASTICSEARCH_CFG_DIR/elasticsearch.yml
+        sudo chown -R $STACK_USER $ELASTICSEARCH_CFG_DIR/elasticsearch.yml
+        sudo chmod 0644 $ELASTICSEARCH_CFG_DIR/elasticsearch.yml
+
+        sudo sed -e "
+          s|%ES_SERVICE_BIND_HOST%|$ES_SERVICE_BIND_HOST|g;
+          s|%ES_SERVICE_BIND_PORT%|$ES_SERVICE_BIND_PORT|g;
+          s|%ES_SERVICE_PUBLISH_HOST%|$ES_SERVICE_PUBLISH_HOST|g;
+          s|%ES_SERVICE_PUBLISH_PORT%|$ES_SERVICE_PUBLISH_PORT|g;
+          s|%ES_DATA_DIR%|$ELASTICSEARCH_DATA_DIR|g;
+          s|%ES_LOG_DIR%|$ELASTICSEARCH_LOG_DIR|g;
+        " -i $ELASTICSEARCH_CFG_DIR/elasticsearch.yml
     fi
+}
 
-    sudo mkdir -p /opt/elasticsearch/config/templates || true
-    sudo chown elastic:elastic /opt/elasticsearch/config/templates
-    sudo chmod 755 /opt/elasticsearch/config/templates
+function clean_elasticsearch {
+    if is_service_enabled elasticsearch; then
+        echo_summary "Cleaning Elasticsearch ${ELASTICSEARCH_VERSION}"
 
-    sudo mkdir -p /var/data/elasticsearch || true
-    sudo chown elastic:elastic /var/data/elasticsearch
-    sudo chmod 755 /var/data/elasticsearch
-
-    sudo cp -f "${PLUGIN_FILES}"/elasticsearch/elasticsearch.yml /opt/elasticsearch/config/elasticsearch.yml
-    sudo chown elastic:elastic /opt/elasticsearch/config/elasticsearch.yml
-    sudo chmod 0644 /opt/elasticsearch/config/elasticsearch.yml
-
-    if [[ ${SERVICE_HOST} ]]; then
-        # set ip address
-        sudo sed -i "s/network.publish_host: 127\.0\.0\.1/network.publish_host: ${SERVICE_HOST}/g" /opt/elasticsearch/config/elasticsearch.yml
+        sudo rm -rf ELASTICSEARCH_DIR || true
+        sudo rm -rf ELASTICSEARCH_CFG_DIR || true
+        sudo rm -rf ELASTICSEARCH_LOG_DIR || true
+        sudo rm -rf ELASTICSEARCH_DATA_DIR || true
+        sudo rm -rf $FILES/elasticsearch-${ELASTICSEARCH_VERSION}.tar.gz || true
+        sudo rm -rf $DEST/elasticsearch-${ELASTICSEARCH_VERSION} || true
     fi
+}
 
-    sudo cp -f "${PLUGIN_FILES}"/elasticsearch/elasticsearch.conf /etc/init/elasticsearch.conf
-    sudo chown elastic:elastic /etc/init/elasticsearch.conf
-    sudo chmod 0644 /etc/init/elasticsearch.conf
+function start_elasticsearch {
+    if is_service_enabled elasticsearch; then
+        echo_summary "Starting ElasticSearch ${ELASTICSEARCH_VERSION}"
+        # 5 extra seconds to ensure that ES started properly
+        local esSleepTime=${ELASTICSEARCH_SLEEP_TIME:-5}
+        _run_process_sleep "elasticsearch" "$ELASTICSEARCH_DIR/bin/elasticsearch" $esSleepTime
+    fi
+}
 
-    sudo start elasticsearch || sudo restart elasticsearch
+function install_kibana {
+    if is_service_enabled kibana; then
+        echo_summary "Installing Kibana ${KIBANA_VERSION}"
+
+        local kibana_tarball=kibana-${KIBANA_VERSION}.tar.gz
+        local kibana_tarball_url=http://download.elastic.co/kibana/kibana/${kibana_tarball}
+        local kibana_tarball_dest=${FILES}/${kibana_tarball}
+
+        download_file ${kibana_tarball_url} ${kibana_tarball_dest}
+        tar xzf ${kibana_tarball_dest} -C $DEST
+
+        sudo chown -R $STACK_USER $DEST/kibana-${KIBANA_VERSION}
+        ln -sf $DEST/kibana-${KIBANA_VERSION} $KIBANA_DIR
+    fi
+}
+
+function configure_kibana {
+    if is_service_enabled kibana; then
+        echo_summary "Configuring Kibana ${KIBANA_VERSION}"
+
+        sudo install -m 755 -d -o $STACK_USER $KIBANA_CFG_DIR
+
+        sudo cp -f "${PLUGIN_FILES}"/kibana/kibana.yml $KIBANA_CFG_DIR/kibana.yml
+        sudo chown -R $STACK_USER $KIBANA_CFG_DIR/kibana.yml
+        sudo chmod 0644 $KIBANA_CFG_DIR/kibana.yml
+
+        sudo sed -e "
+          s|%KIBANA_SERVICE_HOST%|$KIBANA_SERVICE_HOST|g;
+          s|%KIBANA_SERVICE_PORT%|$KIBANA_SERVICE_PORT|g;
+          s|%KIBANA_SERVER_BASE_PATH%|$KIBANA_SERVER_BASE_PATH|g;
+          s|%ES_SERVICE_BIND_HOST%|$ES_SERVICE_BIND_HOST|g;
+          s|%ES_SERVICE_BIND_PORT%|$ES_SERVICE_BIND_PORT|g;
+          s|%KIBANA_LOG_DIR%|$KIBANA_LOG_DIR|g;
+          s|%KEYSTONE_AUTH_PORT%|$KEYSTONE_AUTH_PORT|g;
+          s|%KEYSTONE_AUTH_HOST%|$KEYSTONE_AUTH_HOST|g;
+          s|%KEYSTONE_AUTH_PROTOCOL%|$KEYSTONE_AUTH_PROTOCOL|g;
+        " -i $KIBANA_CFG_DIR/kibana.yml
+    fi
+}
+
+function install_kibana_plugin {
+    if is_service_enabled kibana; then
+        echo_summary "Install Kibana plugin"
+
+        # note(trebskit) that needs to happen after kibana received
+        # its configuration otherwise the plugin fails to be installed
+
+        local pkg=file://$DEST/fts-keystone.tar.gz
+
+        $KIBANA_DIR/bin/kibana plugin -r fts-keystone
+        $KIBANA_DIR/bin/kibana plugin -i fts-keystone -u $pkg
+    fi
+}
+
+function clean_kibana {
+    if is_service_enabled kibana; then
+        echo_summary "Cleaning Kibana ${KIBANA_VERSION}"
+
+        sudo rm -rf $KIBANA_DIR || true
+        sudo rm -rf $FILES/kibana-${KIBANA_VERSION}.tar.gz || true
+        sudo rm -rf $KIBANA_LOG_DIR || true
+        sudo rm -rf $KIBANA_CFG_DIR || true
+    fi
+}
+
+function start_kibana {
+    if is_service_enabled kibana; then
+        echo_summary "Starting Kibana ${KIBANA_VERSION}"
+        local kibanaSleepTime=${KIBANA_SLEEP_TIME:-90}     # kibana takes some time to load up
+        local kibanaCFG="$KIBANA_CFG_DIR/kibana.yml"
+        _run_process_sleep "kibana" "$KIBANA_DIR/bin/kibana --config $kibanaCFG" $kibanaSleepTime
+    fi
+}
+
+function configure_monasca_log_persister {
+    if is_service_enabled monasca-log-persister; then
+        echo_summary "Configuring monasca-log-persister"
+
+        sudo install -m 755 -d -o $STACK_USER $LOG_PERSISTER_DIR
+
+        sudo cp -f "${PLUGIN_FILES}"/monasca-log-persister/persister.conf $LOG_PERSISTER_DIR/persister.conf
+        sudo chown $STACK_USER $LOG_PERSISTER_DIR/persister.conf
+        sudo chmod 0640 $LOG_PERSISTER_DIR/persister.conf
+
+        sudo sed -e "
+          s|%ES_SERVICE_BIND_HOST%|$ES_SERVICE_BIND_HOST|g;
+        " -i $LOG_PERSISTER_DIR/persister.conf
+    fi
+}
+
+function clean_monasca_log_persister {
+    if is_service_enabled monasca-log-persister; then
+        echo_summary "Cleaning monasca-log-persister"
+        sudo rm -rf $LOG_PERSISTER_DIR || true
+    fi
+}
+
+function start_monasca_log_persister {
+    if is_service_enabled monasca-log-persister; then
+        echo_summary "Starting monasca-log-persister"
+        local logstash="$LOGSTASH_DIR/bin/logstash"
+        run_process "monasca-log-persister" "$logstash -f $LOG_PERSISTER_DIR/persister.conf --debug"
+    fi
+}
+
+function configure_monasca_log_transformer {
+    if is_service_enabled monasca-log-transformer; then
+        echo_summary "Configuring monasca-log-transformer"
+
+        sudo install -m 755 -d -o $STACK_USER $LOG_TRANSFORMER_DIR
+
+        sudo cp -f "${PLUGIN_FILES}"/monasca-log-transformer/transformer.conf $LOG_TRANSFORMER_DIR/transformer.conf
+        sudo chown $STACK_USER $LOG_TRANSFORMER_DIR/transformer.conf
+        sudo chmod 0640 $LOG_TRANSFORMER_DIR/transformer.conf
+
+        sudo sed -e "
+          s|%KAFKA_SERVICE_HOST%|$KAFKA_SERVICE_HOST|g;
+          s|%KAFKA_SERVICE_PORT%|$KAFKA_SERVICE_PORT|g;
+        " -i $LOG_TRANSFORMER_DIR/transformer.conf
+    fi
+}
+
+function clean_monasca_log_transformer {
+    if is_service_enabled monasca-log-transformer; then
+        echo_summary "Cleaning monasca-log-transformer"
+        sudo rm -rf $LOG_TRANSFORMER_DIR || true
+    fi
+}
+
+function start_monasca_log_transformer {
+    if is_service_enabled monasca-log-transformer; then
+        echo_summary "Starting monasca-log-transformer"
+        local logstash="$LOGSTASH_DIR/bin/logstash"
+        run_process "monasca-log-transformer" "$logstash -f $LOG_TRANSFORMER_DIR/transformer.conf --debug"
+    fi
+}
+
+function configure_monasca_log_metrics {
+    if is_service_enabled monasca-log-metrics; then
+        echo_summary "Configuring monasca-log-metrics"
+
+        sudo install -m 755 -d -o $STACK_USER $LOG_METRICS_DIR
+
+        sudo cp -f "${PLUGIN_FILES}"/monasca-log-metrics/log-metrics.conf $LOG_METRICS_DIR/log-metrics.conf
+        sudo chown $STACK_USER $LOG_METRICS_DIR/log-metrics.conf
+        sudo chmod 0640 $LOG_METRICS_DIR/log-metrics.conf
+
+        sudo sed -e "
+          s|%KAFKA_SERVICE_HOST%|$KAFKA_SERVICE_HOST|g;
+          s|%KAFKA_SERVICE_PORT%|$KAFKA_SERVICE_PORT|g;
+        " -i $LOG_METRICS_DIR/log-metrics.conf
+    fi
+}
+
+function clean_monasca_log_metrics {
+    if is_service_enabled monasca-log-metrics; then
+        echo_summary "Cleaning monasca-log-metrics"
+        sudo rm -rf $LOG_METRICS_DIR || true
+    fi
+}
+
+function start_monasca_log_metrics {
+    if is_service_enabled monasca-log-metrics; then
+        echo_summary "Starting monasca-log-metrics"
+        local logstash="$LOGSTASH_DIR/bin/logstash"
+        run_process "monasca-log-metrics" "$logstash -f $LOG_METRICS_DIR/log-metrics.conf --debug"
+    fi
+}
+
+function install_log_agent {
+    if is_service_enabled monasca-log-agent; then
+        echo_summary "Installing monasca-log-agent [monasca-output-plugin]"
+
+        local monasca_log_agent_version=0.5.2
+        local ls_plugin_filename=logstash-output-monasca_log_api-${monasca_log_agent_version}.gem
+
+        $LOGSTASH_DIR/bin/plugin install "${PLUGIN_FILES}"/monasca-log-agent/${ls_plugin_filename}
+    fi
+}
+
+function configure_monasca_log_agent {
+    if is_service_enabled monasca-log-agent; then
+        echo_summary "Configuring monasca-log-agent"
+
+        sudo install -m 755 -d -o $STACK_USER $LOG_AGENT_DIR
+
+        sudo cp -f "${PLUGIN_FILES}"/monasca-log-agent/agent.conf $LOG_AGENT_DIR/agent.conf
+        sudo chown $STACK_USER $LOG_AGENT_DIR/agent.conf
+        sudo chmod 0640 $LOG_AGENT_DIR/agent.conf
+
+        sudo sed -e "
+          s|%MONASCA_LOG_API_URI_V3%|$MONASCA_LOG_API_URI_V3|g;
+          s|%KEYSTONE_AUTH_URI_V3%|$KEYSTONE_AUTH_URI_V3|g;
+        " -i $LOG_AGENT_DIR/agent.conf
+
+    fi
+}
+
+function clean_monasca_log_agent {
+    if is_service_enabled monasca-log-agent; then
+        echo_summary "Cleaning monasca-log-agent"
+        sudo rm -rf $LOG_AGENT_DIR || true
+    fi
+}
+
+function start_monasca_log_agent {
+    if is_service_enabled monasca-log-agent; then
+        echo_summary "Starting monasca-log-agent"
+        local logstash="$LOGSTASH_DIR/bin/logstash"
+        run_process "monasca-log-agent" "sudo $logstash -f $LOG_AGENT_DIR/agent.conf --debug"
+    fi
+}
+
+function install_node_nvm {
+    set -i
+    if [[ ! -f "${HOME}/.nvm/nvm.sh" ]] && is_service_enabled kibana; then
+      # note(trebskit) we need node to build kibana plugin
+      # so if kibana is enabled in this environment, let's install node
+      echo_summary "Install Node ${NODE_JS_VERSION} with NVM ${NVM_VERSION}"
+      local nvmUrl=https://raw.githubusercontent.com/creationix/nvm/v${NVM_VERSION}/install.sh
+      local nvmDest=${FILES}/nvm_install.sh
+      download_file ${nvmUrl} ${nvmDest}
+      bash ${nvmDest}
+    fi
+    if is_service_enabled kibana; then
+        # refresh installation
+        (
+            source "${HOME}"/.nvm/nvm.sh >> /dev/null; \
+            nvm install ${NODE_JS_VERSION}; \
+            nvm use ${NODE_JS_VERSION}; \
+            npm config set registry "http://registry.npmjs.org/"; \
+            npm config set proxy "${HTTP_PROXY}"; \
+            npm set strict-ssl false;
+        )
+    fi
+    set +i
+}
+
+function clean_node_nvm {
+    if [[ -f "${HOME}/.nvm/nvm.sh" ]] && is_service_enabled kibana; then
+        echo_summary "Cleaning Node ${NODE_JS_VERSION} with NVM ${NVM_VERSION}"
+        sudo rm ${FILES}/nvm_install.sh
+        sudo rm -rf "${HOME}/.nvm/nvm.sh"
+    fi
+}
+
+function build_kibana_plugin {
+    if is_service_enabled kibana; then
+        echo "Building Kibana plugin"
+
+        if [ ! -d "${FTS_KEYSTONE_DIR}" ]; then
+            git_timed clone $FTS_KEYSTONE_REPO $FTS_KEYSTONE_DIR --branch $FTS_KEYSTONE_BRANCH --depth 1
+        fi
+
+        pushd $FTS_KEYSTONE_DIR
+
+        local fts_keystone_version="$(python -c 'import json; \
+            obj = json.load(open("package.json")); print obj["version"]')"
+
+        set -i
+        (source "${HOME}"/.nvm/nvm.sh >> /dev/null; nvm use ${NODE_JS_VERSION}; npm install)
+        (source "${HOME}"/.nvm/nvm.sh >> /dev/null; nvm use ${NODE_JS_VERSION}; npm run package)
+        set +i
+
+        local pkg=$FTS_KEYSTONE_DIR/target/fts-keystone-${fts_keystone_version}.tar.gz
+        local easyPkg=$DEST/fts-keystone.tar.gz
+
+        ln -sf $pkg $easyPkg
+
+        popd
+    fi
 }
 
 function configure_kafka {
-    echo_summary "configure_kafka"
+    echo_summary "Configuring kafka topics"
     /opt/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 4 --topic log
     /opt/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 4 --topic transformed-log
 }
 
-function add_log_api_service {
-    echo_summary "configure_keystone"
-    sudo apt-get -y install python-dev
-    PIP_VIRTUAL_ENV=/opt/monasca-log-api
+function create_log_management_accounts {
+    if is_service_enabled monasca-log-api; then
+        echo_summary "Enable Log Management in Keystone"
 
-    pip_install python-keystoneclient
+        # note(trebskit) following points to Kibana which is bad,
+        # but we do not have search-api in monasca-log-api now
+        # this code will be removed in future
+        local log_search_url="http://$KIBANA_SERVICE_HOST:$KIBANA_SERVICE_PORT/"
 
-    unset PIP_VIRTUAL_ENV
-    sudo cp -f "${PLUGIN_FILES}"/keystone/create_monasca_log_service.py /usr/local/bin/create_monasca_log_service.py
-    sudo chmod 0700 /usr/local/bin/create_monasca_log_service.py
+        get_or_create_service "logs" "logs" "Monasca Log service"
+        get_or_create_endpoint \
+            "logs" \
+            "$REGION_NAME" \
+            "$MONASCA_LOG_API_URI_V3" \
+            "$MONASCA_LOG_API_URI_V3" \
+            "$MONASCA_LOG_API_URI_V3"
 
-    if [[ ${SERVICE_HOST} ]]; then
-        sudo /opt/monasca-log-api/bin/python /usr/local/bin/create_monasca_log_service.py ${SERVICE_HOST} ${OS_USERNAME} ${OS_PASSWORD} ${OS_PROJECT_NAME}
-    else
-        sudo /opt/monasca-log-api/bin/python /usr/local/bin/create_monasca_log_service.py "127.0.0.1" ${OS_USERNAME} ${OS_PASSWORD} ${OS_PROJECT_NAME}
+        get_or_create_service "logs_v2" "logs_v2" "Monasca Log V2.0 service"
+        get_or_create_endpoint \
+            "logs_v2" \
+            "$REGION_NAME" \
+            "$MONASCA_LOG_API_URI_V2" \
+            "$MONASCA_LOG_API_URI_V2" \
+            "$MONASCA_LOG_API_URI_V2"
+
+        get_or_create_service "logs-search" "logs-search" "Monasca Log search service"
+        get_or_create_endpoint \
+            "logs-search" \
+            "$REGION_NAME" \
+            "$log_search_url" \
+            "$log_search_url" \
+            "$log_search_url"
+
     fi
-}
-
-function configure_log_persister {
-    echo_summary "configure_log_persister"
-
-    sudo useradd --system -g monasca mon-persister || true
-
-    sudo mkdir -p /etc/monasca || true
-    sudo chown root:monasca /etc/monasca
-    sudo chmod 0755 /etc/monasca
-
-    sudo mkdir -p /etc/monasca/log || true
-    sudo chown root:monasca /etc/monasca/log
-    sudo chmod 0755 /etc/monasca/log
-
-    sudo cp -f "${PLUGIN_FILES}"/monasca-log-persister/persister.conf /etc/monasca/log/persister.conf
-    sudo chown mon-persister:monasca /etc/monasca/log/persister.conf
-    sudo chmod 0640 /etc/monasca/log/persister.conf
-
-    if [[ ${SERVICE_HOST} ]]; then
-        # set zookeeper ip address
-        sudo sed -i "s/zk_connect => \"127\.0\.0\.1:2181\"/zk_connect => \"${SERVICE_HOST}:2181\"/g" /etc/monasca/log/persister.conf
-    fi
-
-    sudo mkdir -p /var/log/monasca || true
-    sudo chown root:monasca /var/log/monasca
-    sudo chmod 0755 /var/log/monasca
-
-    sudo mkdir -p /var/log/monasca/monasca-log-persister || true
-    sudo chown mon-persister:monasca /var/log/monasca/monasca-log-persister
-    sudo chmod 0750 /var/log/monasca/monasca-log-persister
-
-    sudo cp -f "${PLUGIN_FILES}"/monasca-log-persister/monasca-log-persister.conf /etc/init/monasca-log-persister.conf
-    sudo chown mon-persister:monasca /etc/init/monasca-log-persister.conf
-    sudo chmod 0640 /etc/init/monasca-log-persister.conf
-
-    sudo start monasca-log-persister || sudo restart monasca-log-persister
-}
-
-function configure_log_transformer {
-    echo_summary "configure_log_transformer"
-
-    sudo useradd --system -g monasca mon-transformer || true
-
-    sudo mkdir -p /var/log/monasca/monasca-log-transformer || true
-    sudo chown mon-transformer:monasca /var/log/monasca/monasca-log-transformer
-    sudo chmod 0750 /var/log/monasca/monasca-log-transformer
-
-    sudo cp -f "${PLUGIN_FILES}"/monasca-log-transformer/transformer.conf /etc/monasca/log/transformer.conf
-    sudo chown mon-transformer:monasca /etc/monasca/log/transformer.conf
-    sudo chmod 0640 /etc/monasca/log/transformer.conf
-
-    if [[ ${SERVICE_HOST} ]]; then
-        # set zookeeper ip address
-        sudo sed -i "s/zk_connect => \"127\.0\.0\.1:2181\"/zk_connect => \"${SERVICE_HOST}:2181\"/g" /etc/monasca/log/transformer.conf
-        # set kafka ip address
-        sudo sed -i "s/bootstrap_servers => \"127\.0\.0\.1:9092\"/bootstrap_servers => \"${SERVICE_HOST}:9092\"/g" /etc/monasca/log/transformer.conf
-    fi
-
-    sudo cp -f "${PLUGIN_FILES}"/monasca-log-transformer/monasca-log-transformer.conf /etc/init/monasca-log-transformer.conf
-    sudo chown mon-transformer:monasca /etc/init/monasca-log-transformer.conf
-    sudo chmod 0640 /etc/init/monasca-log-transformer.conf
-
-    sudo start monasca-log-transformer || sudo restart monasca-log-transformer
-}
-
-function configure_log_metrics {
-    echo_summary "configure_log_metrics"
-
-    sudo useradd --system -g monasca mon-log-metrics || true
-
-    sudo mkdir -p /var/log/monasca/monasca-log-metrics || true
-    sudo chown mon-log-metrics:monasca /var/log/monasca/monasca-log-metrics
-    sudo chmod 0750 /var/log/monasca/monasca-log-metrics
-
-    local log_metrics_conf=/etc/monasca/log/log-metrics.conf
-    sudo cp -f ${PLUGIN_FILES}/monasca-log-metrics/log-metrics.conf \
-        ${log_metrics_conf}
-    sudo chown mon-log-metrics:monasca ${log_metrics_conf}
-    sudo chmod 0640 ${log_metrics_conf}
-
-    if [[ ${SERVICE_HOST} ]]; then
-        # set zookeeper ip address
-        sudo sed -i \
-            "s/zk_connect => \"127\.0\.0\.1:2181\"/zk_connect => \"${SERVICE_HOST}:2181\"/g" \
-            ${log_metrics_conf}
-        # set kafka ip address
-        sudo sed -i \
-            "s/bootstrap_servers => \"127\.0\.0\.1:9092\"/bootstrap_servers => \"${SERVICE_HOST}:9092\"/g" \
-            ${log_metrics_conf}
-    fi
-
-    sudo cp -f ${PLUGIN_FILES}/monasca-log-metrics/monasca-log-metrics.conf \
-        /etc/init/monasca-log-metrics.conf
-    sudo chown mon-log-metrics:monasca /etc/init/monasca-log-metrics.conf
-    sudo chmod 0640 /etc/init/monasca-log-metrics.conf
-
-    sudo start monasca-log-metrics || sudo restart monasca-log-metrics
-}
-
-function install_kibana {
-    echo_summary "install_kibana"
-
-    sudo groupadd --system kibana || true
-    sudo useradd --system -g kibana kibana || true
-    sudo usermod -aG sudo kibana
-
-    local kibana_tarball=kibana-${KIBANA_VERSION}.tar.gz
-    if [[ ${ALWAYS_DOWNLOAD_TARBALLS} == true || \
-          ! -f /opt/monasca_download_dir/${kibana_tarball}  ]]; then
-        sudo curl -L \
-            http://download.elastic.co/kibana/kibana/${kibana_tarball} \
-            -o /opt/monasca_download_dir/${kibana_tarball}
-    fi
-    sudo tar xzf /opt/monasca_download_dir/${kibana_tarball} -C /opt
-
-    sudo chown -R kibana:kibana /opt/kibana-${KIBANA_VERSION}
-
-    sudo ln -sf /opt/kibana-${KIBANA_VERSION} /opt/kibana
-
-    sudo mkdir -p /opt/kibana/config || true
-    sudo cp -f "${PLUGIN_FILES}"/kibana/kibana.yml /opt/kibana/config/kibana.yml
-
-    if [[ ${SERVICE_HOST} ]]; then
-        # set bind host ip address
-        sudo sed -i \
-            "s/server.host: 127\.0\.0\.1/server.host: ${SERVICE_HOST}/g" \
-            /opt/kibana/config/kibana.yml
-        sudo sed -i \
-            "s/fts-keystone.url: http:\/\/127\.0\.0\.1/fts-keystone.url: http:\/\/${SERVICE_HOST}/g" \
-            /opt/kibana/config/kibana.yml
-    fi
-
-    sudo mkdir -p /var/log/kibana || true
-    sudo chown kibana:kibana /var/log/kibana
-    sudo chmod 0750 /var/log/kibana
-
-    if [[ -n ${SCREEN_LOGDIR} ]]; then
-        sudo ln -sf /var/log/kibana/kibana.log ${SCREEN_LOGDIR}/screen-kibana.log
-    fi
-
-    sudo cp -f "${PLUGIN_FILES}"/kibana/kibana.conf /etc/init/kibana.conf
-    sudo chown kibana:kibana /etc/init/kibana.conf
-    sudo chmod 0640 /etc/init/kibana.conf
-
-    sudo start kibana || sudo restart kibana
-}
-
-function install_node_nvm {
-
-    echo_summary "Install Node with NVM"
-
-    if [[ "$OFFLINE" != "True" ]]; then
-        curl https://raw.githubusercontent.com/creationix/nvm/v0.31.1/install.sh | bash
-        set -i
-        (source "${HOME}"/.nvm/nvm.sh >> /dev/null; nvm install 4.0.0; nvm use 4.0.0)
-        set +i
-    fi
-}
-
-function install_kibana_keystone_plugin {
-    echo_summary "install Kibana plugin"
-
-    install_node_nvm
-
-    cd "${MONASCA_BASE}"
-    if [ ! -e fts-keystone ]; then
-        git clone https://github.com/FujitsuEnablingSoftwareTechnologyGmbH/fts-keystone.git
-    fi
-
-    cd fts-keystone
-    local fts_keystone_version="$(python -c 'import json; \
-        obj = json.load(open("package.json")); print obj["version"]')"
-
-    set -i
-    (source "${HOME}"/.nvm/nvm.sh >> /dev/null; nvm use 4.0.0; npm install)
-    (source "${HOME}"/.nvm/nvm.sh >> /dev/null; nvm use 4.0.0; npm run package)
-    set +i
-
-    sudo /opt/kibana/bin/kibana plugin -r fts-keystone
-    sudo /opt/kibana/bin/kibana plugin -i fts-keystone \
-        -u file://${PWD}/target/fts-keystone-${fts_keystone_version}.tar.gz
-
-    sudo start kibana || sudo restart kibana
 }
 
 function enable_log_management {
-    echo_summary "configure_horizon"
+    if is_service_enabled horizon && is_service_enabled kibana; then
+        echo_summary "Configure Horizon with Kibana access"
 
-    if is_service_enabled horizon; then
-        sudo sed -i \
-            "s/ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', False)/ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', True)/g" \
-            ${MONASCA_BASE}/horizon/monitoring/config/local_settings.py
-        if [[ ${SERVICE_HOST} ]]; then
-            sudo sed -i \
-                "s/KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http:\/\/192\.168\.10\.4:5601\/')/KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http:\/\/${SERVICE_HOST}:5601\/')/g" \
-                ${MONASCA_BASE}/horizon/monitoring/config/local_settings.py
-        else
-            sudo sed -i \
-                "s/KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http:\/\/192\.168\.10\.4:5601\/')/KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http:\/\/127\.0\.0\.1:5601\/')/g" \
-                ${MONASCA_BASE}/horizon/monitoring/config/local_settings.py
-        fi
+        local localSettings=${DEST}/horizon/monitoring/config/local_settings.py
 
-        sudo /etc/init.d/apache2 stop || true
-        sudo /etc/init.d/apache2 start
+        sudo sed -e "
+          s|ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', False)|ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', True)|g;
+          s|KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http://192.168.10.4:5601/')|KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http://${KIBANA_SERVICE_HOST}:${KIBANA_SERVICE_PORT}/')|g;
+        " -i ${localSettings}
+
+        restart_apache_server
     fi
 }
 
-function post_config_monasca_log {
-:
+function _run_process_sleep {
+  local name=$1
+  local cmd=$2
+  local sleepTime=${3:-1}
+  run_process "$name" "$cmd"
+  sleep ${sleepTime}
 }
 
-function configure_log_agent {
-    echo_summary "configure_log_agent"
+# download_file
+#  $1 - url to download
+#  $2 - location where to save url to
+#
+#  File won't be downloaded if it already exists.
+#
+#  Uses global variables:
+#  - OFFLINE
+#  - DOWNLOAD_FILE_TIMEOUT
+# note(trebskit) maybe this function will enter upstream devstack in case it does
+#                we should remove it from here
+function download_file {
+    local url=$1
+    local file=$2
 
-    sudo useradd --system -g monasca mon-log-agent || true
-
-    sudo mkdir -p /var/log/monasca/monasca-log-agent || true
-    sudo chown mon-log-agent:monasca /var/log/monasca/monasca-log-agent
-    sudo chmod 0750 /var/log/monasca/monasca-log-agent
-
-    sudo mkdir -p /etc/monasca/monasca-log-agent || true
-    sudo chown mon-log-agent:monasca /etc/monasca/monasca-log-agent
-    sudo chmod 0750 /etc/monasca/monasca-log-agent
-
-    sudo cp -f "${PLUGIN_FILES}"/monasca-log-agent/agent.conf /etc/monasca/monasca-log-agent/agent.conf
-    sudo chown mon-log-agent:monasca /etc/monasca/monasca-log-agent/agent.conf
-    sudo chmod 0640 /etc/monasca/monasca-log-agent/agent.conf
-
-    if [[ ${SERVICE_HOST} ]]; then
-        # set log api ip address
-        sudo sed -i \
-            "s/monasca_log_api_url => \"http:\/\/127\.0\.0\.1:5607/monasca_log_api_url => \"http:\/\/${SERVICE_HOST}:5607/g" \
-            /etc/monasca/monasca-log-agent/agent.conf
+    # if file is not there and it is OFFLINE mode
+    # that is bad...terminate everything
+    if [[ ${OFFLINE} == "True" ]] && [[ ! -f ${file} ]]; then
+        die $LINENO "You are running in OFFLINE mode but
+                     the target file \"$file\" was not found"
     fi
 
-    sudo cp -f "${PLUGIN_FILES}"/monasca-log-agent/monasca-log-agent.conf /etc/init/monasca-log-agent.conf
-    sudo chown mon-log-agent:monasca /etc/init/monasca-log-agent.conf
-    sudo chmod 0640 /etc/init/monasca-log-agent.conf
+    local curl_z_flag=""
+    if [[ -f ${file} ]]; then
+        # If the file exists tell cURL to download only if newer version
+        # is available
+        curl_z_flag="-z $file"
+    fi
 
-    sudo start monasca-log-agent || sudo restart monasca-log-agent
+    local timeout=0
+    if [[ -n "${DOWNLOAD_FILE_TIMEOUT}" ]]; then
+        timeout=${DOWNLOAD_FILE_TIMEOUT}
+    fi
+
+    # yeah...downloading...devstack...hungry..om, om, om
+    time_start "download_file"
+    _safe_permission_operation ${CURL_GET} -L $url --connect-timeout $timeout --retry 3 --retry-delay 5 -o $file $curl_z_flag
+    time_stop "download_file"
+
 }
 
-function unstack_monasca_log {
-    sudo stop monasca-log-agent || true
-    sudo stop monasca-log-api || true
-    sudo stop monasca-log-transformer || true
-    sudo stop monasca-log-metrics || true
-    sudo stop monasca-log-persister || true
-    sudo stop kibana || true
-    sudo stop elasticsearch || true
+function is_logstash_required {
+    is_service_enabled monasca-log-persister \
+        || is_service_enabled monasca-log-transformer \
+        || is_service_enabled monasca-log-metrics \
+        || is_service_enabled monasca-log-agent \
+        && return 0
 }
-
-function clean_monasca_log {
-    unstack_monasca_log
-
-    clean_monasca_log_agent
-    clean_monasca_log_api
-    clean_monasca_log_transformer
-    clean_monasca_log_persister
-    clean_kibana
-    clean_elastic_search
-    clean_logstash
-}
-
-function clean_monasca_log_agent {
-    echo_summary "clean_log_agent"
-
-    sudo rm -rf /var/log/monasca/monasca-log-agent
-    sudo rm -rf /etc/monasca/monasca-log-agent
-    sudo rm -f /etc/init/monasca-log-agent.conf
-
-    sudo userdel mon-log-agent || true
-}
-
-function clean_monasca_log_api {
-    echo_summary "clean log api"
-
-    sudo rm -rf /var/log/monasca/log-api
-    sudo rm -f /etc/log-api-config.ini
-    sudo rm -f /etc/log-api-config.conf
-    sudo rm -f /etc/init/monasca-log-api.conf
-    sudo rm -f /etc/monasca/log-api-config.conf
-    sudo rm -f /etc/monasca/log-api-config.ini
-    sudo rm -f /etc/monasca/log-api-logging.conf
-
-    sudo rm -rf /opt/monasca-log-api
-
-    sudo userdel mon-log-api || true
-}
-
-function clean_monasca_log_transformer {
-    echo_summary "clean log transformer"
-
-    sudo rm -rf /var/log/monasca/monasca-log-transformer
-    sudo rm -rf /etc/monasca/log
-    sudo rm -f /etc/init/monasca-log-transformer.conf
-
-    sudo userdel mon-transformer || true
-}
-
-function clean_monasca_log_metrics {
-    echo_summary "clean log metrics"
-
-    sudo rm -rf /var/log/monasca/monasca-log-metrics
-    sudo rm -rf /etc/monasca/log
-    sudo rm -f /etc/init/monasca-log-metrics
-
-    sudo userdel mon-log-metrics || true
-}
-
-
-function clean_monasca_log_persister {
-    echo_summary "clean log persister"
-
-    sudo rm -rf /var/log/monasca/monasca-log-persister
-    sudo rm -rf /etc/monasca/log
-    sudo rm -f /etc/init/monasca-log-persister.conf
-
-    sudo userdel mon-persister || true
-}
-
-function clean_kibana {
-    echo_summary "clean kibana"
-
-    sudo rm -rf /opt/kibana
-    sudo rm -rf /opt/kibana-${KIBANA_VERSION}
-    sudo rm -rf /var/log/kibana
-    sudo rm -f /etc/init/kibana.conf
-
-    sudo userdel kibana || true
-    sudo groupdel kibana || true
-}
-
-function clean_elastic_search {
-    echo_summary "clean elasticsearch"
-
-    sudo rm -rf /opt/elasticsearch
-    sudo rm -rf /opt/elasticsearch-${ELASTICSEARCH_VERSION}
-    sudo rm -rf /var/log/elasticsearch
-    sudo rm -rf /opt/elasticsearch/config/templates
-    sudo rm -rf /var/data/elasticsearch
-    sudo rm -f /etc/init/elasticsearch.conf
-
-    sudo userdel elastic || true
-    sudo groupdel elastic || true
-}
-
-function clean_logstash {
-    echo_summary "clean logstash"
-
-    sudo rm -rf /opt/logstash
-    sudo rm -rf /opt/logstash-${LOGSTASH_VERSION}
-}
-
-
 
 # check for service enabled
-if is_service_enabled monasca_log; then
+if is_service_enabled monasca-log; then
 
     if [[ "$1" == "stack" && "$2" == "pre-install" ]]; then
         # Set up system services
         echo_summary "Configuring Monasca Log Management system services"
-        pre_install_monasca_log
+        pre_install
 
     elif [[ "$1" == "stack" && "$2" == "install" ]]; then
         # Perform installation of service source
@@ -590,18 +710,19 @@ if is_service_enabled monasca_log; then
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         # Configure after the other layer 1 and 2 services have been configured
         echo_summary "Configuring Monasca Log Management"
-        post_config_monasca_log
+        configure_monasca_log
 
     elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
         # Initialize and start the Monasca service
         echo_summary "Initializing Monasca Log Management"
-        extra_monasca_log
+        init_monasca_log
+        start_monasca_log
     fi
 
     if [[ "$1" == "unstack" ]]; then
         # Shut down Monasca services
         echo_summary "Unstacking Monasca Log Management"
-        unstack_monasca_log
+        stop_monasca_log
     fi
 
     if [[ "$1" == "clean" ]]; then
@@ -613,7 +734,7 @@ if is_service_enabled monasca_log; then
 fi
 
 #Restore errexit
-$ERREXIT
+$_ERREXIT_LOG_API
 
 # Restore xtrace
-$XTRACE
+$_XTRACE_LOG_API

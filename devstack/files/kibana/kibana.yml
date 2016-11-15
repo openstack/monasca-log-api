@@ -1,15 +1,15 @@
 # Kibana is served by a back end server. This controls which port to use.
-server.port: 5601
+server.port: %KIBANA_SERVICE_PORT%
 
 # The host to bind the server to.
-server.host: 127.0.0.1
+server.host: %KIBANA_SERVICE_HOST%
 
 # If you are running kibana behind a proxy, and want to mount it at a path,
 # specify that path here. The basePath can't end in a slash.
 server.basePath: /dashboard/monitoring/logs_proxy
 
 # The Elasticsearch instance to use for all your queries.
-elasticsearch.url: http://localhost:9200
+elasticsearch.url: http://%ES_SERVICE_BIND_HOST%:%ES_SERVICE_BIND_PORT%
 
 # preserve_elasticsearch_host true will send the hostname specified in `elasticsearch`. If you set it to false,
 # then the host you use to connect to *this* Kibana instance will be sent.
@@ -49,7 +49,6 @@ kibana.defaultAppId: "discover"
 # request_timeout setting
 elasticsearch.pingTimeout: 1500
 
-
 # Time in milliseconds to wait for responses from the back end or elasticsearch.
 # This must be > 0
 elasticsearch.requestTimeout: 300000
@@ -64,9 +63,6 @@ elasticsearch.startupTimeout: 5000
 # Set the path to where you would like the process id file to be created.
 # pid.file: /var/run/kibana.pid
 
-# If you would like to send the log output to a file you can set the path below.
-logging.dest: /var/log/kibana/kibana.log
-
 # Set this to true to suppress all logging output.
 logging.silent: false
 # Set this to true to suppress all logging output except for error messages.
@@ -75,8 +71,8 @@ logging.quiet: false
 logging.verbose: true
 
 # fts-keystone configuration
-fts-keystone.port: 35357
-fts-keystone.url: http://127.0.0.1
+fts-keystone.port: %KEYSTONE_AUTH_PORT%
+fts-keystone.url: %KEYSTONE_AUTH_PROTOCOL%://%KEYSTONE_AUTH_HOST%
 fts-keystone.enabled: True
 
 optimize.useBundleCache: False

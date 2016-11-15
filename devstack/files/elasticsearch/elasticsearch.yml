@@ -136,10 +136,10 @@ node.data:  true
 #################################### Paths ####################################
 
 # Path to directory where to store index data allocated for this node.
-path.data: /var/data/elasticsearch
-  
+path.data: %ES_DATA_DIR%
+
 # Path to log files:
-path.logs: /var/log/elasticsearch
+path.logs: %ES_LOG_DIR%
 
 # Path to where plugins are installed:
 #path.plugins: /path/to/plugins
@@ -183,14 +183,14 @@ path.logs: /var/log/elasticsearch
 # try the next port).
 
 # Set the bind address specifically (IPv4 or IPv6):
-network.bind_host: 0.0.0.0
+network.bind_host: %ES_SERVICE_BIND_HOST%
 
 # Set the address other nodes will use to communicate with this node. If not
 # set, it is automatically derived. It must point to an actual IP address.
-network.publish_host: 127.0.0.1
+network.publish_host: %ES_SERVICE_PUBLISH_HOST%
 
 # Set a custom port for the node to node communication (9300 by default):
-transport.tcp.port: 9300
+transport.tcp.port: %ES_SERVICE_PUBLISH_PORT%
 
 # Enable compression for all communication between nodes (disabled by default):
 #
@@ -198,7 +198,7 @@ transport.tcp.port: 9300
 
 # Set a custom port to listen for HTTP traffic:
 #
-http.port: 9200
+http.port: %ES_SERVICE_BIND_PORT%
 
 # Set a custom allowed content length:
 #

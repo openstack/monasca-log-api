@@ -14,8 +14,74 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-enable_service monasca_log
 
+# services
+enable_service zookeeper              # devstack/lib/dlm
+enable_service kibana                 # devstack/monasca-api/kafka
+enable_service elasticsearch
+enable_service monasca-log
+enable_service monasca-log-api
+enable_service monasca-log-persister
+enable_service monasca-log-transformer
+enable_service monasca-log-metrics
+enable_service monasca-log-agent
+
+# libraries/frameworks/projects monasca-log requires to install itself
 KIBANA_VERSION=${KIBANA_VERSION:-4.4.0-linux-x64}
 LOGSTASH_VERSION=${LOGSTASH_VERSION:-2.2.0}
 ELASTICSEARCH_VERSION=${ELASTICSEARCH_VERSION:-2.2.0}
+NODE_JS_VERSION=${NODE_JS_VERSION:-"4.0.0"}
+NVM_VERSION=${NVM_VERSION:-"0.32.1"}
+
+# repository settings
+MONASCA_LOG_API_REPO=${MONASCA_LOG_API_REPO:-${GIT_BASE}/openstack/monasca-log-api.git}
+MONASCA_LOG_API_BRANCH=${MONASCA_LOG_API_BRANCH:-master}
+MONASCA_LOG_API_DIR=${DEST}/monasca-log-api
+
+MONASCA_COMMON_REPO=${MONASCA_COMMON_REPO:-${GIT_BASE}/openstack/monasca-common.git}
+MONASCA_COMMON_BRANCH=${MONASCA_COMMON_BRANCH:-master}
+MONASCA_COMMON_DIR=${DEST}/monasca-common
+
+MONASCA_STATSD_REPO=${MONASCA_STATSD_REPO:-${GIT_BASE}/openstack/monasca-statsd.git}
+MONASCA_STATSD_BRANCH=${MONASCA_STATSD_BRANCH:-master}
+MONASCA_STATSD_DIR=${DEST}/monasca-statsd
+
+FTS_KEYSTONE_REPO=${FTS_KEYSTONE_REPO:-"https://github.com/FujitsuEnablingSoftwareTechnologyGmbH/fts-keystone.git"}
+FTS_KEYSTONE_BRANCH=${FTS_KEYSTONE_BRANCH:-master}
+FTS_KEYSTONE_DIR=${DEST}/fts-keystone
+
+GITREPO["monasca-common"]=${MONASCA_COMMON_REPO}
+GITBRANCH["monasca-common"]=${MONASCA_COMMON_BRANCH}
+GITDIR["monasca-common"]=${MONASCA_COMMON_DIR}
+
+GITREPO["monasca-statsd"]=${MONASCA_STATSD_REPO}
+GITBRANCH["monasca-statsd"]=${MONASCA_STATSD_BRANCH}
+GITDIR["monasca-statsd"]=${MONASCA_STATSD_DIR}
+
+LIBS_FROM_GIT="${LIBS_FROM_GIT:-""},monasca-common,monasca-statsd"
+
+# configuration bits
+MONASCA_LOG_API_CONF_DIR=${MONASCA_LOG_API_CONF_DIR:-/etc/monasca}
+MONASCA_LOG_API_CONF=${MONASCA_LOG_API_CONF:-$MONASCA_LOG_API_CONF_DIR/log-api-config.conf}
+MONASCA_LOG_API_PASTE_INI=${MONASCA_LOG_API_PASTE_INI:-$MONASCA_LOG_API_CONF_DIR/log-api-config.ini}
+MONASCA_LOG_API_LOGGING_CONF=${MONASCA_LOG_API_LOGGING_CONF:-$MONASCA_LOG_API_CONF_DIR/log-api-logging.conf}
+MONASCA_LOG_API_CACHE_DIR=${MONASCA_LOG_API_CACHE_DIR:-/var/cache/monasca-log-api}
+
+# public facing bits
+MONASCA_LOG_API_SERVICE_HOST=${MONASCA_LOG_API_SERVICE_HOST:-${SERVICE_HOST}}
+MONASCA_LOG_API_SERVICE_PORT=${MONASCA_LOG_API_SERVICE_PORT:-5607}
+MONASCA_LOG_API_SERVICE_PROTOCOL="http" # right now we do not have SSL support here
+
+ES_SERVICE_BIND_HOST=${ES_SERVICE_BIND_HOST:-${SERVICE_HOST}}
+ES_SERVICE_BIND_PORT=${ES_SERVICE_BIND_PORT:-9200}
+ES_SERVICE_PUBLISH_HOST=${ES_SERVICE_PUBLISH_HOST:-${SERVICE_HOST}}
+ES_SERVICE_PUBLISH_PORT=${ES_SERVICE_PUBLISH_PORT:-9300}
+
+KIBANA_SERVICE_HOST=${KIBANA_SERVICE_HOST:-${SERVICE_HOST}}
+KIBANA_SERVICE_PORT=${KIBANA_SERVICE_PORT:-5601}
+KIBANA_SERVER_BASE_PATH=${KIBANA_SERVER_BASE_PATH:-"/dashboard/monitoring/logs_proxy"}
+
+KAFKA_SERVICE_HOST=${KAFKA_SERVICE_HOST:-${SERVICE_HOST}}
+KAFKA_SERVICE_PORT=${KAFKA_SERVICE_PORT:-9092}
+
+DOWNLOAD_FILE_TIMEOUT=${DOWNLOAD_FILE_TIMEOUT:-300}

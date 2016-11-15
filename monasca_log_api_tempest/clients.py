@@ -22,17 +22,19 @@ from monasca_log_api_tempest.services import log_search_client
 class Manager(clients.Manager):
     def __init__(self, credentials=None, service=None):
         super(Manager, self).__init__(credentials, service)
-        self.log_api_clients = {}
-        self.log_api_clients["v2"] = log_api_v2_client.LogApiV2Client(
-            self.auth_provider,
-            'logs_v2',
-            None
-        )
-        self.log_api_clients["v3"] = log_api_v3_client.LogApiV3Client(
-            self.auth_provider,
-            'logs',
-            None
-        )
+
+        self.log_api_clients = {
+            "v2": log_api_v2_client.LogApiV2Client(
+                self.auth_provider,
+                'logs_v2',
+                None
+            ),
+            "v3": log_api_v3_client.LogApiV3Client(
+                self.auth_provider,
+                'logs',
+                None
+            )
+        }
         self.log_search_client = log_search_client.LogsSearchClient(
             self.auth_provider,
             'logs-search',

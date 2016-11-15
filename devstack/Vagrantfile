@@ -1,41 +1,27 @@
-# -*- mode: ruby -*-
-# vi: set ft=ruby :
-
-# All Vagrant configuration is done below. The "2" in Vagrant.configure
-# configures the configuration version (we support older styles for
-# backwards compatibility). Please don't change it unless you know what
-# you're doing.
+require 'vagrant.rb'
 Vagrant.configure(2) do |config|
 
-  if Vagrant.has_plugin?("vagrant-cachier")
-    config.cache.scope = :box
+  config.cache.scope = :box if Vagrant.has_plugin?("vagrant-cachier")
+  config.timezone.value = :host if Vagrant.has_plugin?('vagrant-timezone')
+  if Vagrant.has_plugin?('vagrant-proxyconf')
+    config.proxy.http = ENV['http_proxy'] if ENV['http_proxy']
+    config.proxy.https = ENV['https_proxy'] if ENV['https_proxy']
+    if ENV['no_proxy']
+        local_no_proxy = ",192.168.10.6,10.0.2.15"
+        config.proxy.no_proxy = ENV['no_proxy'] + local_no_proxy
+    end
   end
 
-  # Handle local proxy settings
-  if Vagrant.has_plugin?("vagrant-proxyconf")
-    if ENV["http_proxy"]
-      config.proxy.http = ENV["http_proxy"]
-    end
-    if ENV["https_proxy"]
-      config.proxy.https = ENV["https_proxy"]
-    end
-    if ENV["no_proxy"]
-      config.proxy.no_proxy = ENV["no_proxy"] + ',192.168.10.6,10.0.2.15'
-    end
-
-  end
+  config.ssh.forward_agent = true
 
   config.vm.hostname = "devstack"
-  config.vm.box = "ubuntu/trusty64"
-  # config.vm.box_check_update = false
+  config.vm.box = "ubuntu/xenial64"
   config.vm.network "private_network",ip:"192.168.10.6"
   config.vm.synced_folder "~/", "/vagrant_home"
-
   config.vm.provider "virtualbox" do |vb|
     vb.gui = false
     vb.memory = "12800"
     vb.cpus = 4
-    # vb.customize ["modifyvm", :id, "--cpuexecutioncap", "50"]
   end
 
   config.vm.provision "shell", privileged: false, inline: <<-SHELL
@@ -70,16 +56,20 @@ Vagrant.configure(2) do |config|
       sudo cp ./maven_proxy_settings.xml /root/.m2/settings.xml
     fi
 
-    git clone https://git.openstack.org/openstack-dev/devstack -b master
-    sudo pip install numpy
-    sudo pip install python-monascaclient
+    git clone https://git.openstack.org/openstack-dev/devstack --branch master --depth 1
     cd devstack
     echo '[[local|localrc]]
 
+GIT_DEPTH=1
+DEST=/opt/stack
+USE_VENV=False
+
 SERVICE_HOST=192.168.10.6
 HOST_IP=192.168.10.6
-HOST_IP_IFACE=eth1
+DATABASE_HOST=192.168.10.6
 MYSQL_HOST=192.168.10.6
+HOST_IP_IFACE=eth1
+
 MYSQL_PASSWORD=secretmysql
 DATABASE_PASSWORD=secretdatabase
 RABBIT_PASSWORD=secretrabbit
@@ -91,7 +81,7 @@ LOGDIR=$DEST/logs
 LOG_COLOR=False
 
 disable_all_services
-enable_service rabbit mysql key tempest horizon
+enable_service zookeeper rabbit mysql key tempest horizon
 
 # The following two variables allow switching between Java and Python for the implementations
 # of the Monasca API and the Monasca Persister. If these variables are not set, then the
@@ -107,12 +97,12 @@ MONASCA_PERSISTER_IMPLEMENTATION_LANG=${MONASCA_PERSISTER_IMPLEMENTATION_LANG:-p
 
 # Uncomment one of the following two lines to choose either InfluxDB or Vertica.
 # MONASCA_METRICS_DB=${MONASCA_METRICS_DB:-vertica}
+# MONASCA_METRICS_DB=${MONASCA_METRICS_DB:-cassandra}
 MONASCA_METRICS_DB=${MONASCA_METRICS_DB:-influxdb}
 
 # Uncomment one of the following lines and modify accordingly to enable the Monasca DevStack Plugin
 enable_plugin monasca-api https://git.openstack.org/openstack/monasca-api
-# enable_plugin monasca-api file:///vagrant_home/Documents/repos/openstack/monasca-api.vertica
-enable_plugin monasca-log-api https://github.com/openstack/monasca-log-api.git
+enable_plugin monasca-log-api https://git.openstack.org/openstack/monasca-log-api.git
 
 ' > local.conf
     ./stack.sh

@@ -32,3 +32,6 @@ logs/
 *config*.yml
 db/config.yml
 .venv
+
+# Logs from devstack directory should not be committed
+devstack/*.log
