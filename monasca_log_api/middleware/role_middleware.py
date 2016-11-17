@@ -143,7 +143,7 @@ class RoleMiddleware(om.ConfigurableMiddleware):
         roles = headers.get(_X_ROLES)
 
         if not roles:
-            LOG.warn('Couldn\'t locate %s header, or it was empty', _X_ROLES)
+            LOG.warning('Couldn\'t locate %s header,or it was empty', _X_ROLES)
             return False, False
         else:
             roles = _ensure_lower_roles(roles.split(','))

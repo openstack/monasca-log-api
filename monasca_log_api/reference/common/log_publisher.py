@@ -195,10 +195,10 @@ class LogPublisher(object):
         if diff_size > 1:
             truncated_by = diff_size + _TRUNCATED_PROPERTY_SIZE
 
-            LOG.warn(('Detected message that exceeds %d bytes,'
-                      'message will be truncated by %d bytes'),
-                     self.max_message_size,
-                     truncated_by)
+            LOG.warning(('Detected message that exceeds %d bytes,'
+                         'message will be truncated by %d bytes'),
+                        self.max_message_size,
+                        truncated_by)
 
             log_msg = envelope['log']['message']
             truncated_log_msg = log_msg[:-truncated_by]
