@@ -1,3 +1,10 @@
+Team and repository tags
+========================
+
+[![Team and repository tags](http://governance.openstack.org/badges/monasca-log-api.svg)](http://governance.openstack.org/reference/tags/index.html)
+
+<!-- Change things from this point on -->
+
 # Forked from https://github.com/openstack/monasca-api
 This repository is forked from [monasca-api](https://github.com/openstack/monasca-api).
 
