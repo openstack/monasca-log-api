@@ -62,9 +62,9 @@ function pre_install {
 function install_monasca_log {
     build_kibana_plugin
     if is_service_enabled monasca-log-api; then
-      # install_monasca-log-api is not called directly
-      # stack_install_service calls it
-      stack_install_service monasca-log-api
+        # install_monasca-log-api is not called directly
+        # stack_install_service calls it
+        stack_install_service monasca-log-api
     fi
     install_log_agent
 }
@@ -275,12 +275,12 @@ function configure_elasticsearch {
         sudo chmod 0644 $ELASTICSEARCH_CFG_DIR/elasticsearch.yml
 
         sudo sed -e "
-          s|%ES_SERVICE_BIND_HOST%|$ES_SERVICE_BIND_HOST|g;
-          s|%ES_SERVICE_BIND_PORT%|$ES_SERVICE_BIND_PORT|g;
-          s|%ES_SERVICE_PUBLISH_HOST%|$ES_SERVICE_PUBLISH_HOST|g;
-          s|%ES_SERVICE_PUBLISH_PORT%|$ES_SERVICE_PUBLISH_PORT|g;
-          s|%ES_DATA_DIR%|$ELASTICSEARCH_DATA_DIR|g;
-          s|%ES_LOG_DIR%|$ELASTICSEARCH_LOG_DIR|g;
+            s|%ES_SERVICE_BIND_HOST%|$ES_SERVICE_BIND_HOST|g;
+            s|%ES_SERVICE_BIND_PORT%|$ES_SERVICE_BIND_PORT|g;
+            s|%ES_SERVICE_PUBLISH_HOST%|$ES_SERVICE_PUBLISH_HOST|g;
+            s|%ES_SERVICE_PUBLISH_PORT%|$ES_SERVICE_PUBLISH_PORT|g;
+            s|%ES_DATA_DIR%|$ELASTICSEARCH_DATA_DIR|g;
+            s|%ES_LOG_DIR%|$ELASTICSEARCH_LOG_DIR|g;
         " -i $ELASTICSEARCH_CFG_DIR/elasticsearch.yml
     fi
 }
@@ -334,15 +334,15 @@ function configure_kibana {
         sudo chmod 0644 $KIBANA_CFG_DIR/kibana.yml
 
         sudo sed -e "
-          s|%KIBANA_SERVICE_HOST%|$KIBANA_SERVICE_HOST|g;
-          s|%KIBANA_SERVICE_PORT%|$KIBANA_SERVICE_PORT|g;
-          s|%KIBANA_SERVER_BASE_PATH%|$KIBANA_SERVER_BASE_PATH|g;
-          s|%ES_SERVICE_BIND_HOST%|$ES_SERVICE_BIND_HOST|g;
-          s|%ES_SERVICE_BIND_PORT%|$ES_SERVICE_BIND_PORT|g;
-          s|%KIBANA_LOG_DIR%|$KIBANA_LOG_DIR|g;
-          s|%KEYSTONE_AUTH_PORT%|$KEYSTONE_AUTH_PORT|g;
-          s|%KEYSTONE_AUTH_HOST%|$KEYSTONE_AUTH_HOST|g;
-          s|%KEYSTONE_AUTH_PROTOCOL%|$KEYSTONE_AUTH_PROTOCOL|g;
+            s|%KIBANA_SERVICE_HOST%|$KIBANA_SERVICE_HOST|g;
+            s|%KIBANA_SERVICE_PORT%|$KIBANA_SERVICE_PORT|g;
+            s|%KIBANA_SERVER_BASE_PATH%|$KIBANA_SERVER_BASE_PATH|g;
+            s|%ES_SERVICE_BIND_HOST%|$ES_SERVICE_BIND_HOST|g;
+            s|%ES_SERVICE_BIND_PORT%|$ES_SERVICE_BIND_PORT|g;
+            s|%KIBANA_LOG_DIR%|$KIBANA_LOG_DIR|g;
+            s|%KEYSTONE_AUTH_PORT%|$KEYSTONE_AUTH_PORT|g;
+            s|%KEYSTONE_AUTH_HOST%|$KEYSTONE_AUTH_HOST|g;
+            s|%KEYSTONE_AUTH_PROTOCOL%|$KEYSTONE_AUTH_PROTOCOL|g;
         " -i $KIBANA_CFG_DIR/kibana.yml
     fi
 }
@@ -392,7 +392,7 @@ function configure_monasca_log_persister {
         sudo chmod 0640 $LOG_PERSISTER_DIR/persister.conf
 
         sudo sed -e "
-          s|%ES_SERVICE_BIND_HOST%|$ES_SERVICE_BIND_HOST|g;
+            s|%ES_SERVICE_BIND_HOST%|$ES_SERVICE_BIND_HOST|g;
         " -i $LOG_PERSISTER_DIR/persister.conf
     fi
 }
@@ -423,8 +423,8 @@ function configure_monasca_log_transformer {
         sudo chmod 0640 $LOG_TRANSFORMER_DIR/transformer.conf
 
         sudo sed -e "
-          s|%KAFKA_SERVICE_HOST%|$KAFKA_SERVICE_HOST|g;
-          s|%KAFKA_SERVICE_PORT%|$KAFKA_SERVICE_PORT|g;
+            s|%KAFKA_SERVICE_HOST%|$KAFKA_SERVICE_HOST|g;
+            s|%KAFKA_SERVICE_PORT%|$KAFKA_SERVICE_PORT|g;
         " -i $LOG_TRANSFORMER_DIR/transformer.conf
     fi
 }
@@ -455,8 +455,8 @@ function configure_monasca_log_metrics {
         sudo chmod 0640 $LOG_METRICS_DIR/log-metrics.conf
 
         sudo sed -e "
-          s|%KAFKA_SERVICE_HOST%|$KAFKA_SERVICE_HOST|g;
-          s|%KAFKA_SERVICE_PORT%|$KAFKA_SERVICE_PORT|g;
+            s|%KAFKA_SERVICE_HOST%|$KAFKA_SERVICE_HOST|g;
+            s|%KAFKA_SERVICE_PORT%|$KAFKA_SERVICE_PORT|g;
         " -i $LOG_METRICS_DIR/log-metrics.conf
     fi
 }
@@ -498,8 +498,8 @@ function configure_monasca_log_agent {
         sudo chmod 0640 $LOG_AGENT_DIR/agent.conf
 
         sudo sed -e "
-          s|%MONASCA_LOG_API_URI_V3%|$MONASCA_LOG_API_URI_V3|g;
-          s|%KEYSTONE_AUTH_URI_V3%|$KEYSTONE_AUTH_URI_V3|g;
+            s|%MONASCA_LOG_API_URI_V3%|$MONASCA_LOG_API_URI_V3|g;
+            s|%KEYSTONE_AUTH_URI_V3%|$KEYSTONE_AUTH_URI_V3|g;
         " -i $LOG_AGENT_DIR/agent.conf
 
     fi
@@ -523,13 +523,13 @@ function start_monasca_log_agent {
 function install_node_nvm {
     set -i
     if [[ ! -f "${HOME}/.nvm/nvm.sh" ]] && is_service_enabled kibana; then
-      # note(trebskit) we need node to build kibana plugin
-      # so if kibana is enabled in this environment, let's install node
-      echo_summary "Install Node ${NODE_JS_VERSION} with NVM ${NVM_VERSION}"
-      local nvmUrl=https://raw.githubusercontent.com/creationix/nvm/v${NVM_VERSION}/install.sh
-      local nvmDest=${FILES}/nvm_install.sh
-      download_file ${nvmUrl} ${nvmDest}
-      bash ${nvmDest}
+        # note(trebskit) we need node to build kibana plugin
+        # so if kibana is enabled in this environment, let's install node
+        echo_summary "Install Node ${NODE_JS_VERSION} with NVM ${NVM_VERSION}"
+        local nvmUrl=https://raw.githubusercontent.com/creationix/nvm/v${NVM_VERSION}/install.sh
+        local nvmDest=${FILES}/nvm_install.sh
+        download_file ${nvmUrl} ${nvmDest}
+        bash ${nvmDest}
     fi
     if is_service_enabled kibana; then
         # refresh installation
@@ -563,7 +563,8 @@ function build_kibana_plugin {
 
         pushd $FTS_KEYSTONE_DIR
 
-        local fts_keystone_version="$(python -c 'import json; \
+        local fts_keystone_version
+        fts_keystone_version="$(python -c 'import json; \
             obj = json.load(open("package.json")); print obj["version"]')"
 
         set -i
@@ -629,8 +630,8 @@ function enable_log_management {
         local localSettings=${DEST}/horizon/monitoring/config/local_settings.py
 
         sudo sed -e "
-          s|ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', False)|ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', True)|g;
-          s|KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http://192.168.10.4:5601/')|KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http://${KIBANA_SERVICE_HOST}:${KIBANA_SERVICE_PORT}/')|g;
+            s|ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', False)|ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', True)|g;
+            s|KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http://192.168.10.4:5601/')|KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http://${KIBANA_SERVICE_HOST}:${KIBANA_SERVICE_PORT}/')|g;
         " -i ${localSettings}
 
         restart_apache_server
@@ -638,11 +639,11 @@ function enable_log_management {
 }
 
 function _run_process_sleep {
-  local name=$1
-  local cmd=$2
-  local sleepTime=${3:-1}
-  run_process "$name" "$cmd"
-  sleep ${sleepTime}
+    local name=$1
+    local cmd=$2
+    local sleepTime=${3:-1}
+    run_process "$name" "$cmd"
+    sleep ${sleepTime}
 }
 
 # download_file
@@ -663,8 +664,8 @@ function download_file {
     # if file is not there and it is OFFLINE mode
     # that is bad...terminate everything
     if [[ ${OFFLINE} == "True" ]] && [[ ! -f ${file} ]]; then
-        die $LINENO "You are running in OFFLINE mode but
-                     the target file \"$file\" was not found"
+        die $LINENO    "You are running in OFFLINE mode but
+                        the target file \"$file\" was not found"
     fi
 
     local curl_z_flag=""
