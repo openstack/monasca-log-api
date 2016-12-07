@@ -1,4 +1,4 @@
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2015-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -12,15 +12,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from falcon import testing
 import kafka.client as client
 import mock
+from oslotest import base as os_test
 
 from monasca_log_api.healthcheck import kafka_check as kc
 from monasca_log_api.tests import base
 
 
-class KafkaCheckLogicTest(testing.TestBase):
+class KafkaCheckLogicTest(os_test.BaseTestCase):
+
     mock_kafka_url = 'localhost:1234'
     mocked_topics = ['test_1', 'test_2']
     mock_config = {

@@ -1,4 +1,4 @@
-# Copyright 2016 FUJITSU LIMITED
+# Copyright 2016-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -27,7 +27,7 @@ CONF = cfg.CONF
 
 APPLICATION_TYPE_CONSTRAINTS = {
     'MAX_LENGTH': 255,
-    'PATTERN': re.compile('^[a-zA-Z0-9_\\.\\-]+$')
+    'PATTERN': re.compile('^[a-zA-Z0-9_.\\-]+$')
 }
 """Application type constraint used in validation.
 
@@ -134,7 +134,7 @@ def validate_dimensions(dimensions):
        * :py:data:`DIMENSION_VALUE_CONSTRAINTS`
        """
     try:
-        for dim_name, dim_value in dimensions.iteritems():
+        for dim_name, dim_value in six.iteritems(dimensions):
             _validate_dimension_name(dim_name)
             _validate_dimension_value(dim_value)
     except AttributeError:

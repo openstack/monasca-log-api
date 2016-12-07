@@ -1,4 +1,4 @@
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2015-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -12,9 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import unittest
-
 import mock
+from oslotest import base
 
 from monasca_log_api.healthcheck import keystone_protocol
 
@@ -22,7 +21,8 @@ _APP = mock.Mock()
 _CONF = {}
 
 
-class TestKeystoneProtocol(unittest.TestCase):
+class TestKeystoneProtocol(base.BaseTestCase):
+
     def test_should_return_none_if_healthcheck(self):
         instance = keystone_protocol.SkippingAuthProtocol(_APP, _CONF)
         request = mock.Mock()

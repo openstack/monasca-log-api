@@ -99,15 +99,13 @@ def get_wsgi_app(config_base_path=None):
             os.path.dirname(os.path.realpath(__file__)), '../etc/monasca')
     global_conf = {'config_file': (
         os.path.join(config_base_path, 'log-api-config.conf'))}
-
-    wsgi_app = (
+    return (
         paste.deploy.loadapp(
             'config:log-api-config.ini',
             relative_to=config_base_path,
             global_conf=global_conf
         )
     )
-    return wsgi_app
 
 if __name__ == '__main__':
     wsgi_app = get_wsgi_app()

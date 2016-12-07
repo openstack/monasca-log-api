@@ -1,4 +1,4 @@
-# Copyright 2016 FUJITSU LIMITED
+# Copyright 2016-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -13,12 +13,13 @@
 # under the License.
 
 import mock
-import unittest
+
+from oslotest import base
 
 from monasca_log_api.monitoring import client
 
 
-class TestMonitoring(unittest.TestCase):
+class TestMonitoring(base.BaseTestCase):
     @mock.patch('monasca_log_api.monitoring.client.monascastatsd')
     def test_should_use_default_dimensions_if_none_specified(self,
                                                              monascastatsd):

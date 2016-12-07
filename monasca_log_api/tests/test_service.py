@@ -1,5 +1,5 @@
 # Copyright 2015 kornicameister@gmail.com
-# Copyright 2016 FUJITSU LIMITED
+# Copyright 2016-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -19,6 +19,7 @@ import unittest
 from falcon import errors
 from falcon import testing
 import mock
+from oslotest import base as os_test
 
 from monasca_log_api.api import exceptions
 from monasca_log_api.api import logs_api
@@ -27,7 +28,7 @@ from monasca_log_api.reference.v2.common import service as common_service
 from monasca_log_api.tests import base
 
 
-class IsDelegate(unittest.TestCase):
+class IsDelegate(os_test.BaseTestCase):
     def test_is_delegate_ok_role(self):
         roles = logs_api.MONITORING_DELEGATE_ROLE
         self.assertTrue(validation.validate_is_delegate(roles))
@@ -49,27 +50,28 @@ class IsDelegate(unittest.TestCase):
         self.assertFalse(validation.validate_is_delegate(roles))
 
 
-class ParseDimensions(unittest.TestCase):
+class ParseDimensions(os_test.BaseTestCase):
     def test_should_fail_for_empty_dimensions(self):
         self.assertRaises(exceptions.HTTPUnprocessableEntity,
-                          common_service.parse_dimensions, '')
+                          common_service.parse_dimensions,
+                          '')
         self.assertRaises(exceptions.HTTPUnprocessableEntity,
-                          common_service.parse_dimensions, None)
+                          common_service.parse_dimensions,
+                          None)
 
     def test_should_fail_for_empty_dim_in_dimensions(self):
-        with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
-            common_service.parse_dimensions(',')
-
-        self.assertEqual(context.exception.description,
-                         'Dimension cannot be empty')
+        err = self.assertRaises(exceptions.HTTPUnprocessableEntity,
+                                common_service.parse_dimensions,
+                                ',')
+        self.assertEqual(err.description, 'Dimension cannot be empty')
 
     def test_should_fail_for_invalid_dim_in_dimensions(self):
         invalid_dim = 'a'
-        with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
-            common_service.parse_dimensions(invalid_dim)
-
-        self.assertEqual(context.exception.description,
-                         '%s is not a valid dimension' % invalid_dim)
+        err = self.assertRaises(exceptions.HTTPUnprocessableEntity,
+                                common_service.parse_dimensions,
+                                invalid_dim)
+        self.assertEqual(err.description, '%s is not a valid dimension'
+                         % invalid_dim)
 
     def test_should_pass_for_valid_dimensions(self):
         dimensions = 'a:1,b:2'
@@ -82,7 +84,7 @@ class ParseDimensions(unittest.TestCase):
                              common_service.parse_dimensions(dimensions))
 
 
-class ParseApplicationType(unittest.TestCase):
+class ParseApplicationType(os_test.BaseTestCase):
     def test_should_return_none_for_none(self):
         self.assertIsNone(common_service.parse_application_type(None))
 
@@ -104,40 +106,40 @@ class ParseApplicationType(unittest.TestCase):
                          common_service.parse_application_type(app_type))
 
 
-class ApplicationTypeValidations(unittest.TestCase):
-
+class ApplicationTypeValidations(os_test.BaseTestCase):
     def test_should_pass_for_empty_app_type(self):
         validation.validate_application_type()
         validation.validate_application_type('')
 
     def test_should_fail_for_invalid_length(self):
         r_app_type = testing.rand_string(300, 600)
-        with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
-            validation.validate_application_type(r_app_type)
+        err = self.assertRaises(exceptions.HTTPUnprocessableEntity,
+                                validation.validate_application_type,
+                                r_app_type)
 
         length = validation.APPLICATION_TYPE_CONSTRAINTS['MAX_LENGTH']
         msg = ('Application type {type} must be '
                '{length} characters or less'.format(type=r_app_type,
                                                     length=length))
 
-        self.assertEqual(context.exception.description, msg)
+        self.assertEqual(err.description, msg)
 
     def test_should_fail_for_invalid_content(self):
         r_app_type = '%#$@!'
-        with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
-            validation.validate_application_type(r_app_type)
 
+        err = self.assertRaises(exceptions.HTTPUnprocessableEntity,
+                                validation.validate_application_type,
+                                r_app_type)
         msg = ('Application type %s may only contain: "a-z A-Z 0-9 _ - ."' %
                r_app_type)
-
-        self.assertEqual(context.exception.description, msg)
+        self.assertEqual(err.description, msg)
 
     def test_should_pass_for_ok_app_type(self):
         r_app_type = 'monasca'
         validation.validate_application_type(r_app_type)
 
 
-class DimensionsValidations(unittest.TestCase):
+class DimensionsValidations(os_test.BaseTestCase):
     @unittest.expectedFailure
     def test_should_fail_for_none_dimensions(self):
         validation.validate_dimensions(None)
@@ -155,58 +157,64 @@ class DimensionsValidations(unittest.TestCase):
 
     def test_should_fail_too_empty_name(self):
         dimensions = {'': 1}
-        with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
-            validation.validate_dimensions(dimensions)
 
+        err = self.assertRaises(exceptions.HTTPUnprocessableEntity,
+                                validation.validate_dimensions,
+                                dimensions)
         msg = 'Dimension name cannot be empty'
-        self.assertEqual(context.exception.description, msg)
+        self.assertEqual(err.description, msg)
 
     def test_should_fail_too_long_name(self):
         name = testing.rand_string(256, 260)
         dimensions = {name: 1}
-        with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
-            validation.validate_dimensions(dimensions)
 
+        err = self.assertRaises(exceptions.HTTPUnprocessableEntity,
+                                validation.validate_dimensions,
+                                dimensions)
         msg = 'Dimension name %s must be 255 characters or less' % name
-        self.assertEqual(context.exception.description, msg)
+        self.assertEqual(err.description, msg)
 
     def test_should_fail_underscore_at_begin(self):
         name = '_aDim'
         dimensions = {name: 1}
-        with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
-            validation.validate_dimensions(dimensions)
 
+        err = self.assertRaises(exceptions.HTTPUnprocessableEntity,
+                                validation.validate_dimensions,
+                                dimensions)
         msg = 'Dimension name %s cannot start with underscore (_)' % name
-        self.assertEqual(context.exception.description, msg)
+        self.assertEqual(err.description, msg)
 
     def test_should_fail_invalid_chars(self):
         name = '<>'
         dimensions = {name: 1}
-        with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
-            validation.validate_dimensions(dimensions)
 
+        err = self.assertRaises(exceptions.HTTPUnprocessableEntity,
+                                validation.validate_dimensions,
+                                dimensions)
         invalid_chars = '> < = { } ( ) \' " , ; &'
         msg = 'Dimension name %s may not contain: %s' % (name, invalid_chars)
-        self.assertEqual(context.exception.description, msg)
+        self.assertEqual(err.description, msg)
 
     def test_should_fail_ok_name_empty_value(self):
         name = 'monasca'
         dimensions = {name: ''}
-        with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
-            validation.validate_dimensions(dimensions)
 
+        err = self.assertRaises(exceptions.HTTPUnprocessableEntity,
+                                validation.validate_dimensions,
+                                dimensions)
         msg = 'Dimension value cannot be empty'
-        self.assertEqual(context.exception.description, msg)
+        self.assertEqual(err.description, msg)
 
     def test_should_fail_ok_name_too_long_value(self):
         name = 'monasca'
         value = testing.rand_string(256, 300)
         dimensions = {name: value}
-        with self.assertRaises(exceptions.HTTPUnprocessableEntity) as context:
-            validation.validate_dimensions(dimensions)
 
+        err = self.assertRaises(exceptions.HTTPUnprocessableEntity,
+                                validation.validate_dimensions,
+                                dimensions)
         msg = 'Dimension value %s must be 255 characters or less' % value
-        self.assertEqual(context.exception.description, msg)
+        self.assertEqual(err.description, msg)
 
     def test_should_pass_ok_name_ok_value_empty_service(self):
         name = 'monasca'
@@ -222,8 +230,7 @@ class DimensionsValidations(unittest.TestCase):
         validation.validate_dimensions(dimensions)
 
 
-class ContentTypeValidations(unittest.TestCase):
-
+class ContentTypeValidations(os_test.BaseTestCase):
     def test_should_pass_text_plain(self):
         content_type = 'text/plain'
         allowed_types = ['text/plain']
@@ -270,11 +277,10 @@ class ContentTypeValidations(unittest.TestCase):
         )
 
 
-class PayloadSizeValidations(testing.TestBase):
-
+class PayloadSizeValidations(os_test.BaseTestCase):
     def setUp(self):
+        super(PayloadSizeValidations, self).setUp()
         self.conf = base.mock_config(self)
-        return super(PayloadSizeValidations, self).setUp()
 
     def test_should_fail_missing_header(self):
         content_length = None
@@ -328,8 +334,7 @@ class PayloadSizeValidations(testing.TestBase):
         )
 
 
-class LogMessageValidations(testing.TestBase):
-
+class LogMessageValidations(os_test.BaseTestCase):
     def test_should_pass_message_in_log_property(self):
         log_object = {
             'message': 'some messages',
@@ -356,8 +361,9 @@ class LogMessageValidations(testing.TestBase):
                           validation.validate_log_message, {})
 
 
-class LogsCreatorNewLog(unittest.TestCase):
+class LogsCreatorNewLog(os_test.BaseTestCase):
     def setUp(self):
+        super(LogsCreatorNewLog, self).setUp()
         self.instance = common_service.LogCreator()
 
     @mock.patch('io.IOBase')
@@ -409,8 +415,9 @@ class LogsCreatorNewLog(unittest.TestCase):
         ))
 
 
-class LogCreatorNewEnvelope(unittest.TestCase):
+class LogCreatorNewEnvelope(os_test.BaseTestCase):
     def setUp(self):
+        super(LogCreatorNewEnvelope, self).setUp()
         self.instance = common_service.LogCreator()
 
     def test_should_create_envelope(self):

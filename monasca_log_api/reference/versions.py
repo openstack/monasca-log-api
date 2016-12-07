@@ -14,6 +14,8 @@
 # under the License.
 
 import falcon
+import six
+
 from monasca_common.rest import utils as rest_utils
 
 from monasca_log_api.api import versions_api
@@ -78,7 +80,9 @@ class Versions(versions_api.VersionsAPI):
 
 
 def _get_common_links(req):
-    self_uri = req.uri.decode(rest_utils.ENCODING)
+    self_uri = req.uri
+    if six.PY2:
+        self_uri = self_uri.decode(rest_utils.ENCODING)
     base_uri = self_uri.replace(req.path, '')
     return [
         {
@@ -97,7 +101,9 @@ def _get_common_links(req):
 
 
 def _parse_version(version_id, req):
-    self_uri = req.uri.decode('utf-8')
+    self_uri = req.uri
+    if six.PY2:
+        self_uri = self_uri.decode(rest_utils.ENCODING)
     base_uri = self_uri.replace(req.path, '')
 
     # need to get template dict, consecutive calls

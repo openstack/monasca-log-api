@@ -1,4 +1,4 @@
-# Copyright 2016 FUJITSU LIMITED
+# Copyright 2016-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -11,17 +11,18 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import contextlib
 
 from falcon import testing
 from mock import mock
+from oslotest import base as os_test
 
 from monasca_log_api.api.core import request
 from monasca_log_api.reference.common import validation
 from monasca_log_api.tests import base
 
 
-class TestRequest(testing.TestBase):
+class TestRequest(os_test.BaseTestCase):
+
     def setUp(self):
         super(TestRequest, self).setUp()
         base.mock_config(self)
@@ -46,12 +47,12 @@ class TestRequest(testing.TestBase):
         self.assertEqual(['terminator', 'predator'], req.roles)
 
     def test_validate_context_type(self):
-        with contextlib.nested(
-                mock.patch.object(validation, 'validate_content_type'),
-                mock.patch.object(validation, 'validate_payload_size'),
-                mock.patch.object(validation, 'validate_cross_tenant')
-        ) as (vc_type, vp_size, vc_tenant):
-
+        with mock.patch.object(validation,
+                               'validate_content_type') as vc_type, \
+                mock.patch.object(validation,
+                                  'validate_payload_size') as vp_size, \
+                mock.patch.object(validation,
+                                  'validate_cross_tenant') as vc_tenant:
             req = request.Request(testing.create_environ())
             vc_type.side_effect = Exception()
 
@@ -65,11 +66,12 @@ class TestRequest(testing.TestBase):
                 self.assertIsInstance(ex, Exception)
 
     def test_validate_payload_size(self):
-        with contextlib.nested(
-                mock.patch.object(validation, 'validate_content_type'),
-                mock.patch.object(validation, 'validate_payload_size'),
-                mock.patch.object(validation, 'validate_cross_tenant')
-        ) as (vc_type, vp_size, vc_tenant):
+        with mock.patch.object(validation,
+                               'validate_content_type') as vc_type, \
+                mock.patch.object(validation,
+                                  'validate_payload_size') as vp_size, \
+                mock.patch.object(validation,
+                                  'validate_cross_tenant') as vc_tenant:
 
             req = request.Request(testing.create_environ())
             vp_size.side_effect = Exception()
@@ -84,11 +86,12 @@ class TestRequest(testing.TestBase):
                 self.assertIsInstance(ex, Exception)
 
     def test_validate_cross_tenant(self):
-        with contextlib.nested(
-                mock.patch.object(validation, 'validate_content_type'),
-                mock.patch.object(validation, 'validate_payload_size'),
-                mock.patch.object(validation, 'validate_cross_tenant')
-        ) as (vc_type, vp_size, vc_tenant):
+        with mock.patch.object(validation,
+                               'validate_content_type') as vc_type, \
+                mock.patch.object(validation,
+                                  'validate_payload_size') as vp_size, \
+                mock.patch.object(validation,
+                                  'validate_cross_tenant') as vc_tenant:
 
             req = request.Request(testing.create_environ())
             vc_tenant.side_effect = Exception()

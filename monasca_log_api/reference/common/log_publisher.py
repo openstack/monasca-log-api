@@ -1,5 +1,5 @@
 # Copyright 2015 kornicameister@gmail.com
-# Copyright 2016 FUJITSU LIMITED
+# Copyright 2016-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -184,7 +184,7 @@ class LogPublisher(object):
         """
 
         msg_str = rest_utils.as_json(envelope)
-        envelope_size = ((len(bytearray(msg_str)) +
+        envelope_size = ((len(bytearray(msg_str, 'utf-8')) +
                           _TIMESTAMP_KEY_SIZE +
                           _KAFKA_META_DATA_SIZE)
                          if msg_str is not None else -1)

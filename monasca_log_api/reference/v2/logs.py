@@ -1,5 +1,5 @@
 # Copyright 2015 kornicameister@gmail.com
-# Copyright 2016 FUJITSU LIMITED
+# Copyright 2016-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -14,6 +14,7 @@
 # under the License.
 
 import falcon
+import six
 
 from monasca_log_api.api import headers
 from monasca_log_api.api import logs_api
@@ -86,6 +87,8 @@ class Logs(logs_api.LogsApi):
 
 
 def _get_v3_link(req):
-    self_uri = req.uri.decode('UTF-8')
+    self_uri = req.uri
+    if six.PY2:
+        self_uri = self_uri.decode('UTF-8')
     base_uri = self_uri.replace(req.relative_uri, '')
     return '%s%s' % (base_uri, uri_map.V3_LOGS_URI)

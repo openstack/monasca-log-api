@@ -1,5 +1,5 @@
 # Copyright 2015 kornicameister@gmail.com
-# Copyright 2016 FUJITSU LIMITED
+# Copyright 2016-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -20,8 +20,8 @@ import string
 import ujson
 import unittest
 
-from falcon import testing
 import mock
+from oslotest import base as os_test
 
 from monasca_log_api.reference.common import log_publisher
 from monasca_log_api.reference.common import model
@@ -40,7 +40,8 @@ def _generate_unique_message(size):
     return rand(size)
 
 
-class TestSendMessage(testing.TestBase):
+class TestSendMessage(os_test.BaseTestCase):
+
     def setUp(self):
         self.conf = base.mock_config(self)
         return super(TestSendMessage, self).setUp()
@@ -192,12 +193,12 @@ class TestSendMessage(testing.TestBase):
 @mock.patch(
     'monasca_log_api.reference.common.log_publisher.producer'
     '.KafkaProducer')
-class TestTruncation(testing.TestBase):
+class TestTruncation(os_test.BaseTestCase):
     EXTRA_CHARS_SIZE = len(bytearray(ujson.dumps({
         'log': {
             'message': None
         }
-    }))) - 2
+    }), 'utf8')) - 2
 
     def __init__(self, *args, **kwargs):
         super(TestTruncation, self).__init__(*args, **kwargs)

@@ -1,4 +1,4 @@
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2015-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -12,15 +12,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import unittest
-
 import mock
 from webob import response
+
+from oslotest import base
 
 from monasca_log_api.middleware import role_middleware as rm
 
 
-class SideLogicTestEnsureLowerRoles(unittest.TestCase):
+class SideLogicTestEnsureLowerRoles(base.BaseTestCase):
+
     def test_should_ensure_lower_roles(self):
         roles = ['CMM-Admin', '    CmM-User   ']
         expected = ['cmm-admin', 'cmm-user']
@@ -37,7 +38,8 @@ class SideLogicTestEnsureLowerRoles(unittest.TestCase):
         self.assertItemsEqual(expected, rm._ensure_lower_roles(roles))
 
 
-class SideLogicTestIntersect(unittest.TestCase):
+class SideLogicTestIntersect(base.BaseTestCase):
+
     def test_should_intersect_seqs(self):
         seq_1 = [1, 2, 3]
         seq_2 = [2]
@@ -66,7 +68,8 @@ class SideLogicTestIntersect(unittest.TestCase):
         self.assertItemsEqual(expected, rm._intersect(seq_2, seq_1))
 
 
-class RolesMiddlewareSideLogicTest(unittest.TestCase):
+class RolesMiddlewareSideLogicTest(base.BaseTestCase):
+
     def test_should_apply_middleware_for_valid_path(self):
         paths = ['/', '/v2.0/', '/v2.0/log/']
 
@@ -197,7 +200,8 @@ class RolesMiddlewareSideLogicTest(unittest.TestCase):
         self.assertTrue(is_authorized)
 
 
-class RolesMiddlewareLogicTest(unittest.TestCase):
+class RolesMiddlewareLogicTest(base.BaseTestCase):
+
     def test_not_process_further_if_cannot_apply_path(self):
         roles = 'cmm-admin,cmm-user'
         roles_array = roles.split(',')
