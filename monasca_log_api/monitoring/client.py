@@ -85,8 +85,8 @@ def get_client(dimensions=None):
             if key not in _DEFAULT_DIMENSIONS:
                 dims[key] = val
             else:
-                LOG.warn('Cannot override fixed dimension %s=%s', key,
-                         _DEFAULT_DIMENSIONS[key])
+                LOG.warning('Cannot override fixed dimension %s=%s', key,
+                            _DEFAULT_DIMENSIONS[key])
 
     connection = monascastatsd.Connection(
         host=CONF.monitoring.statsd_host,
