@@ -5,63 +5,155 @@ Team and repository tags
 
 <!-- Change things from this point on -->
 
-# Forked from https://github.com/openstack/monasca-api
-This repository is forked from [monasca-api](https://github.com/openstack/monasca-api).
-
 # Overview
 
 `monasca-log-api` is a RESTful API server that is designed with a layered architecture [layered architecture](http://en.wikipedia.org/wiki/Multilayered_architecture).
 
 The full API Specification can be found in [docs/monasca-log-api-spec.md](docs/monasca-log-api-spec.md)
 
-## Java Build
+## Monasca-log-api Python
 
-Requires monasca-common from https://github.com/openstack/monasca-common. Download and do mvn install. Then:
+### Installation
 
-    $ cd java
-    $ mvn clean package
+To install the python api implementation, git clone the source and run the
+following command:
+```sh
+    sudo python setup.py install
+```
 
-# OpenStack Java Build
+### Configuration
 
-There is a pom.xml in the base directory that should only be used for the OpenStack build. The OpenStack build is a rather strange build because of the limitations of the current OpenStack java jobs and infrastructure. We have found that the API runs faster if built with maven 3 but the OpenStack nodes only have maven 2. This build checks the version of maven and if not maven 3, it downloads a version of maven 3 and uses it. This build depends on jars that are from monasca-common. That StrackForge build uploads the completed jars to http://tarballs.openstack.org/ci/monasca-common, but they are just regular jars, and not in a maven repository and sometimes zuul takes a long time to do the upload. Hence, the first thing the maven build from the base project does is invoke build_common.sh in the common directory. This script clones monasca-common and then invokes maven 3 to build monasca-common in the common directory and install the jars in the local maven repository.
+If it installs successfully, you will need to make changes to the following
+two files to reflect your system settings, especially where kafka server is
+located::
 
-Since this is all rather complex, that part of the build only works on OpenStack so follow the simple instruction above if you are building your own monasca-log-api.
+```sh
+    /etc/monasca/log-api-config.conf
+    /etc/monasca/log-api-config.ini
+    /etc/monasca/log-api-logging.conf
+```
 
-Currently this build is executed on the bare-precise nodes in OpenStack and they only have maven 2. So, this build must be kept compatible with Maven 2. If another monasca-common jar is added as a dependency to java/pom.xml, it must also be added to download/download.sh.
+Once the configurations are modified to match your environment, you can start
+up the server using either Gunicorn or Apache.
 
-## Usage
+### Start the Server -- for Gunicorn
 
-    $ java -jar target/monasca-log-api.jar server config-file.yml
+The server can be run in the foreground, or as daemons:
 
-## Keystone Configuration
+Running the server in foreground mode with Gunicorn:
 
-For secure operation of the Monasca API, the API must be configured to use Keystone in the configuration file under the middleware section. Monasca only works with a Keystone v3 server. The important parts of the configuration are explained below:
+```sh
+    gunicorn -k eventlet --worker-connections=2000 --backlog=1000
+             --paste /etc/monasca/log-api.ini
+```
 
-* serverVIP - This is the hostname or IP Address of the Keystone server
-* serverPort - The port for the Keystone server
-* useHttps - Whether to use https when making requests of the Keystone API
-* truststore - If useHttps is true and the Keystone server is not using a certificate signed by a public CA recognized by Java, the CA certificate can be placed in a truststore so the Monasca API will trust it, otherwise it will reject the https connection. This must be a JKS truststore
-* truststorePassword - The password for the above truststore
-* connSSLClientAuth - If the Keystone server requires the SSL client used by the Monasca server to have a specific client certificate, this should be true, false otherwise
-* keystore - The keystore holding the SSL Client certificate if connSSLClientAuth is true
-* keystorePassword - The password for the keystore
-* defaultAuthorizedRoles - An array of roles that authorize a user to access the complete Monasca API. User must have at least one of these roles. See below
-* agentAuthorizedRoles - An array of roles that authorize only the posting of logs. See Keystone Roles below
-* adminAuthMethod - "password" if the Monasca API should adminUser and adminPassword to login to the Keystone server to check the user's token, "token" if the Monasca API should use adminToken
-* adminUser - Admin user name
-* adminPassword - Admin user password
-* adminProjectId - Specify the project ID the api should use to request an admin token. Defaults to the admin user's default project. The adminProjectId option takes precedence over adminProjectName.
-* adminProjectName - Specify the project name the api should use to request an admin token. Defaults to the admin user's default project. The adminProjectId option takes precedence over adminProjectName.
-* adminToken - A valid admin user token if adminAuthMethod is token
-* timeToCacheToken - How long the Monasca API should cache the user's token before checking it again
+Running the server as daemons with Gunicorn:
 
-### Keystone Roles
+```sh
+    gunicorn -k eventlet --worker-connections=2000 --backlog=1000
+             --paste /etc/monasca/log-api.ini -D
+```
 
-See [Monasca API documentation](https://github.com/openstack/monasca-api/blob/master/README.md#keystone-roles) for the levels of access description.
+### Start the Server -- for Apache
 
-## Design Overview
+To start the server using Apache: create a modwsgi file,
+create a modwsgi config file, and enable the wsgi module
+in Apache.
 
-### Architectural layers
+The modwsgi conf file may look something like this, and the site will need to be enabled:
+
+```sh
+    Listen myhost:8082
+    Listen 127.0.0.1:8082
+
+    <VirtualHost *:8082>
+        WSGIDaemonProcess log-api processes=4 threads=4 socket-timeout=120 user=log group=log python-path=/usr/local/lib/python2.7/site-packages
+        WSGIProcessGroup log-api
+        WSGIApplicationGroup log-api
+        WSGIScriptAlias / /var/www/log/log-api.wsgi
+
+        ErrorLog /var/log/log-api/wsgi.log
+        LogLevel info
+        CustomLog /var/log/log-api/wsgi-access.log combined
+
+        <Directory /usr/local/lib/python2.7/site-packages/monasca_log_api>
+          Options Indexes FollowSymLinks MultiViews
+          Require all granted
+          AllowOverride None
+          Order allow,deny
+          allow from all
+          LimitRequestBody 102400
+        </Directory>
+
+        SetEnv no-gzip 1
+
+    </VirtualHost>
+
+```
+
+The wsgi file may look something like this:
+
+```sh
+    from monasca_log_api.server import get_wsgi_app
+
+    application = get_wsgi_app(config_base_path='/etc/monasca')
+```
+
+## Testing
+
+### Commandline run
+To check the server from the commandline:
+
+```sh
+    python server.py
+```
+
+### PEP8 guidelines
+To check if the code follows python coding style, run the following command
+from the root directory of this project:
+
+```sh
+    tox -e pep8
+```
+
+### Unit Tests
+To run all the unit test cases, run the following command from the root
+directory of this project:
+
+```sh
+    tox -e py27   (or -e py26, -e py33)
+```
+
+### Coverage
+To generate coverage results, run the following command from the root
+directory of this project:
+
+```sh
+    tox -e cover
+```
+
+### Building
+
+To build an installable package, run the following command from the root
+directory of this project:
+
+```sh
+  python setup.py sdist
+```
+
+### Documentation
+
+To generate documentation, run the following command from the root
+directory of this project:
+
+```sh
+make html
+```
+
+That will create documentation under build folder relative to root of the
+project.
+
+## Architectural layers
 
 Requests flow through the following architectural layers from top to bottom:
 
@@ -81,10 +173,6 @@ Requests flow through the following architectural layers from top to bottom:
 * API Specification: [/docs/monasca-log-api-spec.md](/docs/monasca-log-api-spec.md).
 * Kafka communication: [/docs/monasca-log-api-kafka.md](/docs/monasca-log-api-kafka.md).
 * API Monitoring: [/docs/monasca-log-api-metrics.md](/docs/monasca-log-api-metrics.md).
-
-## Python monasca-log-api implementation
-
-See here [/monasca_log_api/README.md](/monasca_log_api/README.md).
 
 # License
 
