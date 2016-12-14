@@ -74,5 +74,6 @@ logging.verbose: true
 fts-keystone.port: %KEYSTONE_AUTH_PORT%
 fts-keystone.url: %KEYSTONE_AUTH_PROTOCOL%://%KEYSTONE_AUTH_HOST%
 fts-keystone.enabled: True
+fts-keystone.cookie.isSecure: False
 
 optimize.useBundleCache: False

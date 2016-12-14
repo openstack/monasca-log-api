@@ -27,9 +27,9 @@ enable_service monasca-log-metrics
 enable_service monasca-log-agent
 
 # libraries/frameworks/projects monasca-log requires to install itself
-KIBANA_VERSION=${KIBANA_VERSION:-4.4.0-linux-x64}
-LOGSTASH_VERSION=${LOGSTASH_VERSION:-2.2.0}
-ELASTICSEARCH_VERSION=${ELASTICSEARCH_VERSION:-2.2.0}
+KIBANA_VERSION=${KIBANA_VERSION:-4.6.3-linux-x86_64}
+LOGSTASH_VERSION=${LOGSTASH_VERSION:-2.4.1}
+ELASTICSEARCH_VERSION=${ELASTICSEARCH_VERSION:-2.4.2}
 NODE_JS_VERSION=${NODE_JS_VERSION:-"4.0.0"}
 NVM_VERSION=${NVM_VERSION:-"0.32.1"}
 

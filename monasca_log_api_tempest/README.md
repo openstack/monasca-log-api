@@ -71,7 +71,7 @@ running the following command:
  force_tenant_isolation = False
  allow_tenant_isolation = False
  disable_ssl_certificate_validation = True
- kibana_version = 4.4.0
+ kibana_version = 4.6.3
 
  [auth]
  allow_tenant_isolation = true
