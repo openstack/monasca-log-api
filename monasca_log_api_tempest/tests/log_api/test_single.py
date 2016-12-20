@@ -38,7 +38,7 @@ class TestSingleLog(base.BaseLogsTestCase):
         response, _ = self.logs_clients[version].send_single_log(data, headers)
         self.assertEqual(204, response.status)
 
-        test.call_until_true(wait, _RETRY_COUNT, _RETRY_WAIT)
+        test.call_until_true(wait, _RETRY_COUNT * _RETRY_WAIT, _RETRY_WAIT)
         response = self.logs_search_client.search_messages(key, headers)
         self.assertEqual(1, len(response))
 

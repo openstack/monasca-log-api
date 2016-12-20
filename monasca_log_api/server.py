@@ -22,6 +22,7 @@ from oslo_config import cfg
 from oslo_log import log
 import paste.deploy
 
+from monasca_log_api.reference.common import error_handlers
 from monasca_log_api import uri_map
 
 LOG = log.getLogger(__name__)
@@ -65,6 +66,7 @@ def launch(conf, config_file='/etc/monasca/log-api-config.conf'):
     load_versions_resource(app)
     load_logs_resource(app)
     load_healthcheck_resource(app)
+    error_handlers.register_error_handlers(app)
 
     LOG.debug('Dispatcher drivers have been added to the routes!')
 

@@ -20,13 +20,13 @@ from monasca_log_api_tempest.tests import base
 
 class TestLogApiConstraints(base.BaseLogsTestCase):
     @test.attr(type='gate')
-    def test_should_reject_if_content_length_missing(self):
+    def test_should_reject_if_body_is_empty(self):
         headers = base._get_headers()
         for cli in self.logs_clients.itervalues():
             try:
                 cli.custom_request('POST', headers, None)
-            except exceptions.UnexpectedResponseCode as urc:
-                self.assertIn('411', str(urc))  # Only possible way to detect that
+            except exceptions.UnprocessableEntity as urc:
+                self.assertEqual(422, urc.resp.status)
                 return
 
             self.assertTrue(False, 'API should respond with 411')
