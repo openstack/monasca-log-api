@@ -343,6 +343,10 @@ class LogMessageValidations(testing.TestBase):
         }
         validation.validate_log_message(log_object)
 
+    def test_should_fail_with_empty_message(self):
+        self.assertRaises(exceptions.HTTPUnprocessableEntity,
+                          validation.validate_log_message, {})
+
 
 class LogsCreatorNewLog(unittest.TestCase):
     def setUp(self):
