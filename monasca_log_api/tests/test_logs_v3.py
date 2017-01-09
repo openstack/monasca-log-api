@@ -24,7 +24,7 @@ from monasca_log_api.api import exceptions as log_api_exceptions
 from monasca_log_api.api import headers
 from monasca_log_api.api import logs_api
 from monasca_log_api.reference.v3 import logs
-
+from monasca_log_api.tests import base
 
 ENDPOINT = '/logs'
 TENANT_ID = 'bob'
@@ -78,6 +78,8 @@ class TestLogsVersion(unittest.TestCase):
             'KafkaProducer')
 @mock.patch('monasca_log_api.monitoring.client.monascastatsd.Connection')
 class TestLogsMonitoring(testing.TestBase):
+
+    api_class = base.MockedAPI
 
     def test_monitor_bulk_rejected(self, __, _):
         res = _init_resource(self)

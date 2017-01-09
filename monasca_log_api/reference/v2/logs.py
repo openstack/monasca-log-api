@@ -18,7 +18,6 @@ import falcon
 from monasca_log_api.api import headers
 from monasca_log_api.api import logs_api
 from monasca_log_api.reference.common import log_publisher
-from monasca_log_api.reference.common import validation
 from monasca_log_api.reference.v2.common import service
 from monasca_log_api import uri_map
 
@@ -41,22 +40,14 @@ class Logs(logs_api.LogsApi):
     def on_post(self, req, res):
         with self._logs_processing_time.time(name=None):
             try:
-                validation.validate_payload_size(req)
-                validation.validate_content_type(req,
-                                                 Logs.SUPPORTED_CONTENT_TYPES)
-                validation.validate_cross_tenant(
-                    tenant_id=req.get_header(*headers.X_TENANT_ID),
-                    cross_tenant_id=req.get_param('tenant_id'),
-                    roles=req.get_header(*headers.X_ROLES)
-                )
-
-                cross_tenant_id = req.get_param('tenant_id')
-                tenant_id = req.get_header(*headers.X_TENANT_ID)
+                req.validate(self.SUPPORTED_CONTENT_TYPES)
+                tenant_id = (req.project_id if req.project_id
+                             else req.cross_project_id)
 
                 log = self.get_log(request=req)
                 envelope = self.get_envelope(
                     log=log,
-                    tenant_id=tenant_id if tenant_id else cross_tenant_id
+                    tenant_id=tenant_id
                 )
 
                 self._logs_size_gauge.send(name=None,

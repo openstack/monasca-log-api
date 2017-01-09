@@ -40,6 +40,9 @@ class TestLogsVersion(unittest.TestCase):
 
 
 class TestLogs(testing.TestBase):
+
+    api_class = base.MockedAPI
+
     def before(self):
         self.conf = base.mock_config(self)
 
