@@ -1,4 +1,4 @@
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2015-2016 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -20,8 +20,8 @@ from monasca_log_api_tempest.services import log_search_client
 
 
 class Manager(clients.Manager):
-    def __init__(self, credentials=None, service=None):
-        super(Manager, self).__init__(credentials, service)
+    def __init__(self, credentials=None):
+        super(Manager, self).__init__(credentials)
 
         self.log_api_clients = {
             "v2": log_api_v2_client.LogApiV2Client(
