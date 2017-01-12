@@ -109,7 +109,7 @@ To run all the unit test cases, run the following command from the root
 directory of this project:
 
 ```sh
-    tox -e py27   (or -e py26, -e py33)
+    tox -e py27
 ```
 
 ### Coverage
@@ -126,7 +126,7 @@ To build an installable package, run the following command from the root
 directory of this project:
 
 ```sh
-  python setup.py sdist
+    python setup.py sdist
 ```
 
 ### Documentation
@@ -135,7 +135,7 @@ To generate documentation, run the following command from the root
 directory of this project:
 
 ```sh
-make html
+    tox -e docs
 ```
 
 That will create documentation under build folder relative to root of the

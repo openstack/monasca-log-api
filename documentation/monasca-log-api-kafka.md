@@ -66,7 +66,7 @@ by monasca-log-api
 in given case. However two mentioned in this documentation are required.
 
 All fields, apart from **creation_time** and **log**, are created from HTTP headers.
-Description is available [here](/docs/monasca-log-api-spec.md).
+Description is available [here](/documentation/monasca-log-api-spec.md).
 
 ## Truncating too large message
 
@@ -127,7 +127,7 @@ There are only two relevant options:
 * topics - comma delimited list of topics where data should be sent
 * kafka_url - adress where kafka server is running
 
-    # Copyright 2016 FUJITSU LIMITED
+    # Copyright 2016-2017 FUJITSU LIMITED
     #
     # Licensed under the Apache License, Version 2.0 (the "License"); you may
     # not use this file except in compliance with the License. You may obtain

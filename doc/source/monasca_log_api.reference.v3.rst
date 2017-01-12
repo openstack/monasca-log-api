@@ -22,4 +22,3 @@ monasca_log_api.reference.v3 module
     :undoc-members:
     :show-inheritance:
 
-
