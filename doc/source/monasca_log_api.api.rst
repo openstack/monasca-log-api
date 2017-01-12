@@ -20,18 +20,18 @@ monasca_log_api.api.headers module
     :undoc-members:
     :show-inheritance:
 
-monasca_log_api.api.logs_api module
------------------------------------
+monasca_log_api.api.healthcheck_api module
+------------------------------------------
 
-.. automodule:: monasca_log_api.api.logs_api
+.. automodule:: monasca_log_api.api.healthcheck_api
     :members:
     :undoc-members:
     :show-inheritance:
 
-monasca_log_api.api.rest_utils module
--------------------------------------
+monasca_log_api.api.logs_api module
+-----------------------------------
 
-.. automodule:: monasca_log_api.api.rest_utils
+.. automodule:: monasca_log_api.api.logs_api
     :members:
     :undoc-members:
     :show-inheritance:

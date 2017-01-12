@@ -11,5 +11,5 @@ pastedeploy>=1.5.0
 pbr>=1.6.0
 six>=1.9.0
 simport
-monasca-common>=0.0.6
+monasca-common>=0.0.6,<1.4.0
 eventlet>=0.17.4,!=0.18.0

@@ -9,7 +9,7 @@ Welcome to monasca-log-api's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    monasca_log_api
 

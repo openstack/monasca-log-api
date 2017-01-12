@@ -26,7 +26,7 @@ _DEPRECATED_INFO = ('%s has been deprecated. Please use %s.'
 
 
 # TODO(idea) perhaps add it as pipeline call right before API, seems generic
-def _before_logs_post(req, res, payload, params):
+def _before_logs_post(req, res, kwargs):
     cross_tenant_id = req.get_param('tenant_id')
     tenant_id = req.get_header(*headers.X_TENANT_ID)
 
