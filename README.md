@@ -121,7 +121,8 @@ To run all the unit test cases, run the following command from the root
 directory of this project:
 
 ```sh
-    tox -e py27   (or -e py26, -e py33)
+    tox -e py27
+    tox -e py35
 ```
 
 ### Coverage
@@ -147,7 +148,7 @@ To generate documentation, run the following command from the root
 directory of this project:
 
 ```sh
-make html
+    tox -e docs
 ```
 
 That will create documentation under build folder relative to root of the
@@ -177,7 +178,7 @@ Requests flow through the following architectural layers from top to bottom:
 # License
 
     # Copyright 2015 kornicameister@gmail.com
-    # Copyright 2015 FUJITSU LIMITED
+    # Copyright 2015-2017 FUJITSU LIMITED
     #
     # Licensed under the Apache License, Version 2.0 (the "License"); you may
     # not use this file except in compliance with the License. You may obtain

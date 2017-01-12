@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = monasca_log_api
+omit = monasca_log_api/tests/*
+
+[report]
+ignore_errors = True

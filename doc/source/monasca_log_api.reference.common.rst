@@ -4,6 +4,13 @@ monasca_log_api.v2.common package
 Submodules
 ----------
 
+monasca_log_api.v2.common.error_handlers module
+-----------------------------------------------
+
+.. automodule:: monasca_log_api.reference.common.error_handlers
+    :members:
+    :undoc-members:
+    :show-inheritance:
 monasca_log_api.v2.common.log_publisher module
 ----------------------------------------------
 
