@@ -12,9 +12,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import kafka.client as client
 import mock
 from oslotest import base as os_test
+
+from monasca_common.kafka_lib import client
 
 from monasca_log_api.healthcheck import kafka_check as kc
 from monasca_log_api.tests import base

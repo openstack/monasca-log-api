@@ -14,9 +14,10 @@
 
 import collections
 
-import kafka.client as client
 from oslo_config import cfg
 from oslo_log import log
+
+from monasca_common.kafka_lib import client
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
