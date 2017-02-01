@@ -70,10 +70,10 @@ logging.quiet: false
 # Set this to true to log all events, including system usage information and all requests.
 logging.verbose: true
 
-# fts-keystone configuration
-fts-keystone.port: %KEYSTONE_AUTH_PORT%
-fts-keystone.url: %KEYSTONE_AUTH_PROTOCOL%://%KEYSTONE_AUTH_HOST%
-fts-keystone.enabled: True
-fts-keystone.cookie.isSecure: False
+# monasca-kibana-plugin configuration
+monasca-kibana-plugin.port: %KEYSTONE_AUTH_PORT%
+monasca-kibana-plugin.url: %KEYSTONE_AUTH_PROTOCOL%://%KEYSTONE_AUTH_HOST%
+monasca-kibana-plugin.enabled: True
+monasca-kibana-plugin.cookie.isSecure: False
 
 optimize.useBundleCache: False

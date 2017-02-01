@@ -354,10 +354,10 @@ function install_kibana_plugin {
         # note(trebskit) that needs to happen after kibana received
         # its configuration otherwise the plugin fails to be installed
 
-        local pkg=file://$DEST/fts-keystone.tar.gz
+        local pkg=file://$DEST/monasca-kibana-plugin.tar.gz
 
-        $KIBANA_DIR/bin/kibana plugin -r fts-keystone
-        $KIBANA_DIR/bin/kibana plugin -i fts-keystone -u $pkg
+        $KIBANA_DIR/bin/kibana plugin -r monasca-kibana-plugin
+        $KIBANA_DIR/bin/kibana plugin -i monasca-kibana-plugin -u $pkg
     fi
 }
 
@@ -557,14 +557,13 @@ function build_kibana_plugin {
     if is_service_enabled kibana; then
         echo "Building Kibana plugin"
 
-        if [ ! -d "${FTS_KEYSTONE_DIR}" ]; then
-            git_timed clone $FTS_KEYSTONE_REPO $FTS_KEYSTONE_DIR --branch $FTS_KEYSTONE_BRANCH --depth 1
-        fi
+        git_clone $MONASCA_KIBANA_PLUGIN_REPO $MONASCA_KIBANA_PLUGIN_DIR \
+            $MONASCA_KIBANA_PLUGIN_BRANCH
 
-        pushd $FTS_KEYSTONE_DIR
+        pushd $MONASCA_KIBANA_PLUGIN_DIR
 
-        local fts_keystone_version
-        fts_keystone_version="$(python -c 'import json; \
+        local monasca_kibana_plugin_version
+        monasca_kibana_plugin_version="$(python -c 'import json; \
             obj = json.load(open("package.json")); print obj["version"]')"
 
         set -i
@@ -572,8 +571,8 @@ function build_kibana_plugin {
         (source "${HOME}"/.nvm/nvm.sh >> /dev/null; nvm use ${NODE_JS_VERSION}; npm run package)
         set +i
 
-        local pkg=$FTS_KEYSTONE_DIR/target/fts-keystone-${fts_keystone_version}.tar.gz
-        local easyPkg=$DEST/fts-keystone.tar.gz
+        local pkg=$MONASCA_KIBANA_PLUGIN_DIR/target/monasca-kibana-plugin-${monasca_kibana_plugin_version}.tar.gz
+        local easyPkg=$DEST/monasca-kibana-plugin.tar.gz
 
         ln -sf $pkg $easyPkg
 

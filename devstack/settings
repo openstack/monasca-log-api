@@ -46,9 +46,9 @@ MONASCA_STATSD_REPO=${MONASCA_STATSD_REPO:-${GIT_BASE}/openstack/monasca-statsd.
 MONASCA_STATSD_BRANCH=${MONASCA_STATSD_BRANCH:-master}
 MONASCA_STATSD_DIR=${DEST}/monasca-statsd
 
-FTS_KEYSTONE_REPO=${FTS_KEYSTONE_REPO:-"https://github.com/FujitsuEnablingSoftwareTechnologyGmbH/fts-keystone.git"}
-FTS_KEYSTONE_BRANCH=${FTS_KEYSTONE_BRANCH:-master}
-FTS_KEYSTONE_DIR=${DEST}/fts-keystone
+MONASCA_KIBANA_PLUGIN_REPO=${MONASCA_KIBANA_PLUGIN_REPO:-${GIT_BASE}/openstack/monasca-kibana-plugin.git}
+MONASCA_KIBANA_PLUGIN_BRANCH=${MONASCA_KIBANA_PLUGIN_BRANCH:-master}
+MONASCA_KIBANA_PLUGIN_DIR=${DEST}/monasca-kibana-plugin
 
 GITREPO["monasca-common"]=${MONASCA_COMMON_REPO}
 GITBRANCH["monasca-common"]=${MONASCA_COMMON_BRANCH}
