@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from tempest.lib.common.utils import test_utils
 from tempest import test
 
 from monasca_log_api_tempest.tests import base
@@ -38,7 +39,7 @@ class TestSingleLog(base.BaseLogsTestCase):
         response, _ = self.logs_clients[version].send_single_log(data, headers)
         self.assertEqual(204, response.status)
 
-        test.call_until_true(wait, _RETRY_COUNT * _RETRY_WAIT, _RETRY_WAIT)
+        test_utils.call_until_true(wait, _RETRY_COUNT * _RETRY_WAIT, _RETRY_WAIT)
         response = self.logs_search_client.search_messages(key, headers)
         self.assertEqual(1, len(response))
 
