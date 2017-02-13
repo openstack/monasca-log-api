@@ -44,14 +44,14 @@ Running the server in foreground mode with Gunicorn:
 
 ```sh
     gunicorn -k eventlet --worker-connections=2000 --backlog=1000
-             --paste /etc/monasca/log-api.ini
+             --paste /etc/monasca/log-api-config.ini
 ```
 
 Running the server as daemons with Gunicorn:
 
 ```sh
     gunicorn -k eventlet --worker-connections=2000 --backlog=1000
-             --paste /etc/monasca/log-api.ini -D
+             --paste /etc/monasca/log-api-config.ini -D
 ```
 
 ### Start the Server -- for Apache
