@@ -408,7 +408,7 @@ function start_monasca_log_persister {
     if is_service_enabled monasca-log-persister; then
         echo_summary "Starting monasca-log-persister"
         local logstash="$LOGSTASH_DIR/bin/logstash"
-        run_process "monasca-log-persister" "$logstash -f $LOG_PERSISTER_DIR/persister.conf --debug"
+        run_process "monasca-log-persister" "$logstash -f $LOG_PERSISTER_DIR/persister.conf"
     fi
 }
 
@@ -440,7 +440,7 @@ function start_monasca_log_transformer {
     if is_service_enabled monasca-log-transformer; then
         echo_summary "Starting monasca-log-transformer"
         local logstash="$LOGSTASH_DIR/bin/logstash"
-        run_process "monasca-log-transformer" "$logstash -f $LOG_TRANSFORMER_DIR/transformer.conf --debug"
+        run_process "monasca-log-transformer" "$logstash -f $LOG_TRANSFORMER_DIR/transformer.conf"
     fi
 }
 
@@ -472,7 +472,7 @@ function start_monasca_log_metrics {
     if is_service_enabled monasca-log-metrics; then
         echo_summary "Starting monasca-log-metrics"
         local logstash="$LOGSTASH_DIR/bin/logstash"
-        run_process "monasca-log-metrics" "$logstash -f $LOG_METRICS_DIR/log-metrics.conf --debug"
+        run_process "monasca-log-metrics" "$logstash -f $LOG_METRICS_DIR/log-metrics.conf"
     fi
 }
 
@@ -516,7 +516,7 @@ function start_monasca_log_agent {
     if is_service_enabled monasca-log-agent; then
         echo_summary "Starting monasca-log-agent"
         local logstash="$LOGSTASH_DIR/bin/logstash"
-        run_process "monasca-log-agent" "sudo $logstash -f $LOG_AGENT_DIR/agent.conf --debug"
+        run_process "monasca-log-agent" "sudo $logstash -f $LOG_AGENT_DIR/agent.conf"
     fi
 }
 
