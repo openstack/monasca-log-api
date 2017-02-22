@@ -34,6 +34,9 @@ MONASCA_LOG_API_BASE_URI=${MONASCA_LOG_API_SERVICE_PROTOCOL}://${MONASCA_LOG_API
 MONASCA_LOG_API_URI_V2=${MONASCA_LOG_API_BASE_URI}/v2.0
 MONASCA_LOG_API_URI_V3=${MONASCA_LOG_API_BASE_URI}/v3.0
 
+# wsgit bits
+MONASCA_LOG_API_USE_MOD_WSGI=$(trueorfalse False MONASCA_LOG_API_USE_MOD_WSGI)
+
 # configuration bits
 LOG_PERSISTER_DIR=$DEST/monasca-log-persister
 LOG_TRANSFORMER_DIR=$DEST/monasca-log-transformer
@@ -95,7 +98,7 @@ function init_monasca_log {
 
 function stop_monasca_log {
     stop_process "monasca-log-agent" || true
-    stop_process "monasca-log-api" || true
+    stop_monasca_log_api
     stop_process "monasca-log-metrics" || true
     stop_process "monasca-log-persister" || true
     stop_process "monasca-log-transformer" || true
@@ -131,7 +134,9 @@ function install_monasca-log-api {
     git_clone $MONASCA_LOG_API_REPO $MONASCA_LOG_API_DIR $MONASCA_LOG_API_BRANCH
     setup_develop $MONASCA_LOG_API_DIR
 
-    pip_install gunicorn
+    if [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "False" ]; then
+        pip_install gunicorn
+    fi
     pip_install_gr python-memcached
 
     if use_library_from_git "monasca-common"; then
@@ -141,6 +146,13 @@ function install_monasca-log-api {
     if use_library_from_git "monasca-statsd"; then
         git_clone_by_name "monasca-statsd"
         setup_dev_lib "monasca-statsd"
+    fi
+
+    if [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "True" ]; then
+        install_apache_wsgi
+        if is_ssl_enabled_service "monasca-log-api"; then
+            enable_mod_ssl
+        fi
     fi
 }
 
@@ -188,7 +200,51 @@ function configure_monasca_log_api {
         iniset "$MONASCA_LOG_API_PASTE_INI" server:main host $MONASCA_LOG_API_SERVICE_HOST
         iniset "$MONASCA_LOG_API_PASTE_INI" server:main port $MONASCA_LOG_API_SERVICE_PORT
         iniset "$MONASCA_LOG_API_PASTE_INI" server:main chdir $MONASCA_LOG_API_DIR
+        iniset "$MONASCA_LOG_API_PASTE_INI" server:main workers $API_WORKERS
+
+        # WSGI
+        if [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "True" ]; then
+            configure_monasca_log_api_wsgi
+        fi
+
     fi
+}
+
+function configure_monasca_log_api_wsgi {
+    sudo install -d $MONASCA_LOG_API_WSGI_DIR
+
+    local monasca_log_api_apache_conf
+    monasca_log_api_apache_conf=$(apache_site_config_for monasca-log-api)
+
+    local monasca_log_api_ssl=""
+    local monasca_log_api_certfile=""
+    local monasca_log_api_keyfile=""
+    local monasca_log_api_api_port=$MONASCA_LOG_API_SERVICE_PORT
+    local venv_path=""
+
+    if is_ssl_enabled_service monasca_log_api; then
+        monasca_log_api_ssl="SSLEngine On"
+        monasca_log_api_certfile="SSLCertificateFile $MONASCA_LOG_API_SSL_CERT"
+        monasca_log_api_keyfile="SSLCertificateKeyFile $MONASCA_LOG_API_SSL_KEY"
+    fi
+    if [[ ${USE_VENV} = True ]]; then
+        venv_path="python-path=${PROJECT_VENV["monasca_log_api"]}/lib/$(python_version)/site-packages"
+    fi
+
+    # copy proxy vhost and wsgi helper files
+    sudo cp $MONASCA_LOG_API_DIR/monasca_log_api/wsgi/monasca_log_api.py $MONASCA_LOG_API_WSGI_DIR/monasca_log_api
+    sudo cp $PLUGIN_FILES/apache-log-api.template $monasca_log_api_apache_conf
+    sudo sed -e "
+        s|%PUBLICPORT%|$monasca_log_api_api_port|g;
+        s|%APACHE_NAME%|$APACHE_NAME|g;
+        s|%PUBLICWSGI%|$MONASCA_LOG_API_WSGI_DIR/monasca_log_api|g;
+        s|%SSLENGINE%|$monasca_log_api_ssl|g;
+        s|%SSLCERTFILE%|$monasca_log_api_certfile|g;
+        s|%SSLKEYFILE%|$monasca_log_api_keyfile|g;
+        s|%USER%|$STACK_USER|g;
+        s|%VIRTUALENV%|$venv_path|g
+        s|%APIWORKERS%|$API_WORKERS|g
+    " -i $monasca_log_api_apache_conf
 }
 
 function create_log_api_cache_dir {
@@ -206,15 +262,61 @@ function clean_monasca_log_api {
         sudo rm -rf $MONASCA_LOG_API_CONF_DIR || true
 
         sudo rm -rf $MONASCA_LOG_API_DIR || true
+
+        if [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "True" ]; then
+            clean_monasca_log_api_wsgi
+        fi
     fi
+}
+
+function clean_monasca_log_api_wsgi {
+    sudo rm -f $MONASCA_LOG_API_WSGI_DIR/*
+    sudo rm -f $(apache_site_config_for monasca-log-api)
 }
 
 function start_monasca_log_api {
     if is_service_enabled monasca-log-api; then
         echo_summary "Starting monasca-log-api"
-        local gunicorn="$MONASCA_LOG_API_BIN_DIR/gunicorn"
+
+        local service_port=$MONASCA_LOG_API_SERVICE_PORT
+        local service_protocol=$MONASCA_LOG_API_SERVICE_PROTOCOL
+        if is_service_enabled tls-proxy; then
+            service_port=$MONASCA_LOG_API_SERVICE_PORT_INT
+            service_protocol="http"
+        fi
+
         restart_service memcached
-        run_process "monasca-log-api" "$gunicorn -n monasca-log-api -k eventlet --paste $MONASCA_LOG_API_PASTE_INI"
+
+        local enabled_site_file
+        enabled_site_file=$(apache_site_config_for monasca-log-api)
+        if [ -f ${enabled_site_file} ] && [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "True" ]; then
+            enable_apache_site monasca-log-api
+            restart_apache_server
+            tail_log monasca-log-api /var/log/$APACHE_NAME/monasca-log-api.log
+        else
+            local gunicorn="$MONASCA_LOG_API_BIN_DIR/gunicorn"
+            run_process "monasca-log-api" "$gunicorn -n monasca-log-api -k eventlet --paste $MONASCA_LOG_API_PASTE_INI"
+        fi
+
+        echo "Waiting for monasca-log-api to start..."
+        if ! wait_for_service $SERVICE_TIMEOUT $service_protocol://$SERVICE_HOST:$service_port; then
+            die $LINENO "monasca-log-api did not start"
+        fi
+
+        if is_service_enabled tls-proxy; then
+            start_tls_proxy monasca-log-api '*' $MONASCA_LOG_API_SERVICE_PORT $MONASCA_LOG_API_SERVICE_HOST $MONASCA_LOG_API_SERVICE_PORT_INT
+        fi
+    fi
+}
+
+function stop_monasca_log_api {
+    if is_service_enabled monasca-log-api; then
+        if [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "True" ]; then
+            disable_apache_site monasca-log-api
+            restart_apache_server
+        else
+            stop_process "monasca-log-api" || true
+        fi
     fi
 }
 

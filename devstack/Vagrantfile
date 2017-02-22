@@ -98,6 +98,9 @@ MONASCA_PERSISTER_IMPLEMENTATION_LANG=${MONASCA_PERSISTER_IMPLEMENTATION_LANG:-p
 # MONASCA_METRICS_DB=${MONASCA_METRICS_DB:-cassandra}
 MONASCA_METRICS_DB=${MONASCA_METRICS_DB:-influxdb}
 
+# Uncomment following line to deploy monasca-log-api with Apache
+# MONASCA_LOG_API_USE_MOD_WSGI=True
+
 # Uncomment one of the following lines and modify accordingly to enable the Monasca DevStack Plugin
 enable_plugin monasca-api https://git.openstack.org/openstack/monasca-api
 enable_plugin monasca-log-api https://git.openstack.org/openstack/monasca-log-api.git
