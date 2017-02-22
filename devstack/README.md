@@ -74,6 +74,19 @@ Or you can use "\*" as a wild card, like below.
 
 Select @timestamp as time-field name.
 
+4. Extra settings
+
+## Using WSGI
+
+monasca-log-api can be deployed with Apache using mod_uwsgi.
+By default monasca-log-api by default runs under gunicorn.
+If you wish to use Apache make sure that ```devstack/local.conf```
+contains:
+
+```sh
+MONASCA_LOG_API_USE_MOD_WSGI=True
+```
+
 # Using Vagrant
 
 Vagrant can be used to deploy a VM with Devstack and Monasca Logging
