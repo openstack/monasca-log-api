@@ -1,0 +1,56 @@
+# Copyright 2017 Fujitsu LIMITED
+
+200:
+  la_up: |
+    API is up and running
+204:
+  default: |
+    Normal response error, everything went as expected (or even better).
+  la_up: |
+    API is up and running
+400:
+  default: |
+    Sent data was malformed.
+401:
+  default: |
+    User must authenticate before making a request.
+403:
+  default: |
+    Policy does not allow current user to do this operation.
+411:
+  default: |
+    Content-Length header was not found in request.
+413:
+  default: |
+    Sent body is too large to be processed.
+422:
+  default: |
+    Send data could not be processed properly
+  no_dims: |
+    Dimension are required
+  dim_name_too_long: |
+    Dimension name {name} must be 255 characters or less
+  dim_name_underscore: |
+    Dimension name {name} cannot start with underscore (_)
+  dim_name_forbidden_chars: |
+    Dimension name {name} may not contain: "> < = { } ( ) \' " , ; &"
+  dim_name_empty: |
+    Dimension name cannot be empty
+  dim_value_too_long: |
+    Dimension value {value} must be 255 characters or less
+  dim_value_empty: |
+    Dimension value cannot be empty
+  app_type_too_long: |
+    Application type {type} must be {length} characters or less
+  log_no_msg: |
+    Log property should have message
+  bad_envelope: |
+    Failed to create Envelope
+
+503:
+  default: |
+    The server is currently unable to handle the request due to a
+    temporary overload or scheduled maintenance, which will likely be
+    alleviated after some delay.
+  no_health:
+    API is running but problems with peripheral components have been spotted

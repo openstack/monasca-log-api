@@ -1,0 +1,9 @@
+---
+
+deprecations:
+    - Usage of Markdown based documentation has been deprecated.
+      It will not be maintained and in future removed from the project
+
+upgrade:
+    - Documentation handling of monasca-log-api has been migrated
+      to match OpenStack process

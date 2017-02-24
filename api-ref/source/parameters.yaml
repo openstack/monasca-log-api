@@ -1,0 +1,50 @@
+# Copyright 2017 Fujitsu LIMITED
+
+# header params
+X_Application_Type:
+  description: |
+    A single string value representing the application that has generated
+    given log entry
+  in: header
+  required: true
+  required: true
+  type: string
+  min_version: 2.0
+X_Dimensions:
+  description: |
+    A dictionary consisting of (key, value) pairs used to uniquely
+    identify a log.
+  in: header
+  required: true
+  type: dict
+  min_version: 2.0
+
+# body params
+dimensions:
+  description: |
+    Dimensions sent in request body are known as global dimensions.
+    Each dimension applies to each log entry sent in a bulk request.
+    Dimensions are simple map (thus having key-value structure).
+  in: body
+  required: false
+  type: object
+  min_version: 3.0
+log_json:
+  description: |
+    Single log entry specified as application/json
+  in: body
+  required: true
+  type: object
+log_text:
+  description: |
+    Single log entry specified as text/plain
+  in: body
+  required: true
+  type: string
+logs:
+  description: |
+    Array containing each log entry, sent in bulk request.
+  in: body
+  required: true
+  type: object
+  min_version: 3.0
