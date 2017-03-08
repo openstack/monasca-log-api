@@ -5,7 +5,7 @@ Date: May 27, 2016
 Document Version: v2.2.2
 
 # Logs
-The logs resource allows logs to be created.
+The logs resource allows logs to be created and queried.
 
 ## Create Logs
 Create logs.
@@ -82,6 +82,116 @@ Cache-Control: no-cache
 
 #### Response Body
 This request does not return a response body.
+
+## List logs
+Get precise log listing filtered by dimensions.
+
+    Note that this API is in development, and is not currently implemented.
+
+This interface can used to obtain log entries for a time range, based on
+matching a set of exact dimension values. By default, entries will be returned
+in descending timestamp order (newest first). The log entries returned by this
+API will not necessarily be identical to those POST-ed to the service, as the
+data returned will have been subjected to deployment-specific transformation
+stages (i.e. the "monasca-log-transform" service).
+
+### GET /v3.0/logs
+
+#### Headers
+* X-Auth-Token (string, required) - Keystone auth token
+* Accept (string) - application/json
+
+#### Path Parameters
+None.
+
+#### Query Parameters
+* tenant_id (string, optional, restricted) - Tenant ID from which to get logs
+from. This parameter can be used to get logs from a tenant other than the tenant
+the request auth token is scoped to. Usage of this query parameter is restricted
+to users with the monasca admin role, as defined in the monasca-log-api
+configuration file, which defaults to `monasca-admin`.
+* dimensions (string, optional) - A dictionary to filter logs by specified as a
+comma separated array of (key, value) pairs as `key1:value1,key2:value2, ...`,
+multiple values for a key may be specified as
+`key1:value1|value2|...,key2:value4,...`. If the value is omitted in the form
+`key1,key2, ...`, then entries are returned where the dimension exists with
+any value.
+* start_time (string, optional) - The start time in ISO 8601 combined date and
+time format in UTC.
+* end_time (string, optional) - The end time in ISO 8601 combined date and time
+format in UTC.
+* offset (integer, optional) - Number of log entries to skip (Default: 0).
+* limit (integer, optional) - Limit number of logs returned (Default: 10).
+* sort_by (string, optional) - Comma separated list of fields or dimensions to
+sort by. Fields may be followed by 'asc' or 'desc' to set the direction, e.g.
+'timestamp asc'. Allowed fields for sort_by are currently: 'timestamp'.
+(Default: no sorting)
+
+#### Request Body
+None.
+
+#### Request Examples
+```
+GET /v3.0/logs?dimensions=hostname:devstack&start_time=2015-03-00T00:00:01Z HTTP/1.1
+Host: 192.168.10.4:5607
+Content-Type: application/json
+X-Auth-Token: 2b8882ba2ec44295bf300aecb2caa4f7
+Cache-Control: no-cache
+```
+
+### Response
+#### Status Code
+* 200 - OK
+
+#### Response Body
+Returns a JSON object with a 'links' array of links and an 'elements' array of
+log entry objects with the following fields:
+
+* timestamp (timestamp) - The originating time in ISO 8601 combined date and
+time format in UTC, with millisecond resolution if available.
+* message (string) - The contents of the log message.
+* dimensions ({string(255): string(255)}) - Dimensions of the log, either
+supplied with the log or added by transformation.
+
+#### Response Examples
+```
+{
+    "links": [
+        {
+            "rel": "prev",
+            "href": "http://192.168.10.4:5607/v3.0/logs?start_time=2015-03-00T00%3A00%3A00Z&dimensions=hostname%3Adevstack"
+        },
+        {
+            "rel": "self",
+            "href": "http://192.168.10.4:5607/v3.0/logs?offset=10&start_time=2015-03-00T00%3A00%3A00Z&dimensions=hostname%3Adevstack"
+        },
+        {
+            "rel": "next",
+            "href": "http://192.168.10.4:5607/v3.0/logs?offset=20&start_time=2015-03-00T00%3A00%3A00Z&dimensions=hostname%3Adevstack"
+        }
+    ],
+    "elements": [
+        {
+            "timestamp":"2015-03-03T05:24:55.202Z",
+            "message":"msg1",
+            "dimensions":{
+                "hostname":"devstack",
+                "component":"mysql",
+                "path":"/var/log/mysql.log"
+            }
+        },
+        {
+            "timestamp":"2015-03-01T02:22:09.112Z",
+            "message":"msg2",
+            "dimensions":{
+                "hostname":"devstack",
+                "component":"monasca-api",
+                "path":"/var/log/monasca/monasca-api.log"
+            }
+        }
+    ]
+}
+```
 
 
 # Healthcheck
