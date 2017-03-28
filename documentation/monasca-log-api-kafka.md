@@ -125,7 +125,7 @@ kafka_url = 'localhost:8900'
 
 There are only two relevant options:
 * topics - comma delimited list of topics where data should be sent
-* kafka_url - adress where kafka server is running
+* kafka_url - address where kafka server is running
 
     # Copyright 2016-2017 FUJITSU LIMITED
     #
