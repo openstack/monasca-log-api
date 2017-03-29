@@ -70,6 +70,18 @@ class LogsApi(object):
         """
         res.status = falcon.HTTP_501  # pragma: no cover
 
+    def on_get(self, req, res):
+        """Queries logs matching specified dimension values.
+
+        Performs queries on the underlying log storage
+        against a time range and set of dimension values.
+
+        :param req: current request
+        :param res: current response
+
+        """
+        res.status = falcon.HTTP_501  # pragma: no cover
+
     @property
     def version(self):
         return getattr(self, 'VERSION')
