@@ -14,7 +14,7 @@ ChangeLog
 MANIFEST
 AUTHORS
 monasca-log-api.log
-
+etc/monasca/log-api.conf.sample
 
 *.swp
 *.iml

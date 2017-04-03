@@ -18,17 +18,16 @@ import time
 import falcon
 from monasca_common.kafka import producer
 from monasca_common.rest import utils as rest_utils
-from oslo_config import cfg
 from oslo_log import log
 
+from monasca_log_api import conf
 from monasca_log_api.monitoring import client
 from monasca_log_api.monitoring import metrics
 from monasca_log_api.reference.common import model
 
 LOG = log.getLogger(__name__)
-CONF = cfg.CONF
+CONF = conf.CONF
 
-_MAX_MESSAGE_SIZE = 1048576
 _RETRY_AFTER = 60
 _TIMESTAMP_KEY_SIZE = len(
     bytearray(str(int(time.time() * 1000)).encode('utf-8')))
@@ -36,25 +35,6 @@ _TRUNCATED_PROPERTY_SIZE = len(
     bytearray('"truncated": true'.encode('utf-8')))
 _KAFKA_META_DATA_SIZE = 32
 _TRUNCATION_SAFE_OFFSET = 1
-
-log_publisher_opts = [
-    cfg.StrOpt('kafka_url',
-               required=True,
-               help='Url to kafka server'),
-    cfg.MultiStrOpt('topics',
-                    default=['logs'],
-                    help='Consumer topics'),
-    cfg.IntOpt('max_message_size',
-               default=_MAX_MESSAGE_SIZE,
-               required=True,
-               help=('Message max size that can be sent '
-                     'to kafka, default to %d bytes' % _MAX_MESSAGE_SIZE))
-]
-
-log_publisher_group = cfg.OptGroup(name='log_publisher', title='log_publisher')
-
-cfg.CONF.register_group(log_publisher_group)
-cfg.CONF.register_opts(log_publisher_opts, log_publisher_group)
 
 
 class InvalidMessageException(Exception):

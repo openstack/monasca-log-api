@@ -15,14 +15,14 @@
 import re
 
 import falcon
-from oslo_config import cfg
 from oslo_log import log
 import six
 
 from monasca_log_api.api import exceptions
+from monasca_log_api import conf
 
 LOG = log.getLogger(__name__)
-CONF = cfg.CONF
+CONF = conf.CONF
 
 APPLICATION_TYPE_CONSTRAINTS = {
     'MAX_LENGTH': 255,

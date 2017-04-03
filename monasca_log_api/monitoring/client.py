@@ -1,4 +1,4 @@
-# Copyright 2016 FUJITSU LIMITED
+# Copyright 2016-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -14,41 +14,18 @@
 
 import monascastatsd
 
-from oslo_config import cfg
 from oslo_log import log
 
-LOG = log.getLogger(__name__)
-CONF = cfg.CONF
+from monasca_log_api import conf
 
-_DEFAULT_HOST = '127.0.0.1'
-_DEFAULT_PORT = 8125
-_DEFAULT_BUFFER_SIZE = 50
+LOG = log.getLogger(__name__)
+CONF = conf.CONF
+
+_CLIENT_NAME = 'monasca'
 _DEFAULT_DIMENSIONS = {
     'service': 'monitoring',
     'component': 'monasca-log-api'
 }
-_CLIENT_NAME = 'monasca'
-
-monitoring_opts = [
-    cfg.IPOpt('statsd_host',
-              default=_DEFAULT_HOST,
-              help=('IP address of statsd server, default to %s'
-                    % _DEFAULT_HOST)),
-    cfg.PortOpt('statsd_port',
-                default=_DEFAULT_PORT,
-                help='Port of statsd server, default to %d' % _DEFAULT_PORT),
-    cfg.IntOpt('statsd_buffer',
-               default=_DEFAULT_BUFFER_SIZE,
-               required=True,
-               help=('Maximum number of metric to buffer before sending, '
-                     'default to %d' % _DEFAULT_BUFFER_SIZE)),
-    cfg.DictOpt('dimensions')
-]
-
-monitoring_group = cfg.OptGroup(name='monitoring', title='monitoring')
-
-cfg.CONF.register_group(monitoring_group)
-cfg.CONF.register_opts(monitoring_opts, monitoring_group)
 
 
 def get_client(dimensions=None):

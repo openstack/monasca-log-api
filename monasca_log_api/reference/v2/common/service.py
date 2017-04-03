@@ -20,27 +20,12 @@ from oslo_config import cfg
 from oslo_log import log
 
 from monasca_log_api.api import exceptions
+from monasca_log_api import conf
 from monasca_log_api.reference.common import model
 from monasca_log_api.reference.common import validation
 
 LOG = log.getLogger(__name__)
-CONF = cfg.CONF
-
-_DEFAULT_MAX_LOG_SIZE = 1024 * 1024
-
-service_opts = [
-    cfg.StrOpt('region',
-               default=None,
-               help='Region'),
-    cfg.IntOpt('max_log_size',
-               default=_DEFAULT_MAX_LOG_SIZE,
-               help=('Refers to payload/envelope size. If either is exceeded'
-                     'API will throw an error'))
-]
-service_group = cfg.OptGroup(name='service', title='service')
-
-CONF.register_group(service_group)
-CONF.register_opts(service_opts, service_group)
+CONF = conf.CONF
 
 EPOCH_START = datetime.datetime(1970, 1, 1)
 

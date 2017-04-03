@@ -19,6 +19,11 @@ from monasca_log_api.tests import base
 
 
 class TestMonitoring(base.BaseTestCase):
+
+    def setUp(self):
+        super(TestMonitoring, self).setUp()
+        base.mock_config(self)
+
     @mock.patch('monasca_log_api.monitoring.client.monascastatsd')
     def test_should_use_default_dimensions_if_none_specified(self,
                                                              monascastatsd):

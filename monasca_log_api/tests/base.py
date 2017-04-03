@@ -27,10 +27,12 @@ from oslotest import base as os_test
 import six
 
 from monasca_log_api.api.core import request
+from monasca_log_api import conf
 
 
 def mock_config(test):
-    return test.useFixture(oo_cfg.Config())
+    conf.register_opts()
+    return test.useFixture(oo_cfg.Config(conf=conf.CONF))
 
 
 def mock_context(test):
