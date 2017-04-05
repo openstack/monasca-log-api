@@ -134,7 +134,7 @@ def validate_dimensions(dimensions):
        * :py:data:`DIMENSION_VALUE_CONSTRAINTS`
        """
     try:
-        for dim_name, dim_value in six.iteritems(dimensions):
+        for dim_name, dim_value in dimensions.items():
             _validate_dimension_name(dim_name)
             _validate_dimension_value(dim_value)
     except AttributeError:
