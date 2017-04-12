@@ -14,6 +14,7 @@
 
 from tempest.lib.common.utils import test_utils
 from tempest.lib import decorators
+from testtools import matchers
 
 from monasca_log_api_tempest.tests import base
 
@@ -23,23 +24,28 @@ _RETRY_WAIT = 2
 
 class TestSingleLog(base.BaseLogsTestCase):
     def _run_and_wait(self, key, data, version,
-                      content_type='application/json', headers=None):
+                      content_type='application/json',
+                      headers=None, fields=None):
 
         headers = base._get_headers(headers, content_type)
 
         def wait():
-            return self.logs_search_client.count_search_messages(key, headers) > 0
+            return self.logs_search_client.count_search_messages(key,
+                                                                 headers) > 0
 
-        self.assertEqual(0, self.logs_search_client.count_search_messages(key, headers),
+        self.assertEqual(0, self.logs_search_client.count_search_messages(key,
+                                                                          headers),
                          'Find log message in elasticsearch: {0}'.format(key))
 
         headers = base._get_headers(headers, content_type)
         data = base._get_data(data, content_type, version=version)
 
-        response, _ = self.logs_clients[version].send_single_log(data, headers)
+        client = self.logs_clients[version]
+        response, _ = client.send_single_log(data, headers, fields)
         self.assertEqual(204, response.status)
 
-        test_utils.call_until_true(wait, _RETRY_COUNT * _RETRY_WAIT, _RETRY_WAIT)
+        test_utils.call_until_true(wait, _RETRY_COUNT * _RETRY_WAIT,
+                                   _RETRY_WAIT)
         response = self.logs_search_client.search_messages(key, headers)
         self.assertEqual(1, len(response))
 
@@ -91,11 +97,22 @@ class TestSingleLog(base.BaseLogsTestCase):
     def test_send_header_dimensions(self):
         sid, message = base.generate_unique_message()
         headers = {'X-Dimensions':
-                   'server:WebServer01,environment:production'}
+                       'server:WebServer01,environment:production'}
         response = self._run_and_wait(sid, message, headers=headers,
                                       version="v2")
         self.assertEqual('production', response[0]['_source']['environment'])
         self.assertEqual('WebServer01', response[0]['_source']['server'])
+
+    @decorators.attr(type="gate")
+    def test_send_cross_tenant(self):
+        sid, message = base.generate_small_message()
+        headers = {'X-Roles': 'admin, monitoring-delegate'}
+        cross_tennant_id = '2106b2c8da0eecdb3df4ea84a0b5624b'
+        fields = {'tenant_id': cross_tennant_id}
+        response = self._run_and_wait(sid, message, version="v3",
+                                      headers=headers, fields=fields)
+        self.assertThat(response[0]['_source']['tenant'],
+                        matchers.StartsWith(cross_tennant_id))
 
     # TODO(trebski) following test not passing - failed to retrieve
     # big message from elasticsearch

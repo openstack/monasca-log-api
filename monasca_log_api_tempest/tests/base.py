@@ -110,7 +110,7 @@ class BaseLogsTestCase(test.BaseTestCase):
             cls.__name__,
             identity_version=auth_version)
         credentials = cred_provider.get_creds_by_roles(
-            ['monasca-user']).credentials
+            ['monasca-user', 'admin']).credentials
         cls.os = clients.Manager(credentials=credentials)
 
         cls.logs_clients = cls.os.log_api_clients

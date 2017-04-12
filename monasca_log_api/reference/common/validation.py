@@ -20,7 +20,6 @@ from oslo_log import log
 import six
 
 from monasca_log_api.api import exceptions
-from monasca_log_api.api import logs_api
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
@@ -214,10 +213,12 @@ def validate_payload_size(req):
         )
 
 
-def validate_is_delegate(role):
-    if role:
-        role = role.split(',') if isinstance(role, six.string_types) else role
-        return logs_api.MONITORING_DELEGATE_ROLE in role
+def validate_is_delegate(roles):
+    delegate_roles = CONF.roles_middleware.delegate_roles
+    if roles and delegate_roles:
+        roles = roles.split(',') if isinstance(roles, six.string_types) \
+            else roles
+        return any(x in set(delegate_roles) for x in roles)
     return False
 
 
@@ -227,7 +228,7 @@ def validate_cross_tenant(tenant_id, cross_tenant_id, roles):
         if cross_tenant_id:
             raise falcon.HTTPForbidden(
                 'Permission denied',
-                'Projects %s cannot POST cross tenant metrics' % tenant_id
+                'Projects %s cannot POST cross tenant logs' % tenant_id
             )
 
 

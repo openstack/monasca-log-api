@@ -22,31 +22,31 @@ import mock
 from oslotest import base as os_test
 
 from monasca_log_api.api import exceptions
-from monasca_log_api.api import logs_api
 from monasca_log_api.reference.common import validation
 from monasca_log_api.reference.v2.common import service as common_service
 from monasca_log_api.tests import base
 
 
 class IsDelegate(os_test.BaseTestCase):
+
+    def __init__(self, *args, **kwargs):
+        super(IsDelegate, self).__init__(*args, **kwargs)
+        self._conf = None
+        self._roles = ['admin']
+
+    def setUp(self):
+        super(IsDelegate, self).setUp()
+        self._conf = base.mock_config(self)
+
     def test_is_delegate_ok_role(self):
-        roles = logs_api.MONITORING_DELEGATE_ROLE
-        self.assertTrue(validation.validate_is_delegate(roles))
+        self.assertTrue(validation.validate_is_delegate(self._roles))
 
     def test_is_delegate_ok_role_in_roles(self):
-        roles = logs_api.MONITORING_DELEGATE_ROLE + ',a_role,b_role'
-        self.assertTrue(validation.validate_is_delegate(roles))
+        self._roles.extend(['a_role', 'b_role'])
+        self.assertTrue(validation.validate_is_delegate(self._roles))
 
     def test_is_delegate_not_ok_role(self):
-        roles = 'a_role,b_role'
-        self.assertFalse(validation.validate_is_delegate(roles))
-
-    def test_is_delegate_ok_role_as_list(self):
-        roles = {logs_api.MONITORING_DELEGATE_ROLE}
-        self.assertTrue(validation.validate_is_delegate(roles))
-
-    def test_is_delegate_not_ok_role_as_list(self):
-        roles = {'a_role', 'b_role'}
+        roles = ['a_role', 'b_role']
         self.assertFalse(validation.validate_is_delegate(roles))
 
 

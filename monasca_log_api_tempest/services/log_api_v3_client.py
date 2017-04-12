@@ -13,6 +13,7 @@
 # under the License.
 
 from oslo_serialization import jsonutils as json
+from six.moves.urllib.parse import urlencode
 from tempest.lib.common import rest_client
 
 
@@ -31,15 +32,19 @@ class LogApiV3Client(rest_client.RestClient):
         resp, response_body = self.send_request('GET', '/')
         return resp, response_body
 
-    def send_single_log(self, log, headers=None):
+    def send_single_log(self, log, headers=None, fields=None):
         default_headers = {
             'X-Tenant-Id': 'b4265b0a48ae4fd3bdcee0ad8c2b6012',
             'X-Roles': 'admin',
         }
         default_headers.update(headers)
         msg = json.dumps(log)
+        uri = LogApiV3Client._uri
 
-        resp, body = self.post(LogApiV3Client._uri, msg, default_headers)
+        if fields:
+            uri += '?' + urlencode(fields)
+
+        resp, body = self.post(uri, msg, default_headers)
 
         return resp, body
 

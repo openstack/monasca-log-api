@@ -33,7 +33,8 @@ class LogApiV2Client(rest_client.RestClient):
 
     def send_single_log(self,
                         log,
-                        headers=None):
+                        headers=None,
+                        fields=None):
         default_headers = {
             'X-Tenant-Id': 'b4265b0a48ae4fd3bdcee0ad8c2b6012',
             'X-Roles': 'admin',

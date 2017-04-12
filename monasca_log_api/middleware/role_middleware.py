@@ -31,7 +31,11 @@ role_m_opts = [
                 default=None,
                 help=('List of roles, that if set, mean that request '
                       'comes from agent, thus is authorized in the same '
-                      'time'))
+                      'time')),
+    cfg.ListOpt(name='delegate_roles',
+                default=['admin'],
+                help=('Roles that are allowed to POST logs on '
+                      'behalf of another tenant (project)'))
 ]
 role_m_group = cfg.OptGroup(name='roles_middleware', title='roles_middleware')
 
@@ -81,12 +85,15 @@ class RoleMiddleware(om.ConfigurableMiddleware):
         path = /v2.0/log
         default_roles = monasca-user
         agent_roles = monasca-log-agent
+        delegate_roles = admin
 
     Configuration explained:
 
     * path (list) - path (or list of paths) middleware should be applied
     * agent_roles (list) - list of roles that identifies tenant as an agent
     * default_roles (list) - list of roles that should be authorized
+    * delegate_roles (list) - list of roles that are allowed to POST logs on
+                                behalf of another tenant (project)
 
     Note:
         Being an agent means that tenant is automatically authorized.

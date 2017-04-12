@@ -17,7 +17,6 @@ import mock
 import ujson as json
 
 from monasca_log_api.api import headers
-from monasca_log_api.api import logs_api
 from monasca_log_api.reference.v2 import logs as v2_logs
 from monasca_log_api.reference.v3 import logs as v3_logs
 from monasca_log_api.tests import base
@@ -48,6 +47,7 @@ class SameV2V3Output(testing.TestBase):
         service = 'laas'
         hostname = 'kornik'
         tenant_id = 'ironMan'
+        roles = 'admin'
 
         v2_dimensions = 'hostname:%s,service:%s' % (hostname, service)
         v3_dimensions = {
@@ -76,7 +76,7 @@ class SameV2V3Output(testing.TestBase):
             '/v2.0',
             method='POST',
             headers={
-                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_ROLES.name: roles,
                 headers.X_DIMENSIONS.name: v2_dimensions,
                 headers.X_APPLICATION_TYPE.name: component,
                 headers.X_TENANT_ID.name: tenant_id,
@@ -90,7 +90,7 @@ class SameV2V3Output(testing.TestBase):
             '/v3.0',
             method='POST',
             headers={
-                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_ROLES.name: roles,
                 headers.X_TENANT_ID.name: tenant_id,
                 'Content-Type': 'application/json',
                 'Content-Length': '100'

@@ -20,7 +20,9 @@ Create logs.
 None.
 
 #### Query Parameters
-* tenant_id (string, optional, restricted) - Tenant ID to create log on behalf of. Usage of this query parameter requires the `monitoring-delegate` role.
+* tenant_id (string, optional, restricted) - Tenant ID (project ID) to create
+  log on behalf of. Usage of this query parameter requires the role specified
+  in the configuration option `delegate_roles` .
 
 #### Request Body
 JSON object which can have a maximum size of 5 MB. It consists of global
@@ -240,9 +242,6 @@ Example:
 
 #### Path Parameters
 None.
-
-#### Query Parameters
-* tenant_id (string, optional, restricted) - Tenant ID to create log on behalf of. Usage of this query parameter requires the `monitoring-delegate` role.
 
 #### Request Body
 Consists of a single plain text message or a JSON object which can have a maximum length of 1048576 characters.

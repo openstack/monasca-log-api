@@ -20,9 +20,10 @@ import unittest
 
 from monasca_log_api.api import exceptions as log_api_exceptions
 from monasca_log_api.api import headers
-from monasca_log_api.api import logs_api
 from monasca_log_api.reference.v2 import logs
 from monasca_log_api.tests import base
+
+ROLES = 'admin'
 
 
 def _init_resource(test):
@@ -121,7 +122,7 @@ class TestLogs(testing.TestBase):
             '/log/single',
             method='POST',
             headers={
-                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_ROLES.name: ROLES,
                 headers.X_DIMENSIONS.name: 'a:1',
                 'Content-Type': 'application/json',
                 'Content-Length': '0'
@@ -147,7 +148,7 @@ class TestLogs(testing.TestBase):
             method='POST',
             query_string='tenant_id=1',
             headers={
-                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_ROLES.name: ROLES,
                 headers.X_DIMENSIONS.name: 'a:1',
                 'Content-Type': 'application/json',
                 'Content-Length': '0'
@@ -169,7 +170,7 @@ class TestLogs(testing.TestBase):
             '/log/single',
             method='POST',
             headers={
-                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_ROLES.name: ROLES,
                 headers.X_DIMENSIONS.name: '',
                 'Content-Type': 'application/json',
                 'Content-Length': '0'
@@ -187,7 +188,7 @@ class TestLogs(testing.TestBase):
             '/log/single',
             method='POST',
             headers={
-                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_ROLES.name: ROLES,
                 headers.X_DIMENSIONS.name: '',
                 'Content-Type': 'video/3gpp',
                 'Content-Length': '0'
@@ -208,7 +209,7 @@ class TestLogs(testing.TestBase):
             '/log/single',
             method='POST',
             headers={
-                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_ROLES.name: ROLES,
                 headers.X_DIMENSIONS.name: '',
                 'Content-Type': 'application/json',
                 'Content-Length': str(content_length)
@@ -229,7 +230,7 @@ class TestLogs(testing.TestBase):
             '/log/single',
             method='POST',
             headers={
-                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_ROLES.name: ROLES,
                 headers.X_DIMENSIONS.name: '',
                 'Content-Type': 'application/json',
                 'Content-Length': str(content_length)
@@ -250,7 +251,7 @@ class TestLogs(testing.TestBase):
             '/log/single',
             method='POST',
             headers={
-                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_ROLES.name: ROLES,
                 headers.X_DIMENSIONS.name: '',
                 'Content-Type': 'application/json',
                 'Content-Length': str(content_length)
@@ -267,7 +268,7 @@ class TestLogs(testing.TestBase):
             '/log/single',
             method='POST',
             headers={
-                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                headers.X_ROLES.name: ROLES,
                 headers.X_DIMENSIONS.name: '',
                 'Content-Type': 'application/json'
             }

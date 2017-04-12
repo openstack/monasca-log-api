@@ -21,8 +21,6 @@ from monasca_log_api.monitoring import metrics
 
 LOG = log.getLogger(__name__)
 
-MONITORING_DELEGATE_ROLE = 'monitoring-delegate'
-
 
 class LogsApi(object):
     """Logs API.

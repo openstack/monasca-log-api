@@ -65,8 +65,8 @@ class Logs(logs_api.LogsApi):
             self._logs_size_gauge.send(name=None,
                                        value=int(req.content_length))
 
-            tenant_id = (req.project_id if req.project_id
-                         else req.cross_project_id)
+            tenant_id = (req.cross_project_id if req.cross_project_id
+                         else req.project_id)
 
             try:
                 self._processor.send_message(
