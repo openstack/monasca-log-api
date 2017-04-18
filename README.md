@@ -9,7 +9,7 @@ Team and repository tags
 
 `monasca-log-api` is a RESTful API server that is designed with a layered architecture [layered architecture](http://en.wikipedia.org/wiki/Multilayered_architecture).
 
-The full API Specification can be found in [docs/monasca-log-api-spec.md](docs/monasca-log-api-spec.md)
+The full API Specification can be found in [documentation/monasca-log-api-spec.md](documentation/monasca-log-api-spec.md)
 
 ## Monasca-log-api Python
 
@@ -171,9 +171,9 @@ Requests flow through the following architectural layers from top to bottom:
 
 ## Documentation
 
-* API Specification: [/docs/monasca-log-api-spec.md](/docs/monasca-log-api-spec.md).
-* Kafka communication: [/docs/monasca-log-api-kafka.md](/docs/monasca-log-api-kafka.md).
-* API Monitoring: [/docs/monasca-log-api-metrics.md](/docs/monasca-log-api-metrics.md).
+* API Specification: [/documentation/monasca-log-api-spec.md](/documentation/monasca-log-api-spec.md).
+* Kafka communication: [/documentation/monasca-log-api-kafka.md](/documentation/monasca-log-api-kafka.md).
+* API Monitoring: [/documentation/monasca-log-api-metrics.md](/documentation/monasca-log-api-metrics.md).
 
 # License
 
