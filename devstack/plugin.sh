@@ -55,11 +55,15 @@ LOGSTASH_DIR=$DEST/logstash
 
 PLUGIN_FILES=$MONASCA_LOG_API_DIR/devstack/files
 
+# Files inside this directory will be visible in gates log
+GATE_CONFIGURATION_DIR=/etc/monasca-log-api
+
 # TOP_LEVEL functions called from devstack coordinator
 ###############################################################################
 function pre_install {
     install_elk
     install_node_nvm
+    install_gate_config_holder
 }
 
 function install_monasca_log {
@@ -76,6 +80,24 @@ function install_elk {
     install_logstash
     install_elasticsearch
     install_kibana
+}
+
+function install_gate_config_holder {
+    sudo install -d -o $STACK_USER $GATE_CONFIGURATION_DIR
+}
+
+function install_monasca_common {
+    if use_library_from_git "monasca-common"; then
+        git_clone_by_name "monasca-common"
+        setup_dev_lib "monasca-common"
+    fi
+}
+
+function install_monasca_statsd {
+    if use_library_from_git "monasca-statsd"; then
+        git_clone_by_name "monasca-statsd"
+        setup_dev_lib "monasca-statsd"
+    fi
 }
 
 function configure_monasca_log {
@@ -125,6 +147,7 @@ function clean_monasca_log {
     clean_elasticsearch
     clean_logstash
     clean_node_nvm
+    clean_gate_config_holder
 }
 ###############################################################################
 
@@ -137,16 +160,10 @@ function install_monasca-log-api {
     if [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "False" ]; then
         pip_install gunicorn
     fi
-    pip_install_gr python-memcached
 
-    if use_library_from_git "monasca-common"; then
-        git_clone_by_name "monasca-common"
-        setup_dev_lib "monasca-common"
-    fi
-    if use_library_from_git "monasca-statsd"; then
-        git_clone_by_name "monasca-statsd"
-        setup_dev_lib "monasca-statsd"
-    fi
+    install_keystonemiddleware
+    install_monasca_common
+    install_monasca_statsd
 
     if [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "True" ]; then
         install_apache_wsgi
@@ -164,6 +181,9 @@ function configure_monasca_log_api {
         sudo install -d -o $STACK_USER $MONASCA_LOG_API_CONF_DIR
         create_log_api_cache_dir
 
+        # ensure fresh installation of configuration files
+        rm -rf $MONASCA_LOG_API_CONF $MONASCA_LOG_API_PASTE_INI $MONASCA_LOG_API_LOGGING_CONF
+
         if [[ "$MONASCA_LOG_API_CONF_DIR" != "$MONASCA_LOG_API_DIR/etc/monasca" ]]; then
             install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-config.conf $MONASCA_LOG_API_CONF
             install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-config.ini $MONASCA_LOG_API_PASTE_INI
@@ -177,19 +197,10 @@ function configure_monasca_log_api {
         iniset "$MONASCA_LOG_API_CONF" kafka_healthcheck kafka_url $KAFKA_SERVICE_HOST:$KAFKA_SERVICE_PORT
 
         # configure keystone middleware
-        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken auth_url $KEYSTONE_AUTH_URI
-        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken auth_uri $KEYSTONE_AUTH_URI
-        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken identity_uri $KEYSTONE_SERVICE_URI
-        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken admin_user "admin"
-        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken admin_password $ADMIN_PASSWORD
-        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken admin_tenant_name "admin"
-
-        # certs
-        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken cafile $SSL_BUNDLE_FILE
-        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken signing_dir $MONASCA_LOG_API_CACHE_DIR
-
-        # memcached
-        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken memcached_servers $SERVICE_HOST:11211
+        configure_auth_token_middleware "$MONASCA_LOG_API_CONF" "admin" $MONASCA_LOG_API_CACHE_DIR
+        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken region_name $REGION_NAME
+        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken project_name "admin"
+        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken password $ADMIN_PASSWORD
 
         # insecure
         if is_service_enabled tls-proxy; then
@@ -206,6 +217,11 @@ function configure_monasca_log_api {
         if [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "True" ]; then
             configure_monasca_log_api_wsgi
         fi
+
+        # link configuration for the gate
+        ln -sf $MONASCA_LOG_API_CONF $GATE_CONFIGURATION_DIR
+        ln -sf $MONASCA_LOG_API_PASTE_INI $GATE_CONFIGURATION_DIR
+        ln -sf $MONASCA_LOG_API_LOGGING_CONF $GATE_CONFIGURATION_DIR
 
     fi
 }
@@ -384,6 +400,8 @@ function configure_elasticsearch {
             s|%ES_DATA_DIR%|$ELASTICSEARCH_DATA_DIR|g;
             s|%ES_LOG_DIR%|$ELASTICSEARCH_LOG_DIR|g;
         " -i $ELASTICSEARCH_CFG_DIR/elasticsearch.yml
+
+        ln -sf $ELASTICSEARCH_CFG_DIR/elasticsearch.yml $GATE_CONFIGURATION_DIR/elasticsearch.yml
     fi
 }
 
@@ -441,11 +459,10 @@ function configure_kibana {
             s|%KIBANA_SERVER_BASE_PATH%|$KIBANA_SERVER_BASE_PATH|g;
             s|%ES_SERVICE_BIND_HOST%|$ES_SERVICE_BIND_HOST|g;
             s|%ES_SERVICE_BIND_PORT%|$ES_SERVICE_BIND_PORT|g;
-            s|%KIBANA_LOG_DIR%|$KIBANA_LOG_DIR|g;
-            s|%KEYSTONE_AUTH_PORT%|$KEYSTONE_AUTH_PORT|g;
-            s|%KEYSTONE_AUTH_HOST%|$KEYSTONE_AUTH_HOST|g;
-            s|%KEYSTONE_AUTH_PROTOCOL%|$KEYSTONE_AUTH_PROTOCOL|g;
+            s|%KEYSTONE_AUTH_URI%|$KEYSTONE_AUTH_URI|g;
         " -i $KIBANA_CFG_DIR/kibana.yml
+
+        ln -sf $KIBANA_CFG_DIR/kibana.yml $GATE_CONFIGURATION_DIR/kibana.yml
     fi
 }
 
@@ -469,7 +486,6 @@ function clean_kibana {
 
         sudo rm -rf $KIBANA_DIR || true
         sudo rm -rf $FILES/kibana-${KIBANA_VERSION}.tar.gz || true
-        sudo rm -rf $KIBANA_LOG_DIR || true
         sudo rm -rf $KIBANA_CFG_DIR || true
     fi
 }
@@ -496,6 +512,8 @@ function configure_monasca_log_persister {
         sudo sed -e "
             s|%ES_SERVICE_BIND_HOST%|$ES_SERVICE_BIND_HOST|g;
         " -i $LOG_PERSISTER_DIR/persister.conf
+
+        ln -sf $LOG_PERSISTER_DIR/persister.conf $GATE_CONFIGURATION_DIR/log-persister.conf
     fi
 }
 
@@ -528,6 +546,8 @@ function configure_monasca_log_transformer {
             s|%KAFKA_SERVICE_HOST%|$KAFKA_SERVICE_HOST|g;
             s|%KAFKA_SERVICE_PORT%|$KAFKA_SERVICE_PORT|g;
         " -i $LOG_TRANSFORMER_DIR/transformer.conf
+
+        ln -sf $LOG_TRANSFORMER_DIR/transformer.conf $GATE_CONFIGURATION_DIR/log-transformer.conf
     fi
 }
 
@@ -560,6 +580,8 @@ function configure_monasca_log_metrics {
             s|%KAFKA_SERVICE_HOST%|$KAFKA_SERVICE_HOST|g;
             s|%KAFKA_SERVICE_PORT%|$KAFKA_SERVICE_PORT|g;
         " -i $LOG_METRICS_DIR/log-metrics.conf
+
+        ln -sf $LOG_METRICS_DIR/log-metrics.conf $GATE_CONFIGURATION_DIR/log-metrics.conf
     fi
 }
 
@@ -604,6 +626,8 @@ function configure_monasca_log_agent {
             s|%KEYSTONE_AUTH_URI_V3%|$KEYSTONE_AUTH_URI_V3|g;
         " -i $LOG_AGENT_DIR/agent.conf
 
+        ln -sf $LOG_AGENT_DIR/agent.conf $GATE_CONFIGURATION_DIR/log-agent.conf
+
     fi
 }
 
@@ -618,7 +642,7 @@ function start_monasca_log_agent {
     if is_service_enabled monasca-log-agent; then
         echo_summary "Starting monasca-log-agent"
         local logstash="$LOGSTASH_DIR/bin/logstash"
-        run_process "monasca-log-agent" "sudo $logstash -f $LOG_AGENT_DIR/agent.conf"
+        run_process "monasca-log-agent" "$logstash -f $LOG_AGENT_DIR/agent.conf" "root" "root"
     fi
 }
 
@@ -653,6 +677,10 @@ function clean_node_nvm {
         sudo rm ${FILES}/nvm_install.sh
         sudo rm -rf "${HOME}/.nvm/nvm.sh"
     fi
+}
+
+function clean_gate_config_holder {
+    sudo rm -rf $GATE_CONFIGURATION_DIR || true
 }
 
 function build_kibana_plugin {

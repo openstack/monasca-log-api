@@ -24,7 +24,7 @@ ServiceAvailableGroup = [
     cfg.BoolOpt('logs-search',
                 default=True,
                 help=('Whether or not Monasca-Log-Api search engine '
-                      '(ElasticSearch) is expected to be available')),
+                      '(ElasticSearch) is expected to be available'))
 ]
 
 monitoring_group = cfg.OptGroup(name='monitoring',
@@ -33,12 +33,7 @@ MonitoringGroup = [
     cfg.StrOpt('api_version',
                default='v2.0',
                help='monasca-log-api API version'),
-]
-
-IdentityGroup = [
     cfg.StrOpt('kibana_version',
-               default='4.4.0',
+               default='4.6.3',
                help='Kibana version')
 ]
-
-cfg.CONF.register_opts(IdentityGroup, group='identity')

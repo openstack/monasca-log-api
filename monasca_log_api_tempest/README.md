@@ -23,7 +23,7 @@ Therefore it is possible to proceed with installation as described
 # Configuration
 1. Clone the OpenStack Tempest repo, and cd to it.
 
-```
+```bash
     git clone https://git.openstack.org/openstack/tempest.git
     cd tempest
 ```
@@ -31,54 +31,83 @@ Therefore it is possible to proceed with installation as described
 2. Create a virtualenv for running the Tempest tests and activate it.
 For example in the Tempest root dir
 
-```
+```bash
     virtualenv .venv
     source .venv/bin/activate
 ```
 
 3. Install the Tempest requirements in the virtualenv.
 
-```
-    pip install -r requirements.txt -r test-requirements.txt
-    pip install nose
+```bash
+    pip install \
+        -c https://git.openstack.org/cgit/openstack/requirements/plain/upper-constraints.txt \
+        -r requirements.txt \
+        -r test-requirements.txt
 ```
 
 4. Create ```etc/tempest.conf``` in the Tempest root dir by
 running the following command:
 
- ```
- oslo-config-generator --config-file tempest/cmd/config-generator.tempest.conf --output-file etc/tempest.conf
- ```
+```bash
+    oslo-config-generator --config-file tempest/cmd/config-generator.tempest.conf --output-file etc/tempest.conf
+```
 
  Add the following sections to ```tempest.conf``` for testing
  using the monasca-vagrant environment.
 
- ```
- [identity]
- auth_version = v3
- admin_domain_name = Default
- admin_tenant_name = admin
- admin_password = admin
- admin_username = admin
- alt_tenant_name = demo
- alt_password = admin
- alt_username = alt_demo
- tenant_name = mini-mon
- password = password
- username = mini-mon
- uri_v3 = http://192.168.10.5:35357/v3/
- uri = http://192.168.10.5:35357/v2.0/
- force_tenant_isolation = False
- allow_tenant_isolation = False
- disable_ssl_certificate_validation = True
- kibana_version = 4.6.3
+```ini
+    [identity]
+    region = RegionOne
+    auth_version = v3
+    uri = http://10.36.99.238/identity_admin/v2.0
+    uri_v3 = http://10.36.99.238/identity_admin/v3
+    user_lockout_failure_attempts = 2
+    user_locakout_duration = 5
+    user_unique_last_password_count = 2
+    admin_domain_scope = True
 
- [auth]
- allow_tenant_isolation = true
- ```
+    [auth]
+    tempest_roles = monasca-user
+    admin_project_name = admin
+    admin_domain_name = default
+    admin_password = secretadmin
+    admin_username = admin
+    use_dynamic_credentials = True
 
- Edit the variable values in the identity section to match your particular
- monasca-vagrant environment.
+    [monitoring]
+    kibana_version = 4.6.3
+    api_version = v2.0 # or v3.0
+```
+
+Edit the variable values in the identity section to match your particular
+monasca-vagrant environment. Best way to do this might be
+
+```bash
+    source devstack/openrc {username} {password}
+```
+
+and collect all relevant values using
+
+```bash
+    env | grep OS_
+```
+
+An output will be similar to this one
+
+```bash
+    OS_PROJECT_DOMAIN_ID=default
+    OS_REGION_NAME=RegionOne
+    OS_USER_DOMAIN_ID=default
+    OS_PROJECT_NAME=admin
+    OS_IDENTITY_API_VERSION=3
+    OS_PASSWORD=secretadmin
+    OS_AUTH_TYPE=password
+    OS_AUTH_URL=http://10.36.99.238/identity_admin
+    OS_USERNAME=admin
+    OS_TENANT_NAME=admin
+    OS_VOLUME_API_VERSION=2
+    OS_NO_CACHE=True
+```
 
 5. Create ```etc/logging.conf``` in the Tempest root dir by making a copying
 ```logging.conf.sample```.
@@ -92,9 +121,13 @@ Tempest root dir.
    cd into the monasa-log-api root directory. Making sure that the tempest
    virtual env is still active, run the following command.
 
- ```
- python setup.py install
- ```
+```
+    pip install \
+        -c https://git.openstack.org/cgit/openstack/requirements/plain/upper-constraints.txt \
+        -r requirements.txt \
+        -r test-requirements.txt
+    python setup.py install
+```
 
 See the [OpenStack Tempest Plugin
 Interface](http://docs.openstack.org/developer/tempest/plugin.html), for more

@@ -71,8 +71,7 @@ logging.quiet: false
 logging.verbose: true
 
 # monasca-kibana-plugin configuration
-monasca-kibana-plugin.port: %KEYSTONE_AUTH_PORT%
-monasca-kibana-plugin.url: %KEYSTONE_AUTH_PROTOCOL%://%KEYSTONE_AUTH_HOST%
+monasca-kibana-plugin.auth_uri: %KEYSTONE_AUTH_URI%
 monasca-kibana-plugin.enabled: True
 monasca-kibana-plugin.cookie.isSecure: False
 
