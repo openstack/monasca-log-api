@@ -1,5 +1,5 @@
 #
-# Copyright 2016 FUJITSU LIMITED
+# Copyright 2016-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,19 +35,19 @@ NVM_VERSION=${NVM_VERSION:-"0.32.1"}
 
 # repository settings
 MONASCA_LOG_API_REPO=${MONASCA_LOG_API_REPO:-${GIT_BASE}/openstack/monasca-log-api.git}
-MONASCA_LOG_API_BRANCH=${MONASCA_LOG_API_BRANCH:-master}
+MONASCA_LOG_API_BRANCH=${MONASCA_LOG_API_BRANCH:-stable/ocata}
 MONASCA_LOG_API_DIR=${DEST}/monasca-log-api
 
 MONASCA_COMMON_REPO=${MONASCA_COMMON_REPO:-${GIT_BASE}/openstack/monasca-common.git}
-MONASCA_COMMON_BRANCH=${MONASCA_COMMON_BRANCH:-master}
+MONASCA_COMMON_BRANCH=${MONASCA_COMMON_BRANCH:-stable/ocata}
 MONASCA_COMMON_DIR=${DEST}/monasca-common
 
 MONASCA_STATSD_REPO=${MONASCA_STATSD_REPO:-${GIT_BASE}/openstack/monasca-statsd.git}
-MONASCA_STATSD_BRANCH=${MONASCA_STATSD_BRANCH:-master}
+MONASCA_STATSD_BRANCH=${MONASCA_STATSD_BRANCH:-stable/ocata}
 MONASCA_STATSD_DIR=${DEST}/monasca-statsd
 
 MONASCA_KIBANA_PLUGIN_REPO=${MONASCA_KIBANA_PLUGIN_REPO:-${GIT_BASE}/openstack/monasca-kibana-plugin.git}
-MONASCA_KIBANA_PLUGIN_BRANCH=${MONASCA_KIBANA_PLUGIN_BRANCH:-master}
+MONASCA_KIBANA_PLUGIN_BRANCH=${MONASCA_KIBANA_PLUGIN_BRANCH:-stable/ocata}
 MONASCA_KIBANA_PLUGIN_DIR=${DEST}/monasca-kibana-plugin
 
 GITREPO["monasca-common"]=${MONASCA_COMMON_REPO}
