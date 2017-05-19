@@ -1,4 +1,4 @@
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2015-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -12,14 +12,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from tempest import test
-
+from tempest.lib import decorators
 from tempest.lib import exceptions
+
 from monasca_log_api_tempest.tests import base
 
 
 class TestLogApiConstraints(base.BaseLogsTestCase):
-    @test.attr(type='gate')
+    @decorators.attr(type='gate')
     def test_should_reject_if_body_is_empty(self):
         headers = base._get_headers()
         for cli in self.logs_clients.itervalues():
@@ -31,7 +31,7 @@ class TestLogApiConstraints(base.BaseLogsTestCase):
 
             self.assertTrue(False, 'API should respond with 411')
 
-    @test.attr(type='gate')
+    @decorators.attr(type='gate')
     def test_should_reject_if_content_type_missing(self):
         headers = base._get_headers(content_type='')
         for cli in self.logs_clients.itervalues():
@@ -43,7 +43,7 @@ class TestLogApiConstraints(base.BaseLogsTestCase):
 
             self.assertTrue(False, 'API should respond with 400')
 
-    @test.attr(type='gate')
+    @decorators.attr(type='gate')
     def test_should_reject_if_wrong_content_type(self):
         headers = base._get_headers(content_type='video/3gpp')
         for cli in self.logs_clients.itervalues():
@@ -55,7 +55,7 @@ class TestLogApiConstraints(base.BaseLogsTestCase):
 
             self.assertTrue(False, 'API should respond with 400')
 
-    @test.attr(type='gate')
+    @decorators.attr(type='gate')
     def test_should_reject_too_big_message(self):
         _, message = base.generate_rejectable_message()
         headers = base._get_headers(self.logs_clients["v3"].get_headers())
@@ -76,7 +76,7 @@ class TestLogApiConstraints(base.BaseLogsTestCase):
 
             self.assertTrue(False, 'API should respond with 413')
 
-    @test.attr(type='gate')
+    @decorators.attr(type='gate')
     def test_should_reject_too_big_message_multiline(self):
         _, message = base.generate_rejectable_message()
         message = message.replace(' ', '\n')

@@ -1,4 +1,4 @@
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2015-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -13,7 +13,7 @@
 # under the License.
 
 from tempest.lib.common.utils import test_utils
-from tempest import test
+from tempest.lib import decorators
 
 from monasca_log_api_tempest.tests import base
 
@@ -45,40 +45,40 @@ class TestSingleLog(base.BaseLogsTestCase):
 
         return response
 
-    @test.attr(type="gate")
+    @decorators.attr(type="gate")
     def test_small_message(self):
         for ver in self.logs_clients:
             self._run_and_wait(*base.generate_small_message(), version=ver)
 
-    @test.attr(type="gate")
+    @decorators.attr(type="gate")
     def test_medium_message(self):
         for ver in self.logs_clients:
             self._run_and_wait(*base.generate_medium_message(), version=ver)
 
-    @test.attr(type="gate")
+    @decorators.attr(type="gate")
     def test_big_message(self):
         for ver in self.logs_clients:
             self._run_and_wait(*base.generate_large_message(), version=ver)
 
-    @test.attr(type="gate")
+    @decorators.attr(type="gate")
     def test_small_message_multiline(self):
         for ver in self.logs_clients:
             sid, message = base.generate_small_message()
             self._run_and_wait(sid, message.replace(' ', '\n'), version=ver)
 
-    @test.attr(type="gate")
+    @decorators.attr(type="gate")
     def test_medium_message_multiline(self):
         for ver in self.logs_clients:
             sid, message = base.generate_medium_message()
             self._run_and_wait(sid, message.replace(' ', '\n'), version=ver)
 
-    @test.attr(type="gate")
+    @decorators.attr(type="gate")
     def test_big_message_multiline(self):
         for ver in self.logs_clients:
             sid, message = base.generate_large_message()
             self._run_and_wait(sid, message.replace(' ', '\n'), version=ver)
 
-    @test.attr(type="gate")
+    @decorators.attr(type="gate")
     def test_send_header_application_type(self):
         sid, message = base.generate_unique_message()
         headers = {'X-Application-Type': 'application-type-test'}
@@ -87,7 +87,7 @@ class TestSingleLog(base.BaseLogsTestCase):
         self.assertEqual('application-type-test',
                          response[0]['_source']['component'])
 
-    @test.attr(type="gate")
+    @decorators.attr(type="gate")
     def test_send_header_dimensions(self):
         sid, message = base.generate_unique_message()
         headers = {'X-Dimensions':
@@ -100,7 +100,7 @@ class TestSingleLog(base.BaseLogsTestCase):
     # TODO(trebski) following test not passing - failed to retrieve
     # big message from elasticsearch
 
-    # @test.attr(type='gate')
+    # @decorators.attr(type='gate')
     # def test_should_truncate_big_message(self):
     #     message_size = base._get_message_size(0.9999)
     #     sid, message = base.generate_unique_message(size=message_size)
