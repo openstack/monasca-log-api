@@ -64,7 +64,7 @@ class Request(falcon.Request):
         :rtype: str
 
         """
-        return self.context.tenant
+        return self.context.project_id
 
     @property
     def cross_project_id(self):
