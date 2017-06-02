@@ -182,15 +182,15 @@ function configure_monasca_log_api {
         create_log_api_cache_dir
 
         # ensure fresh installation of configuration files
-        rm -rf $MONASCA_LOG_API_CONF $MONASCA_LOG_API_PASTE_INI $MONASCA_LOG_API_LOGGING_CONF
+        rm -rf $MONASCA_LOG_API_CONF $MONASCA_LOG_API_PASTE $MONASCA_LOG_API_LOGGING_CONF
 
         if [[ "$MONASCA_LOG_API_CONF_DIR" != "$MONASCA_LOG_API_DIR/etc/monasca" ]]; then
-            install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-config.conf $MONASCA_LOG_API_CONF
-            install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-config.ini $MONASCA_LOG_API_PASTE_INI
+            install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api.conf $MONASCA_LOG_API_CONF
+            install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-paste.ini $MONASCA_LOG_API_PASTE
             install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-logging.conf $MONASCA_LOG_API_LOGGING_CONF
         fi
 
-        # configure log-api-config.conf
+        # configure log-api.conf
         iniset "$MONASCA_LOG_API_CONF" DEFAULT log_config_append $MONASCA_LOG_API_LOGGING_CONF
         iniset "$MONASCA_LOG_API_CONF" service region $REGION_NAME
         iniset "$MONASCA_LOG_API_CONF" log_publisher kafka_url $KAFKA_SERVICE_HOST:$KAFKA_SERVICE_PORT
@@ -207,11 +207,10 @@ function configure_monasca_log_api {
             iniset "$MONASCA_LOG_API_CONF" keystone_authtoken insecure False
         fi
 
-        # configure log-api-config.ini
-        iniset "$MONASCA_LOG_API_PASTE_INI" server:main host $MONASCA_LOG_API_SERVICE_HOST
-        iniset "$MONASCA_LOG_API_PASTE_INI" server:main port $MONASCA_LOG_API_SERVICE_PORT
-        iniset "$MONASCA_LOG_API_PASTE_INI" server:main chdir $MONASCA_LOG_API_DIR
-        iniset "$MONASCA_LOG_API_PASTE_INI" server:main workers $API_WORKERS
+        # configure log-api-paste.ini
+        iniset "$MONASCA_LOG_API_PASTE" server:main bind $MONASCA_LOG_API_SERVICE_HOST:$MONASCA_LOG_API_SERVICE_PORT
+        iniset "$MONASCA_LOG_API_PASTE" server:main chdir $MONASCA_LOG_API_DIR
+        iniset "$MONASCA_LOG_API_PASTE" server:main workers $API_WORKERS
 
         # WSGI
         if [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "True" ]; then
@@ -220,7 +219,7 @@ function configure_monasca_log_api {
 
         # link configuration for the gate
         ln -sf $MONASCA_LOG_API_CONF $GATE_CONFIGURATION_DIR
-        ln -sf $MONASCA_LOG_API_PASTE_INI $GATE_CONFIGURATION_DIR
+        ln -sf $MONASCA_LOG_API_PASTE $GATE_CONFIGURATION_DIR
         ln -sf $MONASCA_LOG_API_LOGGING_CONF $GATE_CONFIGURATION_DIR
 
     fi
@@ -248,7 +247,7 @@ function configure_monasca_log_api_wsgi {
     fi
 
     # copy proxy vhost and wsgi helper files
-    sudo cp $MONASCA_LOG_API_DIR/monasca_log_api/wsgi/monasca_log_api.py $MONASCA_LOG_API_WSGI_DIR/monasca_log_api
+    sudo cp $MONASCA_LOG_API_DIR/monasca_log_api/app/wsgi.py $MONASCA_LOG_API_WSGI_DIR/monasca_log_api
     sudo cp $PLUGIN_FILES/apache-log-api.template $monasca_log_api_apache_conf
     sudo sed -e "
         s|%PUBLICPORT%|$monasca_log_api_api_port|g;
@@ -272,7 +271,7 @@ function clean_monasca_log_api {
         echo_summary "Cleaning monasca-log-api"
 
         sudo rm -f $MONASCA_LOG_API_CONF || true
-        sudo rm -f $MONASCA_LOG_API_PASTE_INI  || true
+        sudo rm -f $MONASCA_LOG_API_PASTE  || true
         sudo rm -f $MONASCA_LOG_API_LOGGING_CONF || true
         sudo rm -rf $MONASCA_LOG_API_CACHE_DIR || true
         sudo rm -rf $MONASCA_LOG_API_CONF_DIR || true
@@ -311,7 +310,7 @@ function start_monasca_log_api {
             tail_log monasca-log-api /var/log/$APACHE_NAME/monasca-log-api.log
         else
             local gunicorn="$MONASCA_LOG_API_BIN_DIR/gunicorn"
-            run_process "monasca-log-api" "$gunicorn -n monasca-log-api -k eventlet --paste $MONASCA_LOG_API_PASTE_INI"
+            run_process "monasca-log-api" "$gunicorn --paste $MONASCA_LOG_API_PASTE"
         fi
 
         echo "Waiting for monasca-log-api to start..."

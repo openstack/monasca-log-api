@@ -20,10 +20,9 @@ from monasca_log_api.api import headers
 from monasca_log_api.api import logs_api
 from monasca_log_api.reference.common import log_publisher
 from monasca_log_api.reference.v2.common import service
-from monasca_log_api import uri_map
 
-_DEPRECATED_INFO = ('%s has been deprecated. Please use %s.'
-                    % (uri_map.V2_LOGS_URI, uri_map.V3_LOGS_URI))
+_DEPRECATED_INFO = ('/v2.0/log/single has been deprecated. '
+                    'Please use /v3.0/logs')
 
 
 class Logs(logs_api.LogsApi):
@@ -91,4 +90,4 @@ def _get_v3_link(req):
     if six.PY2:
         self_uri = self_uri.decode('UTF-8')
     base_uri = self_uri.replace(req.relative_uri, '')
-    return '%s%s' % (base_uri, uri_map.V3_LOGS_URI)
+    return '%s/v3.0/logs' % base_uri

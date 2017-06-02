@@ -1,0 +1,154 @@
+# Copyright 2017 FUJITSU LIMITED
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+"""
+Module contains factories to initializes various applications
+of monasca-log-api
+"""
+
+import six
+
+import falcon
+from oslo_config import cfg
+from oslo_log import log
+
+from monasca_log_api.api.core import request
+from monasca_log_api.reference.common import error_handlers
+from monasca_log_api.reference import healthchecks
+from monasca_log_api.reference.v2 import logs as v2_logs
+from monasca_log_api.reference.v3 import logs as v3_logs
+from monasca_log_api.reference import versions
+from monasca_log_api import version
+
+LOG = log.getLogger(__name__)
+CONF = cfg.CONF
+
+_CONF_LOADED = False
+
+
+def error_trap(app_name):
+    """Decorator trapping any error during application boot time"""
+
+    @six.wraps(error_trap)
+    def _wrapper(func):
+
+        @six.wraps(_wrapper)
+        def _inner_wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception:
+                LOG.exception('Failed to load application \'%s\'', app_name)
+                raise
+
+        return _inner_wrapper
+
+    return _wrapper
+
+
+def singleton_config(func):
+    """Decorator ensuring that configuration is loaded only once."""
+
+    @six.wraps(singleton_config)
+    def _wrapper(global_config, **local_conf):
+        _load_config()
+        return func(global_config, **local_conf)
+
+    def _load_config():
+        global _CONF_LOADED
+        if _CONF_LOADED:
+            LOG.debug('Configuration has been already loaded')
+            return
+
+        log.set_defaults()
+        log.register_options(CONF)
+
+        CONF(args=[],
+             # NOTE(trebskit) this disables any oslo.cfg CLI
+             # opts as gunicorn has some trouble with them
+             # i.e. gunicorn's argparse clashes with the one
+             # defined inside oslo.cfg
+             prog='log-api',
+             project='monasca',
+             version=version.version_str,
+             description='REST-ful API to collect log files')
+
+        log.setup(CONF,
+                  product_name='monasca-log-api',
+                  version=version.version_str)
+
+        _CONF_LOADED = True
+
+    return _wrapper
+
+
+@error_trap('version')
+def create_version_app(global_conf, **local_conf):
+    """Creates Version application"""
+
+    ctrl = versions.Versions()
+    controllers = {
+        '/': ctrl,   # redirect http://host:port/ down to Version app
+                     # avoid conflicts with actual pipelines and 404 error
+        '/version': ctrl,  # list all the versions
+        '/version/{version_id}': ctrl  # display details of the version
+    }
+
+    wsgi_app = falcon.API()
+    for route, ctrl in controllers.items():
+        wsgi_app.add_route(route, ctrl)
+    return wsgi_app
+
+
+@error_trap('healthcheck')
+def create_healthcheck_app(global_conf, **local_conf):
+    """Creates Healthcheck application"""
+
+    ctrl = healthchecks.HealthChecks()
+    controllers = {
+        '/': ctrl
+    }
+
+    wsgi_app = falcon.API()
+    for route, ctrl in controllers.items():
+        wsgi_app.add_route(route, ctrl)
+    return wsgi_app
+
+
+@error_trap('api')
+@singleton_config
+def create_api_app(global_conf, **local_conf):
+    """Creates MainAPI application"""
+
+    controllers = {}
+    api_version = global_conf.get('api_version')
+
+    if api_version == 'v2.0':
+        controllers.update({
+            '/log/single': v2_logs.Logs()
+        })
+    elif api_version == 'v3.0':
+        controllers.update({
+            '/logs': v3_logs.Logs()
+        })
+
+    wsgi_app = falcon.API(
+        request_type=request.Request
+    )
+
+    for route, ctrl in controllers.items():
+        wsgi_app.add_route(route, ctrl)
+
+    error_handlers.register_error_handlers(wsgi_app)
+
+    return wsgi_app
