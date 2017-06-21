@@ -21,9 +21,7 @@ from monasca_log_api.reference.v3 import logs as v3_logs
 from monasca_log_api.tests import base
 
 
-class SameV2V3Output(base.TestBase):
-
-    api_class = base.MockedAPI
+class TestApiSameV2V3Output(base.BaseApiTestCase):
 
     # noinspection PyProtectedMember
     @mock.patch('monasca_log_api.reference.common.'

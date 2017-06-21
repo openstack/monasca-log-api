@@ -13,6 +13,27 @@
 # under the License.
 
 from oslo_utils import timeutils
+import six
+
+from monasca_common.rest import utils as rest_utils
+
+
+def serialize_envelope(envelope):
+    """Returns json representation of an envelope.
+
+    :return: json object of envelope
+    :rtype: six.text_type
+
+    """
+    json = rest_utils.as_json(envelope, ensure_ascii=False)
+
+    if six.PY2:
+        raw = unicode(json.replace(r'\\', r'\\\\'), encoding='utf-8',
+                      errors='replace')
+    else:
+        raw = json
+
+    return raw
 
 
 class LogEnvelopeException(Exception):

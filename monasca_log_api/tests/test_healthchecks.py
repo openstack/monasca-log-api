@@ -23,9 +23,9 @@ from monasca_log_api.tests import base
 ENDPOINT = '/healthcheck'
 
 
-class TestHealthChecks(base.TestBase):
+class TestApiHealthChecks(base.BaseApiTestCase):
     def before(self):
-        self.conf = base.mock_config(self)
+        super(TestApiHealthChecks, self).before()
         self.resource = healthchecks.HealthChecks()
         self.api.add_route(
             ENDPOINT,

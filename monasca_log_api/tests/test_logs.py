@@ -30,7 +30,7 @@ def _init_resource(test):
     return resource
 
 
-class TestLogsVersion(base.TestBase):
+class TestApiLogsVersion(base.BaseApiTestCase):
     @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
     @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
     def test_should_return_v2_as_version(self, _, __):
@@ -38,12 +38,7 @@ class TestLogsVersion(base.TestBase):
         self.assertEqual('v2.0', logs_resource.version)
 
 
-class TestLogs(base.TestBase):
-
-    api_class = base.MockedAPI
-
-    def before(self):
-        self.conf = base.mock_config(self)
+class TestApiLogs(base.BaseApiTestCase):
 
     @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
     @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
