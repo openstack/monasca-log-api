@@ -14,9 +14,7 @@
 # under the License.
 
 import falcon
-from falcon import testing
 import mock
-import unittest
 
 from monasca_log_api.api import exceptions as log_api_exceptions
 from monasca_log_api.api import headers
@@ -31,7 +29,7 @@ def _init_resource(test):
     return resource
 
 
-class TestLogsVersion(unittest.TestCase):
+class TestLogsVersion(base.BaseApiTestCase):
     @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
     @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
     def test_should_return_v2_as_version(self, _, __):
@@ -39,7 +37,7 @@ class TestLogsVersion(unittest.TestCase):
         self.assertEqual('v2.0', logs_resource.version)
 
 
-class TestLogs(testing.TestBase):
+class TestLogs(base.BaseApiTestCase):
 
     api_class = base.MockedAPI
 

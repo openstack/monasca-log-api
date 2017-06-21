@@ -13,22 +13,23 @@
 # under the License.
 
 import falcon
-from falcon import testing
 import ujson as json
 
 from monasca_log_api.reference import versions
+from monasca_log_api.tests import base
 
 
 def _get_versioned_url(version_id):
     return '/version/%s' % version_id
 
 
-class TestVersions(testing.TestBase):
+class TestApiVersions(base.BaseApiTestCase):
     def __init__(self, *args, **kwargs):
         self.versions = None
-        super(TestVersions, self).__init__(*args, **kwargs)
+        super(TestApiVersions, self).__init__(*args, **kwargs)
 
     def before(self):
+        super(TestApiVersions, self).before()
         self.versions = versions.Versions()
         self.api.add_route("/version/", self.versions)
         self.api.add_route("/version/{version_id}", self.versions)

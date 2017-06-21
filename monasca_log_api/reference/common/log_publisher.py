@@ -13,9 +13,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import falcon
 import time
 
+import falcon
 from monasca_common.kafka import producer
 from monasca_common.rest import utils as rest_utils
 from oslo_config import cfg
@@ -143,8 +143,7 @@ class LogPublisher(object):
 
             sent_counter = len(send_messages)
         except Exception as ex:
-            LOG.error('Failure in publishing messages to kafka')
-            LOG.exception(ex)
+            LOG.exception('Failure in publishing messages to kafka')
             raise ex
         finally:
             self._after_publish(sent_counter, num_of_msgs)
@@ -167,7 +166,22 @@ class LogPublisher(object):
         """
         if not self._is_message_valid(message):
             raise InvalidMessageException()
-        return self._truncate(message)
+        truncated = self._truncate(message)
+        proper = self._ensure_type_bytes(truncated)
+        return proper
+
+    def _ensure_type_bytes(self, message):
+        """Ensures that message will have proper type.
+
+        Kafka client expects that messages being
+        posted have certain data type (:py:func:`six.binary_type`).
+        This method ensures by the means of encoding that such type
+        will always be a case regardless if codebase runs under
+        :py:data:`six.PY2` or :py:data:`six.PY3`
+
+        """
+        message = message.encode('utf-8')
+        return message
 
     def _truncate(self, envelope):
         """Truncates the message if needed.
@@ -183,8 +197,8 @@ class LogPublisher(object):
         :rtype: str
         """
 
-        msg_str = rest_utils.as_json(envelope)
-        envelope_size = ((len(bytearray(msg_str, 'utf-8')) +
+        msg_str = model.serialize_envelope(envelope)
+        envelope_size = ((len(bytearray(msg_str, 'utf-8', 'replace')) +
                           _TIMESTAMP_KEY_SIZE +
                           _KAFKA_META_DATA_SIZE)
                          if msg_str is not None else -1)
@@ -231,7 +245,7 @@ class LogPublisher(object):
                 LOG.debug('Sent %d messages to topic %s', num_of_msg, topic)
         except Exception as ex:
             raise falcon.HTTPServiceUnavailable('Service unavailable',
-                                                ex.message, 60)
+                                                str(ex), 60)
 
     @staticmethod
     def _is_message_valid(message):

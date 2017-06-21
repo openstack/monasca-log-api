@@ -16,31 +16,22 @@
 import copy
 import datetime
 import random
-import string
 import ujson
 import unittest
 
 import mock
-from oslotest import base as os_test
+from oslo_log import log
+import six
 
 from monasca_log_api.reference.common import log_publisher
 from monasca_log_api.reference.common import model
 from monasca_log_api.tests import base
 
+LOG = log.getLogger(__name__)
 EPOCH_START = datetime.datetime(1970, 1, 1)
 
 
-def _generate_unique_message(size):
-    letters = string.ascii_lowercase
-
-    def rand(amount, space=True):
-        space = ' ' if space else ''
-        return ''.join((random.choice(letters + space) for _ in range(amount)))
-
-    return rand(size)
-
-
-class TestSendMessage(os_test.BaseTestCase):
+class TestSendMessage(base.BaseTestCase):
 
     def setUp(self):
         self.conf = base.mock_config(self)
@@ -127,7 +118,7 @@ class TestSendMessage(os_test.BaseTestCase):
 
         msg = model.Envelope(
             log={
-                'message': 1,
+                'message': '1',
                 'application_type': application_type,
                 'dimensions': {
                     dimension_1_name: dimension_1_value,
@@ -135,7 +126,7 @@ class TestSendMessage(os_test.BaseTestCase):
                 }
             },
             meta={
-                'tenantId': 1
+                'tenantId': '1'
             }
         )
         msg['creation_time'] = creation_time
@@ -143,7 +134,7 @@ class TestSendMessage(os_test.BaseTestCase):
 
         instance._kafka_publisher.publish.assert_called_once_with(
             self.conf.conf.log_publisher.topics[0],
-            [ujson.dumps(msg)])
+            [ujson.dumps(msg, ensure_ascii=False).encode('utf-8')])
 
     @mock.patch('monasca_log_api.reference.common.log_publisher.producer'
                 '.KafkaProducer')
@@ -166,7 +157,7 @@ class TestSendMessage(os_test.BaseTestCase):
         application_type = 'monasca-log-api'
         msg = model.Envelope(
             log={
-                'message': 1,
+                'message': '1',
                 'application_type': application_type,
                 'dimensions': {
                     dimension_1_name: dimension_1_value,
@@ -174,11 +165,11 @@ class TestSendMessage(os_test.BaseTestCase):
                 }
             },
             meta={
-                'tenantId': 1
+                'tenantId': '1'
             }
         )
         msg['creation_time'] = creation_time
-        json_msg = ujson.dumps(msg)
+        json_msg = ujson.dumps(msg, ensure_ascii=False)
 
         instance.send_message(msg)
 
@@ -187,13 +178,50 @@ class TestSendMessage(os_test.BaseTestCase):
         for topic in topics:
             instance._kafka_publisher.publish.assert_any_call(
                 topic,
-                [json_msg])
+                [json_msg.encode('utf-8')])
+
+    @mock.patch('monasca_log_api.reference.common.log_publisher.producer'
+                '.KafkaProducer')
+    def test_should_send_unicode_message(self, kp):
+        instance = log_publisher.LogPublisher()
+        instance._kafka_publisher = kp
+
+        for um in base.UNICODE_MESSAGES:
+            case, msg = um.values()
+            try:
+                envelope = model.Envelope(
+                    log={
+                        'message': msg,
+                        'application_type': 'test',
+                        'dimensions': {
+                            'test': 'test_log_publisher',
+                            'case': 'test_should_send_unicode_message'
+                        }
+                    },
+                    meta={
+                        'tenantId': 1
+                    }
+                )
+                instance.send_message(envelope)
+
+                expected_message = ujson.dumps(envelope, ensure_ascii=False)
+
+                if six.PY3:
+                    expected_message = expected_message.encode('utf-8')
+
+                instance._kafka_publisher.publish.assert_called_with(
+                    self.conf.conf.log_publisher.topics[0],
+                    [expected_message]
+                )
+            except Exception:
+                LOG.exception('Failed to evaluate unicode case %s', case)
+                raise
 
 
 @mock.patch(
     'monasca_log_api.reference.common.log_publisher.producer'
     '.KafkaProducer')
-class TestTruncation(os_test.BaseTestCase):
+class TestTruncation(base.BaseTestCase):
     EXTRA_CHARS_SIZE = len(bytearray(ujson.dumps({
         'log': {
             'message': None
@@ -231,7 +259,7 @@ class TestTruncation(os_test.BaseTestCase):
                            max_message_size=1000,
                            log_size_factor=0,
                            truncate_by=0,
-                           gen_fn=_generate_unique_message):
+                           gen_fn=base.generate_unique_message):
 
         log_size = (max_message_size -
                     TestTruncation.EXTRA_CHARS_SIZE -

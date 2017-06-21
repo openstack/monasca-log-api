@@ -1,4 +1,4 @@
-# Copyright 2016 FUJITSU LIMITED
+# Copyright 2016-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -12,11 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import random
-import string
-import unittest
-
-from falcon import testing
+import falcon
 import mock
 import ujson as json
 
@@ -36,23 +32,24 @@ def _init_resource(test):
     return resource
 
 
-def _generate_unique_message(size):
-    letters = string.ascii_lowercase
-
-    def rand(amount, space=True):
-        space = ' ' if space else ''
-        return ''.join((random.choice(letters + space) for _ in range(amount)))
-
-    return rand(size)
-
-
-def _generate_v3_payload(log_count):
-    v3_logs = [{
-        'message': _generate_unique_message(100),
-        'dimensions': {
-            'hostname': 'host_%d' % it,
-            'component': 'component_%d' % it,
-            'service': 'service_%d' % it
+def _generate_v3_payload(log_count=None, messages=None):
+    if not log_count and messages:
+        log_count = len(messages)
+        v3_logs = [{
+            'message': messages[it],
+            'dimensions': {
+                'hostname': 'host_%d' % it,
+                'component': 'component_%d' % it,
+                'service': 'service_%d' % it
+                }
+            } for it in range(log_count)]
+    else:
+        v3_logs = [{
+            'message': base.generate_unique_message(100),
+            'dimensions': {
+                'hostname': 'host_%d' % it,
+                'component': 'component_%d' % it,
+                'service': 'service_%d' % it
             }
         } for it in range(log_count)]
     v3_body = {
@@ -65,7 +62,7 @@ def _generate_v3_payload(log_count):
     return v3_body, v3_logs
 
 
-class TestLogsVersion(unittest.TestCase):
+class TestApiLogsVersion(base.BaseApiTestCase):
 
     @mock.patch('monasca_log_api.reference.v3.common.'
                 'bulk_processor.BulkProcessor')
@@ -77,9 +74,7 @@ class TestLogsVersion(unittest.TestCase):
 @mock.patch('monasca_log_api.reference.common.log_publisher.producer.'
             'KafkaProducer')
 @mock.patch('monasca_log_api.monitoring.client.monascastatsd.Connection')
-class TestLogsMonitoring(testing.TestBase):
-
-    api_class = base.MockedAPI
+class TestApiLogsMonitoring(base.BaseApiTestCase):
 
     def test_monitor_bulk_rejected(self, __, _):
         res = _init_resource(self)
@@ -204,3 +199,27 @@ class TestLogsMonitoring(testing.TestBase):
         self.assertEqual(1, size_gauge.call_count)
         self.assertEqual(content_length,
                          size_gauge.mock_calls[0][2]['value'])
+
+
+class TestUnicodeLogs(base.BaseApiTestCase):
+
+    @mock.patch('monasca_log_api.reference.common.log_publisher.producer.'
+                'KafkaProducer')
+    def test_should_send_unicode_messages(self, _):
+        _init_resource(self)
+
+        messages = [m['input'] for m in base.UNICODE_MESSAGES]
+        v3_body, _ = _generate_v3_payload(messages=messages)
+        payload = json.dumps(v3_body, ensure_ascii=False)
+        content_length = len(payload)
+        self.simulate_request(
+            '/logs',
+            method='POST',
+            headers={
+                headers.X_ROLES.name: logs_api.MONITORING_DELEGATE_ROLE,
+                'Content-Type': 'application/json',
+                'Content-Length': str(content_length)
+            },
+            body=payload
+        )
+        self.assertEqual(falcon.HTTP_204, self.srmock.status)
