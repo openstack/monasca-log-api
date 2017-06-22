@@ -12,8 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from oslotest import base
-
+from monasca_log_api.tests import base
 from monasca_log_api import version
 
 

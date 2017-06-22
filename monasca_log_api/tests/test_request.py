@@ -14,14 +14,13 @@
 
 from falcon import testing
 from mock import mock
-from oslotest import base as os_test
 
 from monasca_log_api.api.core import request
 from monasca_log_api.reference.common import validation
 from monasca_log_api.tests import base
 
 
-class TestRequest(os_test.BaseTestCase):
+class TestRequest(base.BaseTestCase):
 
     def setUp(self):
         super(TestRequest, self).setUp()

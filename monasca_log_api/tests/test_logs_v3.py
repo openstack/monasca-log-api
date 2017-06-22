@@ -14,10 +14,9 @@
 
 import random
 import string
-import unittest
+
 
 import falcon
-from falcon import testing
 import mock
 import ujson as json
 
@@ -66,7 +65,7 @@ def _generate_v3_payload(log_count):
     return v3_body, v3_logs
 
 
-class TestLogsVersion(unittest.TestCase):
+class TestLogsVersion(base.TestBase):
 
     @mock.patch('monasca_log_api.reference.v3.common.'
                 'bulk_processor.BulkProcessor')
@@ -78,7 +77,7 @@ class TestLogsVersion(unittest.TestCase):
 @mock.patch('monasca_log_api.reference.common.log_publisher.producer.'
             'KafkaProducer')
 @mock.patch('monasca_log_api.monitoring.client.monascastatsd.Connection')
-class TestLogsMonitoring(testing.TestBase):
+class TestLogsMonitoring(base.TestBase):
 
     api_class = base.MockedAPI
 
@@ -207,7 +206,7 @@ class TestLogsMonitoring(testing.TestBase):
                          size_gauge.mock_calls[0][2]['value'])
 
 
-class TestLogs(testing.TestBase):
+class TestLogs(base.TestBase):
 
     api_class = base.MockedAPI
 

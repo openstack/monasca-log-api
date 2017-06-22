@@ -14,9 +14,8 @@
 
 import mock
 
-from oslotest import base
-
 from monasca_log_api.monitoring import client
+from monasca_log_api.tests import base
 
 
 class TestMonitoring(base.BaseTestCase):

@@ -13,8 +13,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import falcon
+from falcon import testing
+import mock
 from oslo_config import fixture as oo_cfg
 from oslo_context import fixture as oo_ctx
+from oslotest import base as os_test
 
 from monasca_log_api.api.core import request
 
@@ -25,6 +28,21 @@ def mock_config(test):
 
 def mock_context(test):
     return test.useFixture(oo_ctx.ClearRequestContext())
+
+
+class DisableStatsdMixin(object):
+    def setUp(self):
+        super(DisableStatsdMixin, self).setUp()
+        self.statsd_patch = mock.patch('monascastatsd.Connection')
+        self.statsd_check = self.statsd_patch.start()
+
+
+class BaseTestCase(DisableStatsdMixin, os_test.BaseTestCase):
+    pass
+
+
+class TestBase(DisableStatsdMixin, testing.TestBase):
+    pass
 
 
 class MockedAPI(falcon.API):

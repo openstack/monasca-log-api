@@ -13,17 +13,17 @@
 # under the License.
 
 import falcon
-from falcon import testing
 import ujson as json
 
 from monasca_log_api.reference import versions
+from monasca_log_api.tests import base
 
 
 def _get_versioned_url(version_id):
     return '/version/%s' % version_id
 
 
-class TestVersions(testing.TestBase):
+class TestVersions(base.TestBase):
     def __init__(self, *args, **kwargs):
         self.versions = None
         super(TestVersions, self).__init__(*args, **kwargs)
