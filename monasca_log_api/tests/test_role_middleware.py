@@ -15,9 +15,8 @@
 import mock
 from webob import response
 
-from oslotest import base
-
 from monasca_log_api.middleware import role_middleware as rm
+from monasca_log_api.tests import base
 
 
 class SideLogicTestEnsureLowerRoles(base.BaseTestCase):

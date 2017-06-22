@@ -13,7 +13,6 @@
 # under the License.
 
 import falcon
-from falcon import testing
 import mock
 import simplejson as json
 
@@ -24,7 +23,7 @@ from monasca_log_api.tests import base
 ENDPOINT = '/healthcheck'
 
 
-class TestHealthChecks(testing.TestBase):
+class TestHealthChecks(base.TestBase):
     def before(self):
         self.conf = base.mock_config(self)
         self.resource = healthchecks.HealthChecks()

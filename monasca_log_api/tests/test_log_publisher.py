@@ -21,7 +21,6 @@ import ujson
 import unittest
 
 import mock
-from oslotest import base as os_test
 
 from monasca_log_api.reference.common import log_publisher
 from monasca_log_api.reference.common import model
@@ -40,7 +39,7 @@ def _generate_unique_message(size):
     return rand(size)
 
 
-class TestSendMessage(os_test.BaseTestCase):
+class TestSendMessage(base.BaseTestCase):
 
     def setUp(self):
         self.conf = base.mock_config(self)
@@ -193,7 +192,7 @@ class TestSendMessage(os_test.BaseTestCase):
 @mock.patch(
     'monasca_log_api.reference.common.log_publisher.producer'
     '.KafkaProducer')
-class TestTruncation(os_test.BaseTestCase):
+class TestTruncation(base.BaseTestCase):
     EXTRA_CHARS_SIZE = len(bytearray(ujson.dumps({
         'log': {
             'message': None

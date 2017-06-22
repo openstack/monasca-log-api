@@ -19,7 +19,6 @@ import unittest
 from falcon import errors
 from falcon import testing
 import mock
-from oslotest import base as os_test
 
 from monasca_log_api.api import exceptions
 from monasca_log_api.reference.common import validation
@@ -27,7 +26,7 @@ from monasca_log_api.reference.v2.common import service as common_service
 from monasca_log_api.tests import base
 
 
-class IsDelegate(os_test.BaseTestCase):
+class IsDelegate(base.BaseTestCase):
 
     def __init__(self, *args, **kwargs):
         super(IsDelegate, self).__init__(*args, **kwargs)
@@ -50,7 +49,7 @@ class IsDelegate(os_test.BaseTestCase):
         self.assertFalse(validation.validate_is_delegate(roles))
 
 
-class ParseDimensions(os_test.BaseTestCase):
+class ParseDimensions(base.BaseTestCase):
     def test_should_fail_for_empty_dimensions(self):
         self.assertRaises(exceptions.HTTPUnprocessableEntity,
                           common_service.parse_dimensions,
@@ -84,7 +83,7 @@ class ParseDimensions(os_test.BaseTestCase):
                              common_service.parse_dimensions(dimensions))
 
 
-class ParseApplicationType(os_test.BaseTestCase):
+class ParseApplicationType(base.BaseTestCase):
     def test_should_return_none_for_none(self):
         self.assertIsNone(common_service.parse_application_type(None))
 
@@ -106,7 +105,7 @@ class ParseApplicationType(os_test.BaseTestCase):
                          common_service.parse_application_type(app_type))
 
 
-class ApplicationTypeValidations(os_test.BaseTestCase):
+class ApplicationTypeValidations(base.BaseTestCase):
     def test_should_pass_for_empty_app_type(self):
         validation.validate_application_type()
         validation.validate_application_type('')
@@ -139,7 +138,7 @@ class ApplicationTypeValidations(os_test.BaseTestCase):
         validation.validate_application_type(r_app_type)
 
 
-class DimensionsValidations(os_test.BaseTestCase):
+class DimensionsValidations(base.BaseTestCase):
     @unittest.expectedFailure
     def test_should_fail_for_none_dimensions(self):
         validation.validate_dimensions(None)
@@ -230,7 +229,7 @@ class DimensionsValidations(os_test.BaseTestCase):
         validation.validate_dimensions(dimensions)
 
 
-class ContentTypeValidations(os_test.BaseTestCase):
+class ContentTypeValidations(base.BaseTestCase):
     def test_should_pass_text_plain(self):
         content_type = 'text/plain'
         allowed_types = ['text/plain']
@@ -277,7 +276,7 @@ class ContentTypeValidations(os_test.BaseTestCase):
         )
 
 
-class PayloadSizeValidations(os_test.BaseTestCase):
+class PayloadSizeValidations(base.BaseTestCase):
     def setUp(self):
         super(PayloadSizeValidations, self).setUp()
         self.conf = base.mock_config(self)
@@ -334,7 +333,7 @@ class PayloadSizeValidations(os_test.BaseTestCase):
         )
 
 
-class LogMessageValidations(os_test.BaseTestCase):
+class LogMessageValidations(base.BaseTestCase):
     def test_should_pass_message_in_log_property(self):
         log_object = {
             'message': 'some messages',
@@ -361,7 +360,7 @@ class LogMessageValidations(os_test.BaseTestCase):
                           validation.validate_log_message, {})
 
 
-class LogsCreatorNewLog(os_test.BaseTestCase):
+class LogsCreatorNewLog(base.BaseTestCase):
     def setUp(self):
         super(LogsCreatorNewLog, self).setUp()
         self.instance = common_service.LogCreator()
@@ -415,7 +414,7 @@ class LogsCreatorNewLog(os_test.BaseTestCase):
         ))
 
 
-class LogCreatorNewEnvelope(os_test.BaseTestCase):
+class LogCreatorNewEnvelope(base.BaseTestCase):
     def setUp(self):
         super(LogCreatorNewEnvelope, self).setUp()
         self.instance = common_service.LogCreator()

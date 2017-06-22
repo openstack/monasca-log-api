@@ -13,7 +13,6 @@
 # under the License.
 
 import mock
-from oslotest import base as os_test
 
 from monasca_common.kafka_lib import client
 
@@ -21,7 +20,7 @@ from monasca_log_api.healthcheck import kafka_check as kc
 from monasca_log_api.tests import base
 
 
-class KafkaCheckLogicTest(os_test.BaseTestCase):
+class KafkaCheckLogicTest(base.BaseTestCase):
 
     mock_kafka_url = 'localhost:1234'
     mocked_topics = ['test_1', 'test_2']
