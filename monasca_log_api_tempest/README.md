@@ -118,7 +118,7 @@ Tempest root dir.
 7. Install the monasca-log-api in your venv, which will also register
    the Monasca Log Api Tempest Plugin as, monasca_log_api_tempest.
 
-   cd into the monasa-log-api root directory. Making sure that the tempest
+   cd into the monasca-log-api root directory. Making sure that the tempest
    virtual env is still active, run the following command.
 
 ```
