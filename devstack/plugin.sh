@@ -1,5 +1,7 @@
+#!/bin/bash
+
 #
-# Copyright 2016 FUJITSU LIMITED
+# Copyright 2016-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,41 +24,10 @@ set -o xtrace
 _ERREXIT_LOG_API=$(set +o | grep errexit)
 set -o errexit
 
-# monasca-log-api settings
-if [[ ${USE_VENV} = True ]]; then
-    PROJECT_VENV["monasca-log-api"]=${MONASCA_LOG_API_DIR}.venv
-    MONASCA_LOG_API_BIN_DIR=${PROJECT_VENV["monasca-log-api"]}/bin
-else
-    MONASCA_LOG_API_BIN_DIR=$(get_python_exec_prefix)
-fi
-
-MONASCA_LOG_API_BASE_URI=${MONASCA_LOG_API_SERVICE_PROTOCOL}://${MONASCA_LOG_API_SERVICE_HOST}:${MONASCA_LOG_API_SERVICE_PORT}
-MONASCA_LOG_API_URI_V2=${MONASCA_LOG_API_BASE_URI}/v2.0
-MONASCA_LOG_API_URI_V3=${MONASCA_LOG_API_BASE_URI}/v3.0
-
-# wsgit bits
-MONASCA_LOG_API_USE_MOD_WSGI=$(trueorfalse False MONASCA_LOG_API_USE_MOD_WSGI)
-
-# configuration bits
-LOG_PERSISTER_DIR=$DEST/monasca-log-persister
-LOG_TRANSFORMER_DIR=$DEST/monasca-log-transformer
-LOG_METRICS_DIR=$DEST/monasca-log-metrics
-LOG_AGENT_DIR=$DEST/monasca-log-agent
-
-ELASTICSEARCH_DIR=$DEST/elasticsearch
-ELASTICSEARCH_CFG_DIR=$ELASTICSEARCH_DIR/config
-ELASTICSEARCH_LOG_DIR=$LOGDIR/elasticsearch
-ELASTICSEARCH_DATA_DIR=$DATA_DIR/elasticsearch
-
-KIBANA_DIR=$DEST/kibana
-KIBANA_CFG_DIR=$KIBANA_DIR/config
-
-LOGSTASH_DIR=$DEST/logstash
-
-PLUGIN_FILES=$MONASCA_LOG_API_DIR/devstack/files
-
-# Files inside this directory will be visible in gates log
-GATE_CONFIGURATION_DIR=/etc/monasca-log-api
+# source lib/*
+source ${MONASCA_LOG_API_DIR}/devstack/lib/util.sh
+source ${MONASCA_LOG_API_DIR}/devstack/lib/config.sh
+# source lib/*
 
 # TOP_LEVEL functions called from devstack coordinator
 ###############################################################################
@@ -157,16 +128,19 @@ function install_monasca-log-api {
     git_clone $MONASCA_LOG_API_REPO $MONASCA_LOG_API_DIR $MONASCA_LOG_API_BRANCH
     setup_develop $MONASCA_LOG_API_DIR
 
-    if [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "False" ]; then
-        pip_install gunicorn
-    fi
-
     install_keystonemiddleware
     install_monasca_common
     install_monasca_statsd
 
-    if [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "True" ]; then
+    if [ "$MONASCA_LOG_API_DEPLOY" == "mod_wsgi" ]; then
         install_apache_wsgi
+    elif [ "$MONASCA_LOG_API_DEPLOY" == "uwsgi" ]; then
+        pip_install uwsgi
+    else
+        pip_install gunicorn
+    fi
+
+    if [ "$MONASCA_LOG_API_DEPLOY" != "gunicorn" ]; then
         if is_ssl_enabled_service "monasca-log-api"; then
             enable_mod_ssl
         fi
@@ -177,55 +151,11 @@ function configure_monasca_log_api {
     if is_service_enabled monasca-log-api; then
         echo_summary "Configuring monasca-log-api"
 
-        # Put config files in ``$MONASCA_LOG_API_CONF_DIR`` for everyone to find
-        sudo install -d -o $STACK_USER $MONASCA_LOG_API_CONF_DIR
-        create_log_api_cache_dir
-
-        # ensure fresh installation of configuration files
-        rm -rf $MONASCA_LOG_API_CONF $MONASCA_LOG_API_PASTE $MONASCA_LOG_API_LOGGING_CONF
-
-        $MONASCA_LOG_API_BIN_DIR/oslo-config-generator \
-            --config-file $MONASCA_LOG_API_DIR/config-generator/monasca-log-api.conf \
-            --output-file /tmp/log-api.conf
-
-        install -m 600 /tmp/log-api.conf $MONASCA_LOG_API_CONF && rm -rf /tmp/log-api.conf
-        install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-paste.ini $MONASCA_LOG_API_PASTE
-        install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-logging.conf $MONASCA_LOG_API_LOGGING_CONF
-
-        # configure log-api.conf
-        iniset "$MONASCA_LOG_API_CONF" DEFAULT log_config_append $MONASCA_LOG_API_LOGGING_CONF
-        iniset "$MONASCA_LOG_API_CONF" service region $REGION_NAME
-
-        iniset "$MONASCA_LOG_API_CONF" log_publisher kafka_url $KAFKA_SERVICE_HOST:$KAFKA_SERVICE_PORT
-        iniset "$MONASCA_LOG_API_CONF" log_publisher topics log
-
-        iniset "$MONASCA_LOG_API_CONF" kafka_healthcheck kafka_url $KAFKA_SERVICE_HOST:$KAFKA_SERVICE_PORT
-        iniset "$MONASCA_LOG_API_CONF" kafka_healthcheck kafka_topics log
-
-        iniset "$MONASCA_LOG_API_CONF" roles_middleware path "/v2.0/log,/v3.0/logs"
-        iniset "$MONASCA_LOG_API_CONF" roles_middleware default_roles monasca-user
-        iniset "$MONASCA_LOG_API_CONF" roles_middleware agent_roles monasca-agent
-        iniset "$MONASCA_LOG_API_CONF" roles_middleware delegate_roles admin
-
-        # configure keystone middleware
-        configure_auth_token_middleware "$MONASCA_LOG_API_CONF" "admin" $MONASCA_LOG_API_CACHE_DIR
-        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken region_name $REGION_NAME
-        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken project_name "admin"
-        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken password $ADMIN_PASSWORD
-
-        # insecure
-        if is_service_enabled tls-proxy; then
-            iniset "$MONASCA_LOG_API_CONF" keystone_authtoken insecure False
-        fi
-
-        # configure log-api-paste.ini
-        iniset "$MONASCA_LOG_API_PASTE" server:main bind $MONASCA_LOG_API_SERVICE_HOST:$MONASCA_LOG_API_SERVICE_PORT
-        iniset "$MONASCA_LOG_API_PASTE" server:main chdir $MONASCA_LOG_API_DIR
-        iniset "$MONASCA_LOG_API_PASTE" server:main workers $API_WORKERS
-
-        # WSGI
-        if [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "True" ]; then
-            configure_monasca_log_api_wsgi
+        configure_monasca_log_api_core
+        if [ "$MONASCA_LOG_API_DEPLOY" == "mod_wsgi" ]; then
+            configure_monasca_log_api_mod_wsgi
+        elif [ "$MONASCA_LOG_API_DEPLOY" == "uwsgi" ]; then
+            configure_monasca_log_api_uwsgi
         fi
 
         # link configuration for the gate
@@ -236,7 +166,63 @@ function configure_monasca_log_api {
     fi
 }
 
-function configure_monasca_log_api_wsgi {
+function configure_monasca_log_api_core {
+    # Put config files in ``$MONASCA_LOG_API_CONF_DIR`` for everyone to find
+    sudo install -d -o $STACK_USER $MONASCA_LOG_API_CONF_DIR
+    sudo install -m 700 -d -o $STACK_USER $MONASCA_LOG_API_CACHE_DIR
+    sudo install -d -o $STACK_USER $MONASCA_LOG_API_LOG_DIR
+
+    # ensure fresh installation of configuration files
+    rm -rf $MONASCA_LOG_API_CONF $MONASCA_LOG_API_PASTE $MONASCA_LOG_API_LOGGING_CONF
+
+    $MONASCA_LOG_API_BIN_DIR/oslo-config-generator \
+        --config-file $MONASCA_LOG_API_DIR/config-generator/monasca-log-api.conf \
+        --output-file /tmp/log-api.conf
+
+    install -m 600 /tmp/log-api.conf $MONASCA_LOG_API_CONF && rm -rf /tmp/log-api.conf
+    install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-paste.ini $MONASCA_LOG_API_PASTE
+    install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-logging.conf $MONASCA_LOG_API_LOGGING_CONF
+
+    # configure log-api.conf
+    iniset "$MONASCA_LOG_API_CONF" DEFAULT log_config_append $MONASCA_LOG_API_LOGGING_CONF
+    iniset "$MONASCA_LOG_API_CONF" service region $REGION_NAME
+
+    iniset "$MONASCA_LOG_API_CONF" log_publisher kafka_url $KAFKA_SERVICE_HOST:$KAFKA_SERVICE_PORT
+    iniset "$MONASCA_LOG_API_CONF" log_publisher topics log
+
+    iniset "$MONASCA_LOG_API_CONF" kafka_healthcheck kafka_url $KAFKA_SERVICE_HOST:$KAFKA_SERVICE_PORT
+    iniset "$MONASCA_LOG_API_CONF" kafka_healthcheck kafka_topics log
+
+    iniset "$MONASCA_LOG_API_CONF" roles_middleware path "/v2.0/log,/v3.0/logs"
+    iniset "$MONASCA_LOG_API_CONF" roles_middleware default_roles monasca-user
+    iniset "$MONASCA_LOG_API_CONF" roles_middleware agent_roles monasca-agent
+    iniset "$MONASCA_LOG_API_CONF" roles_middleware delegate_roles admin
+
+    # configure keystone middleware
+    configure_auth_token_middleware "$MONASCA_LOG_API_CONF" "admin" $MONASCA_LOG_API_CACHE_DIR
+    iniset "$MONASCA_LOG_API_CONF" keystone_authtoken region_name $REGION_NAME
+    iniset "$MONASCA_LOG_API_CONF" keystone_authtoken project_name "admin"
+    iniset "$MONASCA_LOG_API_CONF" keystone_authtoken password $ADMIN_PASSWORD
+
+    # insecure
+    if is_service_enabled tls-proxy; then
+        iniset "$MONASCA_LOG_API_CONF" keystone_authtoken insecure False
+    fi
+
+    # configure log-api-paste.ini
+    iniset "$MONASCA_LOG_API_PASTE" server:main bind $MONASCA_LOG_API_SERVICE_HOST:$MONASCA_LOG_API_SERVICE_PORT
+    iniset "$MONASCA_LOG_API_PASTE" server:main chdir $MONASCA_LOG_API_DIR
+    iniset "$MONASCA_LOG_API_PASTE" server:main workers $API_WORKERS
+}
+
+function configure_monasca_log_api_uwsgi {
+    rm -rf $MONASCA_LOG_API_UWSGI_CONF
+    install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-uwsgi.ini $MONASCA_LOG_API_UWSGI_CONF
+
+    write_uwsgi_config "$MONASCA_LOG_API_UWSGI_CONF" "$MONASCA_LOG_API_WSGI" "/logs"
+}
+
+function configure_monasca_log_api_mod_wsgi {
     sudo install -d $MONASCA_LOG_API_WSGI_DIR
 
     local monasca_log_api_apache_conf
@@ -253,17 +239,19 @@ function configure_monasca_log_api_wsgi {
         monasca_log_api_certfile="SSLCertificateFile $MONASCA_LOG_API_SSL_CERT"
         monasca_log_api_keyfile="SSLCertificateKeyFile $MONASCA_LOG_API_SSL_KEY"
     fi
+    if is_service_enabled tls-proxy; then
+        monasca_log_api_api_port=$MONASCA_LOG_API_SERVICE_PORT_INT
+    fi
     if [[ ${USE_VENV} = True ]]; then
         venv_path="python-path=${PROJECT_VENV["monasca_log_api"]}/lib/$(python_version)/site-packages"
     fi
 
     # copy proxy vhost and wsgi helper files
-    sudo cp $MONASCA_LOG_API_BIN_DIR/monasca-log-api-wsgi  $MONASCA_LOG_API_WSGI_DIR/monasca_log_api
     sudo cp $PLUGIN_FILES/apache-log-api.template $monasca_log_api_apache_conf
     sudo sed -e "
         s|%PUBLICPORT%|$monasca_log_api_api_port|g;
         s|%APACHE_NAME%|$APACHE_NAME|g;
-        s|%PUBLICWSGI%|$MONASCA_LOG_API_WSGI_DIR/monasca_log_api|g;
+        s|%PUBLICWSGI%|$MONASCA_LOG_API_BIN_DIR/monasca-log-api-wsgi|g;
         s|%SSLENGINE%|$monasca_log_api_ssl|g;
         s|%SSLCERTFILE%|$monasca_log_api_certfile|g;
         s|%SSLKEYFILE%|$monasca_log_api_keyfile|g;
@@ -310,38 +298,48 @@ function start_monasca_log_api {
             service_port=$MONASCA_LOG_API_SERVICE_PORT_INT
             service_protocol="http"
         fi
+        local service_uri
 
-        restart_service memcached
-
-        local enabled_site_file
-        enabled_site_file=$(apache_site_config_for monasca-log-api)
-        if [ -f ${enabled_site_file} ] && [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "True" ]; then
-            enable_apache_site monasca-log-api
-            restart_apache_server
-            tail_log monasca-log-api /var/log/$APACHE_NAME/monasca-log-api.log
+        if [ "$MONASCA_LOG_API_DEPLOY" == "mod_wsgi" ]; then
+            local enabled_site_file
+            enabled_site_file=$(apache_site_config_for monasca-log-api)
+            service_uri=$service_protocol://$MONASCA_LOG_API_SERVICE_HOST/logs/v3.0
+            if [ -f ${enabled_site_file} ]; then
+                enable_apache_site monasca-log-api
+                restart_apache_server
+                tail_log monasca-log-api /var/log/$APACHE_NAME/monasca-log-api.log
+            fi
+        elif [ "$MONASCA_LOG_API_DEPLOY" == "uwsgi" ]; then
+            service_uri=$service_protocol://$MONASCA_LOG_API_SERVICE_HOST/logs/v3.0
+            run_process "monasca-log-api" "$MONASCA_LOG_API_BIN_DIR/uwsgi --ini $MONASCA_LOG_API_UWSGI_CONF" ""
         else
-            local gunicorn="$MONASCA_LOG_API_BIN_DIR/gunicorn"
-            run_process "monasca-log-api" "$gunicorn --paste $MONASCA_LOG_API_PASTE"
+            service_uri=$service_protocol://$MONASCA_LOG_API_SERVICE_HOST:$service_port
+            run_process "monasca-log-api" "$MONASCA_LOG_API_BIN_DIR/gunicorn --paste $MONASCA_LOG_API_PASTE" ""
         fi
 
         echo "Waiting for monasca-log-api to start..."
-        if ! wait_for_service $SERVICE_TIMEOUT $service_protocol://$SERVICE_HOST:$service_port; then
+        if ! wait_for_service $SERVICE_TIMEOUT $service_uri; then
             die $LINENO "monasca-log-api did not start"
         fi
 
         if is_service_enabled tls-proxy; then
             start_tls_proxy monasca-log-api '*' $MONASCA_LOG_API_SERVICE_PORT $MONASCA_LOG_API_SERVICE_HOST $MONASCA_LOG_API_SERVICE_PORT_INT
         fi
+
+        restart_service memcached
     fi
 }
 
 function stop_monasca_log_api {
     if is_service_enabled monasca-log-api; then
-        if [ "$MONASCA_LOG_API_USE_MOD_WSGI" == "True" ]; then
+        if [ "$MONASCA_LOG_API_DEPLOY" == "mod_wsgi" ]; then
             disable_apache_site monasca-log-api
             restart_apache_server
         else
-            stop_process "monasca-log-api" || true
+            stop_process "monasca-log-api"
+            if [ "$MONASCA_LOG_API_DEPLOY" == "uwsgi" ]; then
+                remove_uwsgi_config  "$MONASCA_LOG_API_UWSGI_CONF" "$MONASCA_LOG_API_WSGI"
+            fi
         fi
     fi
 }
@@ -435,7 +433,7 @@ function start_elasticsearch {
         echo_summary "Starting ElasticSearch ${ELASTICSEARCH_VERSION}"
         # 5 extra seconds to ensure that ES started properly
         local esSleepTime=${ELASTICSEARCH_SLEEP_TIME:-5}
-        _run_process_sleep "elasticsearch" "$ELASTICSEARCH_DIR/bin/elasticsearch" $esSleepTime
+        run_process_sleep "elasticsearch" "$ELASTICSEARCH_DIR/bin/elasticsearch" $esSleepTime
     fi
 }
 
@@ -508,7 +506,7 @@ function start_kibana {
         echo_summary "Starting Kibana ${KIBANA_VERSION}"
         local kibanaSleepTime=${KIBANA_SLEEP_TIME:-90}     # kibana takes some time to load up
         local kibanaCFG="$KIBANA_CFG_DIR/kibana.yml"
-        _run_process_sleep "kibana" "$KIBANA_DIR/bin/kibana --config $kibanaCFG" $kibanaSleepTime
+        run_process_sleep "kibana" "$KIBANA_DIR/bin/kibana --config $kibanaCFG" $kibanaSleepTime
     fi
 }
 
@@ -780,22 +778,6 @@ function enable_log_management {
 
         restart_apache_server
     fi
-}
-
-function _run_process_sleep {
-    local name=$1
-    local cmd=$2
-    local sleepTime=${3:-1}
-    run_process "$name" "$cmd"
-    sleep ${sleepTime}
-}
-
-function is_logstash_required {
-    is_service_enabled monasca-log-persister \
-        || is_service_enabled monasca-log-transformer \
-        || is_service_enabled monasca-log-metrics \
-        || is_service_enabled monasca-log-agent \
-        && return 0
 }
 
 # check for service enabled
