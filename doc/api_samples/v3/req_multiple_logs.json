@@ -1,0 +1,26 @@
+{
+    "dimensions":{},
+    "logs":[
+        {
+            "message":"msg1",
+            "dimensions":{
+                "component":"mysql",
+                "path":"/var/log/mysql.log"
+            }
+        },
+        {
+            "message":"msg2",
+            "dimensions":{
+                "component":"monasca-api",
+                "path":"/var/log/monasca/monasca-api.log"
+            }
+        },
+        {
+            "message":"msg3",
+            "dimensions":{
+                "component":"monasca-log-api",
+                "path":"/var/log/monasca/monasca-log-api.log"
+            }
+        }
+    ]
+}

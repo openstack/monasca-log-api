@@ -1,0 +1,22 @@
+{
+    "dimensions":{
+        "hostname":"mini-mon",
+        "service":"monitoring"
+    },
+    "logs":[
+        {
+            "message":"msg1",
+            "dimensions":{
+                "component":"mysql",
+                "path":"/var/log/mysql.log"
+            }
+        },
+        {
+            "message":"msg2",
+            "dimensions":{
+                "component":"monasca-api",
+                "path":"/var/log/monasca/monasca-api.log"
+            }
+        }
+    ]
+}

@@ -1,0 +1,12 @@
+{
+    "dimensions":{},
+    "logs":[
+        {
+            "message":"msg1",
+            "dimensions":{
+                "component":"mysql",
+                "path":"/var/log/mysql.log"
+            }
+        }
+    ]
+}

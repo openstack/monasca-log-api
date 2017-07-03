@@ -70,7 +70,7 @@ class RoleMiddleware(om.ConfigurableMiddleware):
     exits silently (that is considered a success). Otherwise
     middleware produces JSON response according to following schema
 
-    .. code-block:: json
+    .. code-block:: javascript
 
         {
           'title': u'Unauthorized',
