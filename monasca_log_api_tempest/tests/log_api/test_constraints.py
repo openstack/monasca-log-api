@@ -26,10 +26,12 @@ class TestLogApiConstraints(base.BaseLogsTestCase):
             try:
                 cli.custom_request('POST', headers, None)
             except exceptions.UnprocessableEntity as urc:
-                self.assertEqual(422, urc.resp.status)
+                # depending on the actual server (for example gunicorn vs mod_wsgi)
+                # monasca-log-api may return a different error code
+                self.assertTrue(urc.resp.status in [411, 422])
                 return
 
-            self.assertTrue(False, 'API should respond with 411')
+            self.assertTrue(False, 'API should respond with an error')
 
     @decorators.attr(type='gate')
     def test_should_reject_if_content_type_missing(self):
