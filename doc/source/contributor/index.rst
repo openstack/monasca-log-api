@@ -1,5 +1,6 @@
-Monasca Log Contribution Guidelines
-===================================
+=======================
+Contribution Guidelines
+=======================
 
 In the Contributions Guide, you will find documented policies for
 developing with monasca-log. This includes the processes we use for

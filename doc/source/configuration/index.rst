@@ -1,8 +1,8 @@
 .. _configuring:
 
-=====================================
-Monasca Log Api Configuration Options
-=====================================
+============
+Cofiguration
+============
 
 This section provides a list of all possible options for each
 configuration file. Refer to :ref:`basic-configuration` for a
