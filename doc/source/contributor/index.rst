@@ -26,11 +26,12 @@ Developer reference
    :maxdepth: 1
 
    tox
+   code
 
 Changelog
 ---------
 
 .. toctree::
-    :maxdepth: 1
+   :maxdepth: 1
 
-    history
+   history

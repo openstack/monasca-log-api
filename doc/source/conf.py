@@ -34,8 +34,7 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.ifconfig',
     'sphinx.ext.graphviz',
-    # 'sphinx.ext.autodoc' causes gate failures, enable as soon as sorted out
-    # TODO(trebskit)
+    'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
     # TODO(trebskit) enable as soon as we get configgen in place
     # 'oslo_config.sphinxconfiggen'
