@@ -36,9 +36,8 @@ extensions = [
     'sphinx.ext.graphviz',
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
-    # TODO(trebskit) enable as soon as we get configgen in place
-    # 'oslo_config.sphinxconfiggen'
-    # 'oslo_config.sphinxext',
+    'oslo_config.sphinxconfiggen',
+    'oslo_config.sphinxext',
     'openstackdocstheme',
 ]
 
@@ -51,6 +50,11 @@ bug_project = u'monasca-log-api'
 bug_tag = u'doc'
 copyright = u'2014-present, OpenStack Foundation'
 author = u'OpenStack Foundation'
+
+# sample config
+config_generator_config_file = [
+    ('config-generator/monasca-log-api.conf', '_static/log-api')
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -124,7 +128,7 @@ html_theme = 'openstackdocs'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = []
+html_static_path = ['_static']
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied

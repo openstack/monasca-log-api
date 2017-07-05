@@ -1,0 +1,18 @@
+---
+prelude: >
+    Matching OpenStack projects in configuration handling.
+other:
+  - Removed configuration file from project tree. It is now generated via
+    oslo-config-generator utility.
+
+    Moved all the code where configuration options are registered into single
+    location to mimic the configuration file (i.e. provide single place as it
+    was with configuration file).
+
+    Removed final place where configuration is duplicated. In other words
+    person providing and/or modyfying options could have been forced to include
+    them also in the configuration file held in the tree. Not the only place
+    where it is required is Python codebase.
+
+    Devstack plugin is also using new utility to provide configuration for
+    monasca-log-api launched inside the VM or Gate environment.

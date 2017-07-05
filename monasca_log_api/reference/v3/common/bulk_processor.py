@@ -12,15 +12,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from oslo_config import cfg
 from oslo_log import log
 
+from monasca_log_api import conf
 from monasca_log_api.reference.common import log_publisher
 from monasca_log_api.reference.common import model
 from monasca_log_api.reference.common import validation
 
 LOG = log.getLogger(__name__)
-CONF = cfg.CONF
+CONF = conf.CONF
 
 
 class BulkProcessor(log_publisher.LogPublisher):

@@ -1,4 +1,4 @@
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2015-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -14,28 +14,13 @@
 
 import collections
 
-from oslo_config import cfg
+from monasca_common.kafka_lib import client
 from oslo_log import log
 
-from monasca_common.kafka_lib import client
+from monasca_log_api import conf
 
 LOG = log.getLogger(__name__)
-CONF = cfg.CONF
-
-kafka_check_opts = [
-    cfg.StrOpt('kafka_url',
-               required=True,
-               help='Url to kafka server'),
-    cfg.ListOpt('kafka_topics',
-                required=True,
-                default=['logs'],
-                help='Verify existence of configured topics')
-]
-kafka_check_group = cfg.OptGroup(name='kafka_healthcheck',
-                                 title='kafka_healthcheck')
-
-cfg.CONF.register_group(kafka_check_group)
-cfg.CONF.register_opts(kafka_check_opts, kafka_check_group)
+CONF = conf.CONF
 
 
 CheckResult = collections.namedtuple('CheckResult', ['healthy', 'message'])

@@ -184,17 +184,28 @@ function configure_monasca_log_api {
         # ensure fresh installation of configuration files
         rm -rf $MONASCA_LOG_API_CONF $MONASCA_LOG_API_PASTE $MONASCA_LOG_API_LOGGING_CONF
 
-        if [[ "$MONASCA_LOG_API_CONF_DIR" != "$MONASCA_LOG_API_DIR/etc/monasca" ]]; then
-            install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api.conf $MONASCA_LOG_API_CONF
-            install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-paste.ini $MONASCA_LOG_API_PASTE
-            install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-logging.conf $MONASCA_LOG_API_LOGGING_CONF
-        fi
+        $MONASCA_LOG_API_BIN_DIR/oslo-config-generator \
+            --config-file $MONASCA_LOG_API_DIR/config-generator/monasca-log-api.conf \
+            --output-file /tmp/log-api.conf
+
+        install -m 600 /tmp/log-api.conf $MONASCA_LOG_API_CONF && rm -rf /tmp/log-api.conf
+        install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-paste.ini $MONASCA_LOG_API_PASTE
+        install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-logging.conf $MONASCA_LOG_API_LOGGING_CONF
 
         # configure log-api.conf
         iniset "$MONASCA_LOG_API_CONF" DEFAULT log_config_append $MONASCA_LOG_API_LOGGING_CONF
         iniset "$MONASCA_LOG_API_CONF" service region $REGION_NAME
+
         iniset "$MONASCA_LOG_API_CONF" log_publisher kafka_url $KAFKA_SERVICE_HOST:$KAFKA_SERVICE_PORT
+        iniset "$MONASCA_LOG_API_CONF" log_publisher topics log
+
         iniset "$MONASCA_LOG_API_CONF" kafka_healthcheck kafka_url $KAFKA_SERVICE_HOST:$KAFKA_SERVICE_PORT
+        iniset "$MONASCA_LOG_API_CONF" kafka_healthcheck kafka_topics log
+
+        iniset "$MONASCA_LOG_API_CONF" roles_middleware path "/v2.0/log,/v3.0/logs"
+        iniset "$MONASCA_LOG_API_CONF" roles_middleware default_roles monasca-user
+        iniset "$MONASCA_LOG_API_CONF" roles_middleware agent_roles monasca-agent
+        iniset "$MONASCA_LOG_API_CONF" roles_middleware delegate_roles admin
 
         # configure keystone middleware
         configure_auth_token_middleware "$MONASCA_LOG_API_CONF" "admin" $MONASCA_LOG_API_CACHE_DIR

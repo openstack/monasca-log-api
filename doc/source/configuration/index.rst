@@ -12,7 +12,8 @@ monasca-log-api uses the following configuration files
 for its various services.
 
 .. toctree::
-   :glob:
    :maxdepth: 1
 
-   *
+   configuring
+   monasca_log_api
+   sample

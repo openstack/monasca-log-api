@@ -20,21 +20,15 @@ of monasca-log-api
 import six
 
 import falcon
-from oslo_config import cfg
 from oslo_log import log
 
 from monasca_log_api.api.core import request
+from monasca_log_api import config
 from monasca_log_api.reference.common import error_handlers
 from monasca_log_api.reference import healthchecks
 from monasca_log_api.reference.v2 import logs as v2_logs
 from monasca_log_api.reference.v3 import logs as v3_logs
 from monasca_log_api.reference import versions
-from monasca_log_api import version
-
-LOG = log.getLogger(__name__)
-CONF = cfg.CONF
-
-_CONF_LOADED = False
 
 
 def error_trap(app_name):
@@ -48,7 +42,8 @@ def error_trap(app_name):
             try:
                 return func(*args, **kwargs)
             except Exception:
-                LOG.exception('Failed to load application \'%s\'', app_name)
+                logger = log.getLogger(__name__)
+                logger.exception('Failed to load application \'%s\'', app_name)
                 raise
 
         return _inner_wrapper
@@ -61,33 +56,8 @@ def singleton_config(func):
 
     @six.wraps(singleton_config)
     def _wrapper(global_config, **local_conf):
-        _load_config()
+        config.parse_args()
         return func(global_config, **local_conf)
-
-    def _load_config():
-        global _CONF_LOADED
-        if _CONF_LOADED:
-            LOG.debug('Configuration has been already loaded')
-            return
-
-        log.set_defaults()
-        log.register_options(CONF)
-
-        CONF(args=[],
-             # NOTE(trebskit) this disables any oslo.cfg CLI
-             # opts as gunicorn has some trouble with them
-             # i.e. gunicorn's argparse clashes with the one
-             # defined inside oslo.cfg
-             prog='log-api',
-             project='monasca',
-             version=version.version_str,
-             description='REST-ful API to collect log files')
-
-        log.setup(CONF,
-                  product_name='monasca-log-api',
-                  version=version.version_str)
-
-        _CONF_LOADED = True
 
     return _wrapper
 

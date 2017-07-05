@@ -1,4 +1,4 @@
-# Copyright 2015 FUJITSU LIMITED
+# Copyright 2015-2017 FUJITSU LIMITED
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -12,35 +12,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from oslo_config import cfg
 from oslo_log import log
 from oslo_middleware import base as om
 from webob import response
 
-CONF = cfg.CONF
+from monasca_log_api import conf
+
+CONF = conf.CONF
 LOG = log.getLogger(__name__)
-
-role_m_opts = [
-    cfg.ListOpt(name='path',
-                default='/',
-                help='List of paths where middleware applies to'),
-    cfg.ListOpt(name='default_roles',
-                default=None,
-                help='List of roles allowed to enter api'),
-    cfg.ListOpt(name='agent_roles',
-                default=None,
-                help=('List of roles, that if set, mean that request '
-                      'comes from agent, thus is authorized in the same '
-                      'time')),
-    cfg.ListOpt(name='delegate_roles',
-                default=['admin'],
-                help=('Roles that are allowed to POST logs on '
-                      'behalf of another tenant (project)'))
-]
-role_m_group = cfg.OptGroup(name='roles_middleware', title='roles_middleware')
-
-CONF.register_group(role_m_group)
-CONF.register_opts(role_m_opts, role_m_group)
 
 _X_IDENTITY_STATUS = 'X-Identity-Status'
 _X_ROLES = 'X-Roles'
