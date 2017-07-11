@@ -24,12 +24,8 @@ def _get_versioned_url(version_id):
 
 
 class TestApiVersions(base.BaseApiTestCase):
-    def __init__(self, *args, **kwargs):
-        self.versions = None
-        super(TestApiVersions, self).__init__(*args, **kwargs)
 
     def before(self):
-        super(TestApiVersions, self).before()
         self.versions = versions.Versions()
         self.api.add_route("/version/", self.versions)
         self.api.add_route("/version/{version_id}", self.versions)

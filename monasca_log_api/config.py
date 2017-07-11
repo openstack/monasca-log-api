@@ -12,6 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import sys
+
 from oslo_log import log
 
 from monasca_log_api import conf
@@ -21,9 +23,17 @@ CONF = conf.CONF
 LOG = log.getLogger(__name__)
 
 _CONF_LOADED = False
+_GUNICORN_MARKER = 'gunicorn'
 
 
-def parse_args():
+def _is_running_under_gunicorn():
+    """Evaluates if api runs under gunicorn"""
+    content = filter(lambda x: x != sys.executable and _GUNICORN_MARKER in x,
+                     sys.argv or [])
+    return len(list(content) if not isinstance(content, list) else content) > 0
+
+
+def parse_args(argv=None):
     global _CONF_LOADED
     if _CONF_LOADED:
         LOG.debug('Configuration has been already loaded')
@@ -32,11 +42,10 @@ def parse_args():
     log.set_defaults()
     log.register_options(CONF)
 
-    CONF(args=[],
-         # NOTE(trebskit) this disables any oslo.cfg CLI
-         # opts as gunicorn has some trouble with them
-         # i.e. gunicorn's argparse clashes with the one
-         # defined inside oslo.cfg
+    argv = (argv if argv is not None else sys.argv[1:])
+    args = ([] if _is_running_under_gunicorn() else argv or [])
+
+    CONF(args=args,
          prog='log-api',
          project='monasca',
          version=version.version_str,

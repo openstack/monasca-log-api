@@ -3,13 +3,13 @@
 doc/build/*
 dist
 build
-cover
-.coverage
+cover/
+.coverage.*
 *.egg
 *.egg-info
 .eggs/
-.testrepository
-.tox
+.testrepository/
+.tox/
 ChangeLog
 MANIFEST
 AUTHORS

@@ -30,7 +30,7 @@ def get_wsgi_app():
 
     return deploy.loadapp(
         'config:%s/log-api-paste.ini' % config_dir,
-        relative_to='../../',
+        relative_to='./',
         name='main'
     )
 

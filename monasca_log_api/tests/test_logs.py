@@ -196,7 +196,7 @@ class TestApiLogs(base.BaseApiTestCase):
 
         max_log_size = 1000
         content_length = max_log_size - 100
-        self.conf.config(max_log_size=max_log_size, group='service')
+        self.conf_override(max_log_size=max_log_size, group='service')
 
         self.simulate_request(
             '/log/single',
@@ -217,7 +217,7 @@ class TestApiLogs(base.BaseApiTestCase):
 
         max_log_size = 1000
         content_length = max_log_size + 100
-        self.conf.config(max_log_size=max_log_size, group='service')
+        self.conf_override(max_log_size=max_log_size, group='service')
 
         self.simulate_request(
             '/log/single',
@@ -238,7 +238,7 @@ class TestApiLogs(base.BaseApiTestCase):
 
         max_log_size = 1000
         content_length = max_log_size
-        self.conf.config(max_log_size=max_log_size, group='service')
+        self.conf_override(max_log_size=max_log_size, group='service')
 
         self.simulate_request(
             '/log/single',

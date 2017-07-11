@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Enabled possibility of specifying the CLI arguments, when launching
+    monasca-log-api, for cases where API is not deployed using Gunicorn
+    server.

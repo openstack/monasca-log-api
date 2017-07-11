@@ -20,6 +20,7 @@ import ujson
 import unittest
 
 import mock
+from oslo_config import cfg
 from oslo_log import log
 import six
 
@@ -32,10 +33,6 @@ EPOCH_START = datetime.datetime(1970, 1, 1)
 
 
 class TestSendMessage(base.BaseTestCase):
-
-    def setUp(self):
-        self.conf = base.mock_config(self)
-        return super(TestSendMessage, self).setUp()
 
     @mock.patch('monasca_log_api.reference.common.log_publisher.producer'
                 '.KafkaProducer')
@@ -133,16 +130,16 @@ class TestSendMessage(base.BaseTestCase):
         instance.send_message(msg)
 
         instance._kafka_publisher.publish.assert_called_once_with(
-            self.conf.conf.log_publisher.topics[0],
+            cfg.CONF.log_publisher.topics[0],
             [ujson.dumps(msg, ensure_ascii=False).encode('utf-8')])
 
     @mock.patch('monasca_log_api.reference.common.log_publisher.producer'
                 '.KafkaProducer')
     def test_should_send_message_multiple_topics(self, _):
         topics = ['logs', 'analyzer', 'tester']
-        self.conf.config(topics=topics,
-                         max_message_size=5000,
-                         group='log_publisher')
+        self.conf_override(topics=topics,
+                           max_message_size=5000,
+                           group='log_publisher')
 
         instance = log_publisher.LogPublisher()
         instance._kafka_publisher = mock.Mock()
@@ -210,7 +207,7 @@ class TestSendMessage(base.BaseTestCase):
                     expected_message = expected_message.encode('utf-8')
 
                 instance._kafka_publisher.publish.assert_called_with(
-                    self.conf.conf.log_publisher.topics[0],
+                    cfg.CONF.log_publisher.topics[0],
                     [expected_message]
                 )
             except Exception:
@@ -227,14 +224,6 @@ class TestTruncation(base.BaseTestCase):
             'message': None
         }
     }), 'utf8')) - 2
-
-    def __init__(self, *args, **kwargs):
-        super(TestTruncation, self).__init__(*args, **kwargs)
-        self._conf = None
-
-    def setUp(self):
-        super(TestTruncation, self).setUp()
-        self._conf = base.mock_config(self)
 
     def test_should_not_truncate_message_if_size_is_smaller(self, _):
         diff_size = random.randint(1, 100)
@@ -269,7 +258,7 @@ class TestTruncation(base.BaseTestCase):
 
         expected_log_message_size = log_size - truncate_by
 
-        self._conf.config(
+        self.conf_override(
             group='log_publisher',
             max_message_size=max_message_size
         )

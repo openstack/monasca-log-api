@@ -30,12 +30,7 @@ class IsDelegate(base.BaseTestCase):
 
     def __init__(self, *args, **kwargs):
         super(IsDelegate, self).__init__(*args, **kwargs)
-        self._conf = None
         self._roles = ['admin']
-
-    def setUp(self):
-        super(IsDelegate, self).setUp()
-        self._conf = base.mock_config(self)
 
     def test_is_delegate_ok_role(self):
         self.assertTrue(validation.validate_is_delegate(self._roles))
@@ -277,9 +272,6 @@ class ContentTypeValidations(base.BaseTestCase):
 
 
 class PayloadSizeValidations(base.BaseTestCase):
-    def setUp(self):
-        super(PayloadSizeValidations, self).setUp()
-        self.conf = base.mock_config(self)
 
     def test_should_fail_missing_header(self):
         content_length = None
@@ -294,8 +286,8 @@ class PayloadSizeValidations(base.BaseTestCase):
     def test_should_pass_limit_not_exceeded(self):
         content_length = 120
         max_log_size = 240
-        self.conf.config(max_log_size=max_log_size,
-                         group='service')
+        self.conf_override(max_log_size=max_log_size,
+                           group='service')
 
         req = mock.Mock()
         req.content_length = content_length
@@ -305,8 +297,8 @@ class PayloadSizeValidations(base.BaseTestCase):
     def test_should_fail_limit_exceeded(self):
         content_length = 120
         max_log_size = 60
-        self.conf.config(max_log_size=max_log_size,
-                         group='service')
+        self.conf_override(max_log_size=max_log_size,
+                           group='service')
 
         req = mock.Mock()
         req.content_length = content_length
@@ -320,8 +312,8 @@ class PayloadSizeValidations(base.BaseTestCase):
     def test_should_fail_limit_equal(self):
         content_length = 120
         max_log_size = 120
-        self.conf.config(max_log_size=max_log_size,
-                         group='service')
+        self.conf_override(max_log_size=max_log_size,
+                           group='service')
 
         req = mock.Mock()
         req.content_length = content_length
