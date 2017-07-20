@@ -22,13 +22,13 @@ import six
 import falcon
 from oslo_log import log
 
-from monasca_log_api.api.core import request
+from monasca_log_api.app.base import error_handlers
+from monasca_log_api.app.base import request
+from monasca_log_api.app.controller import healthchecks
+from monasca_log_api.app.controller.v2 import logs as v2_logs
+from monasca_log_api.app.controller.v3 import logs as v3_logs
+from monasca_log_api.app.controller import versions
 from monasca_log_api import config
-from monasca_log_api.reference.common import error_handlers
-from monasca_log_api.reference import healthchecks
-from monasca_log_api.reference.v2 import logs as v2_logs
-from monasca_log_api.reference.v3 import logs as v3_logs
-from monasca_log_api.reference import versions
 
 
 def error_trap(app_name):

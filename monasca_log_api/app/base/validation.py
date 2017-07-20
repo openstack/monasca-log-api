@@ -18,7 +18,7 @@ import falcon
 from oslo_log import log
 import six
 
-from monasca_log_api.api import exceptions
+from monasca_log_api.app.base import exceptions
 from monasca_log_api import conf
 
 LOG = log.getLogger(__name__)

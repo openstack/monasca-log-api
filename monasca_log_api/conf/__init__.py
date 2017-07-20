@@ -33,33 +33,19 @@ def load_conf_modules():
     - register_opts (required by :py:currentmodule:)
 
     """
-    imported_modules = []
     for modname in _list_module_names():
         mod = importutils.import_module('monasca_log_api.conf.' + modname)
         required_funcs = ['register_opts', 'list_opts']
         for func in required_funcs:
-            if not hasattr(mod, func):
-                msg = ("The module 'monasca_log_api.conf.%s' should have a"
-                       " '%s' function which returns"
-                       " the config options."
-                       % (modname, func))
-                LOG.warning(msg)
-            else:
-                imported_modules.append(mod)
-
-    LOG.debug('Found %d modules that contain configuration',
-              len(imported_modules))
-
-    return imported_modules
+            if hasattr(mod, func):
+                yield mod
 
 
 def _list_module_names():
-    module_names = []
     package_path = os.path.dirname(os.path.abspath(__file__))
     for _, modname, ispkg in pkgutil.iter_modules(path=[package_path]):
         if not (modname == "opts" and ispkg):
-            module_names.append(modname)
-    return module_names
+            yield modname
 
 
 def register_opts():

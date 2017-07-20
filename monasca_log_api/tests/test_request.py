@@ -15,8 +15,8 @@
 from falcon import testing
 from mock import mock
 
-from monasca_log_api.api.core import request
-from monasca_log_api.reference.common import validation
+from monasca_log_api.app.base import request
+from monasca_log_api.app.base import validation
 from monasca_log_api.tests import base
 
 

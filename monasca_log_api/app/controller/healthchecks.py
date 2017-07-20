@@ -13,10 +13,9 @@
 # under the License.
 
 import falcon
-
 from monasca_common.rest import utils as rest_utils
 
-from monasca_log_api.api import healthcheck_api
+from monasca_log_api.app.controller.api import healthcheck_api
 from monasca_log_api.healthcheck import kafka_check
 
 

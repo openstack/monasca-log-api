@@ -19,10 +19,10 @@ from monasca_common.rest import utils as rest_utils
 from oslo_config import cfg
 from oslo_log import log
 
-from monasca_log_api.api import exceptions
+from monasca_log_api.app.base import exceptions
+from monasca_log_api.app.base import model
+from monasca_log_api.app.base import validation
 from monasca_log_api import conf
-from monasca_log_api.reference.common import model
-from monasca_log_api.reference.common import validation
 
 LOG = log.getLogger(__name__)
 CONF = conf.CONF

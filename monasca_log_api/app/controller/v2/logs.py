@@ -16,10 +16,10 @@
 import falcon
 import six
 
-from monasca_log_api.api import headers
-from monasca_log_api.api import logs_api
-from monasca_log_api.reference.common import log_publisher
-from monasca_log_api.reference.v2.common import service
+from monasca_log_api.app.base import log_publisher
+from monasca_log_api.app.controller.api import headers
+from monasca_log_api.app.controller.api import logs_api
+from monasca_log_api.app.controller.v2.aid import service
 
 _DEPRECATED_INFO = ('/v2.0/log/single has been deprecated. '
                     'Please use /v3.0/logs')

@@ -27,7 +27,7 @@ from oslo_context import fixture as oo_ctx
 from oslotest import base as oslotest_base
 import six
 
-from monasca_log_api.api.core import request
+from monasca_log_api.app.base import request
 from monasca_log_api import conf
 from monasca_log_api import config
 

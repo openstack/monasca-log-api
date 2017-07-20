@@ -16,9 +16,9 @@
 import falcon
 import mock
 
-from monasca_log_api.api import exceptions as log_api_exceptions
-from monasca_log_api.api import headers
-from monasca_log_api.reference.v2 import logs
+from monasca_log_api.app.base import exceptions as log_api_exceptions
+from monasca_log_api.app.controller.api import headers
+from monasca_log_api.app.controller.v2 import logs
 from monasca_log_api.tests import base
 
 ROLES = 'admin'
@@ -31,8 +31,8 @@ def _init_resource(test):
 
 
 class TestApiLogsVersion(base.BaseApiTestCase):
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
-    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
     def test_should_return_v2_as_version(self, _, __):
         logs_resource = logs.Logs()
         self.assertEqual('v2.0', logs_resource.version)
@@ -40,8 +40,8 @@ class TestApiLogsVersion(base.BaseApiTestCase):
 
 class TestApiLogs(base.BaseApiTestCase):
 
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
-    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
     def test_should_contain_deprecated_details_in_successful_response(self,
                                                                       _,
                                                                       __):
@@ -62,8 +62,8 @@ class TestApiLogs(base.BaseApiTestCase):
         self.assertIn('deprecated', self.srmock.headers_dict)
         self.assertIn('link', self.srmock.headers_dict)
 
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
-    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
+    @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
     def test_should_fail_not_delegate_ok_cross_tenant_id(self, _, __):
         _init_resource(self)
         self.simulate_request(
@@ -77,8 +77,8 @@ class TestApiLogs(base.BaseApiTestCase):
         )
         self.assertEqual(falcon.HTTP_403, self.srmock.status)
 
-    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
+    @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
     def test_should_pass_empty_cross_tenant_id_wrong_role(self,
                                                           log_creator,
                                                           kafka_publisher):
@@ -102,8 +102,8 @@ class TestApiLogs(base.BaseApiTestCase):
         self.assertEqual(1, log_creator.new_log.call_count)
         self.assertEqual(1, log_creator.new_log_envelope.call_count)
 
-    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
+    @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
     def test_should_pass_empty_cross_tenant_id_ok_role(self,
                                                        log_creator,
                                                        kafka_publisher):
@@ -127,8 +127,8 @@ class TestApiLogs(base.BaseApiTestCase):
         self.assertEqual(1, log_creator.new_log.call_count)
         self.assertEqual(1, log_creator.new_log_envelope.call_count)
 
-    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
+    @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
     def test_should_pass_delegate_cross_tenant_id_ok_role(self,
                                                           log_creator,
                                                           log_publisher):
@@ -154,7 +154,7 @@ class TestApiLogs(base.BaseApiTestCase):
         self.assertEqual(1, log_creator.new_log_envelope.call_count)
 
     @mock.patch('monasca_common.rest.utils')
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
     def test_should_fail_empty_dimensions_delegate(self, _, rest_utils):
         _init_resource(self)
         rest_utils.read_body.return_value = True
@@ -172,8 +172,8 @@ class TestApiLogs(base.BaseApiTestCase):
         )
         self.assertEqual(log_api_exceptions.HTTP_422, self.srmock.status)
 
-    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
+    @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
     def test_should_fail_for_invalid_content_type(self, _, __):
         _init_resource(self)
 
@@ -189,8 +189,8 @@ class TestApiLogs(base.BaseApiTestCase):
         )
         self.assertEqual(falcon.HTTP_415, self.srmock.status)
 
-    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
+    @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
     def test_should_pass_payload_size_not_exceeded(self, _, __):
         _init_resource(self)
 
@@ -210,8 +210,8 @@ class TestApiLogs(base.BaseApiTestCase):
         )
         self.assertEqual(falcon.HTTP_204, self.srmock.status)
 
-    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
+    @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
     def test_should_fail_payload_size_exceeded(self, _, __):
         _init_resource(self)
 
@@ -231,8 +231,8 @@ class TestApiLogs(base.BaseApiTestCase):
         )
         self.assertEqual(falcon.HTTP_413, self.srmock.status)
 
-    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
+    @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
     def test_should_fail_payload_size_equal(self, _, __):
         _init_resource(self)
 
@@ -252,8 +252,8 @@ class TestApiLogs(base.BaseApiTestCase):
         )
         self.assertEqual(falcon.HTTP_413, self.srmock.status)
 
-    @mock.patch('monasca_log_api.reference.v2.common.service.LogCreator')
-    @mock.patch('monasca_log_api.reference.common.log_publisher.LogPublisher')
+    @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
+    @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
     def test_should_fail_content_length(self, _, __):
         _init_resource(self)
 

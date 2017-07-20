@@ -20,10 +20,10 @@ from monasca_common.kafka import producer
 from monasca_common.rest import utils as rest_utils
 from oslo_log import log
 
+from monasca_log_api.app.base import model
 from monasca_log_api import conf
 from monasca_log_api.monitoring import client
 from monasca_log_api.monitoring import metrics
-from monasca_log_api.reference.common import model
 
 LOG = log.getLogger(__name__)
 CONF = conf.CONF

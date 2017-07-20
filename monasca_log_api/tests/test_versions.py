@@ -15,7 +15,7 @@
 import falcon
 import ujson as json
 
-from monasca_log_api.reference import versions
+from monasca_log_api.app.controller import versions
 from monasca_log_api.tests import base
 
 

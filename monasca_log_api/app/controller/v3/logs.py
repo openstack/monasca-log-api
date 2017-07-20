@@ -16,12 +16,12 @@
 import falcon
 from oslo_log import log
 
-from monasca_log_api.api import exceptions
-from monasca_log_api.api import logs_api
+from monasca_log_api.app.base import exceptions
+from monasca_log_api.app.base import validation
+from monasca_log_api.app.controller.api import logs_api
+from monasca_log_api.app.controller.v3.aid import bulk_processor
+from monasca_log_api.app.controller.v3.aid import helpers
 from monasca_log_api.monitoring import metrics
-from monasca_log_api.reference.common import validation
-from monasca_log_api.reference.v3.common import bulk_processor
-from monasca_log_api.reference.v3.common import helpers
 
 LOG = log.getLogger(__name__)
 

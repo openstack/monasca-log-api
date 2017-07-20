@@ -16,8 +16,8 @@ import falcon
 import mock
 import simplejson as json
 
+from monasca_log_api.app.controller import healthchecks
 from monasca_log_api.healthcheck import kafka_check as healthcheck
-from monasca_log_api.reference import healthchecks
 from monasca_log_api.tests import base
 
 ENDPOINT = '/healthcheck'

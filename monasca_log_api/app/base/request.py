@@ -16,7 +16,7 @@ import falcon
 
 from oslo_context import context
 
-from monasca_log_api.reference.common import validation
+from monasca_log_api.app.base import validation
 
 _TENANT_ID_PARAM = 'tenant_id'
 """Name of the query-param pointing at project-id (tenant-id)"""

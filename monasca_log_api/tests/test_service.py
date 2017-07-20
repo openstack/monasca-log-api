@@ -20,9 +20,9 @@ from falcon import errors
 from falcon import testing
 import mock
 
-from monasca_log_api.api import exceptions
-from monasca_log_api.reference.common import validation
-from monasca_log_api.reference.v2.common import service as common_service
+from monasca_log_api.app.base import exceptions
+from monasca_log_api.app.base import validation
+from monasca_log_api.app.controller.v2.aid import service as aid_service
 from monasca_log_api.tests import base
 
 
@@ -47,22 +47,22 @@ class IsDelegate(base.BaseTestCase):
 class ParseDimensions(base.BaseTestCase):
     def test_should_fail_for_empty_dimensions(self):
         self.assertRaises(exceptions.HTTPUnprocessableEntity,
-                          common_service.parse_dimensions,
+                          aid_service.parse_dimensions,
                           '')
         self.assertRaises(exceptions.HTTPUnprocessableEntity,
-                          common_service.parse_dimensions,
+                          aid_service.parse_dimensions,
                           None)
 
     def test_should_fail_for_empty_dim_in_dimensions(self):
         err = self.assertRaises(exceptions.HTTPUnprocessableEntity,
-                                common_service.parse_dimensions,
+                                aid_service.parse_dimensions,
                                 ',')
         self.assertEqual(err.description, 'Dimension cannot be empty')
 
     def test_should_fail_for_invalid_dim_in_dimensions(self):
         invalid_dim = 'a'
         err = self.assertRaises(exceptions.HTTPUnprocessableEntity,
-                                common_service.parse_dimensions,
+                                aid_service.parse_dimensions,
                                 invalid_dim)
         self.assertEqual(err.description, '%s is not a valid dimension'
                          % invalid_dim)
@@ -75,29 +75,29 @@ class ParseDimensions(base.BaseTestCase):
         }
 
         self.assertDictEqual(expected,
-                             common_service.parse_dimensions(dimensions))
+                             aid_service.parse_dimensions(dimensions))
 
 
 class ParseApplicationType(base.BaseTestCase):
     def test_should_return_none_for_none(self):
-        self.assertIsNone(common_service.parse_application_type(None))
+        self.assertIsNone(aid_service.parse_application_type(None))
 
     def test_should_return_none_for_empty(self):
-        self.assertIsNone(common_service.parse_application_type(''))
+        self.assertIsNone(aid_service.parse_application_type(''))
 
     def test_should_return_none_for_whitespace_filled(self):
-        self.assertIsNone(common_service.parse_application_type('    '))
+        self.assertIsNone(aid_service.parse_application_type('    '))
 
     def test_should_return_value_for_ok_value(self):
         app_type = 'monasca'
         self.assertEqual(app_type,
-                         common_service.parse_application_type(app_type))
+                         aid_service.parse_application_type(app_type))
 
     def test_should_return_value_for_ok_value_with_spaces(self):
         app_type = '  monasca  '
         expected = 'monasca'
         self.assertEqual(expected,
-                         common_service.parse_application_type(app_type))
+                         aid_service.parse_application_type(app_type))
 
 
 class ApplicationTypeValidations(base.BaseTestCase):
@@ -355,7 +355,7 @@ class LogMessageValidations(base.BaseTestCase):
 class LogsCreatorNewLog(base.BaseTestCase):
     def setUp(self):
         super(LogsCreatorNewLog, self).setUp()
-        self.instance = common_service.LogCreator()
+        self.instance = aid_service.LogCreator()
 
     @mock.patch('io.IOBase')
     def test_should_create_log_from_json(self, payload):
@@ -409,7 +409,7 @@ class LogsCreatorNewLog(base.BaseTestCase):
 class LogCreatorNewEnvelope(base.BaseTestCase):
     def setUp(self):
         super(LogCreatorNewEnvelope, self).setUp()
-        self.instance = common_service.LogCreator()
+        self.instance = aid_service.LogCreator()
 
     def test_should_create_envelope(self):
         msg = u'Hello World'

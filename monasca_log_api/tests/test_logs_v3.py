@@ -16,9 +16,9 @@ import falcon
 import mock
 import ujson as json
 
-from monasca_log_api.api import exceptions as log_api_exceptions
-from monasca_log_api.api import headers
-from monasca_log_api.reference.v3 import logs
+from monasca_log_api.app.base import exceptions as log_api_exceptions
+from monasca_log_api.app.controller.api import headers
+from monasca_log_api.app.controller.v3 import logs
 from monasca_log_api.tests import base
 
 ENDPOINT = '/logs'
@@ -64,15 +64,14 @@ def _generate_v3_payload(log_count=None, messages=None):
 
 class TestApiLogsVersion(base.BaseApiTestCase):
 
-    @mock.patch('monasca_log_api.reference.v3.common.'
-                'bulk_processor.BulkProcessor')
+    @mock.patch('monasca_log_api.app.controller.v3.aid'
+                '.bulk_processor.BulkProcessor')
     def test_should_return_v3_as_version(self, _):
         logs_resource = logs.Logs()
         self.assertEqual('v3.0', logs_resource.version)
 
 
-@mock.patch('monasca_log_api.reference.common.log_publisher.producer.'
-            'KafkaProducer')
+@mock.patch('monasca_log_api.app.base.log_publisher.producer.KafkaProducer')
 @mock.patch('monasca_log_api.monitoring.client.monascastatsd.Connection')
 class TestApiLogsMonitoring(base.BaseApiTestCase):
 
@@ -203,7 +202,7 @@ class TestApiLogsMonitoring(base.BaseApiTestCase):
 
 class TestApiLogs(base.BaseApiTestCase):
 
-    @mock.patch('monasca_log_api.reference.v3.common.bulk_processor.'
+    @mock.patch('monasca_log_api.app.controller.v3.aid.bulk_processor.'
                 'BulkProcessor')
     def test_should_pass_cross_tenant_id(self, bulk_processor):
         logs_resource = _init_resource(self)
@@ -229,7 +228,7 @@ class TestApiLogs(base.BaseApiTestCase):
             global_dimensions=v3_body['dimensions'],
             log_tenant_id='1')
 
-    @mock.patch('monasca_log_api.reference.v3.common.bulk_processor.'
+    @mock.patch('monasca_log_api.app.controller.v3.aid.bulk_processor.'
                 'BulkProcessor')
     def test_should_fail_not_delegate_ok_cross_tenant_id(self, _):
         _init_resource(self)
@@ -244,7 +243,7 @@ class TestApiLogs(base.BaseApiTestCase):
         )
         self.assertEqual(falcon.HTTP_403, self.srmock.status)
 
-    @mock.patch('monasca_log_api.reference.v3.common.bulk_processor.'
+    @mock.patch('monasca_log_api.app.controller.v3.aid.bulk_processor.'
                 'BulkProcessor')
     def test_should_pass_empty_cross_tenant_id_wrong_role(self,
                                                           bulk_processor):
@@ -267,7 +266,7 @@ class TestApiLogs(base.BaseApiTestCase):
         self.assertEqual(falcon.HTTP_204, self.srmock.status)
         self.assertEqual(1, bulk_processor.send_message.call_count)
 
-    @mock.patch('monasca_log_api.reference.v3.common.bulk_processor.'
+    @mock.patch('monasca_log_api.app.controller.v3.aid.bulk_processor.'
                 'BulkProcessor')
     def test_should_pass_empty_cross_tenant_id_ok_role(self,
                                                        bulk_processor):
@@ -293,7 +292,7 @@ class TestApiLogs(base.BaseApiTestCase):
 
 class TestUnicodeLogs(base.BaseApiTestCase):
 
-    @mock.patch('monasca_log_api.reference.common.log_publisher.producer.'
+    @mock.patch('monasca_log_api.app.base.log_publisher.producer.'
                 'KafkaProducer')
     def test_should_send_unicode_messages(self, _):
         _init_resource(self)

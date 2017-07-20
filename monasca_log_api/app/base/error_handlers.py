@@ -14,7 +14,7 @@
 
 import falcon
 
-from monasca_log_api.reference.common import model
+from monasca_log_api.app.base import model
 
 
 def log_envelope_exception_handler(ex, req, resp, params):

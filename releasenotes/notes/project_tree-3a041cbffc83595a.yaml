@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Refactored project tree into more predictable and organized
+    one. Old tree had everythin mixed up between different locations,
+    and it was very difficult to follow the code.
