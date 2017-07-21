@@ -8,7 +8,7 @@ Running the Monasca DevStack plugin and Monasca Log Management Devstack plugin r
 
 Directions for installing and running Devstack can be found here:
 ```
-http://docs.openstack.org/developer/devstack/
+https://docs.openstack.org/devstack/latest/
 ```
 
 To run Monasca Log Management in DevStack, do the following three steps.

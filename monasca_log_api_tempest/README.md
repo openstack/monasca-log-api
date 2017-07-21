@@ -130,13 +130,13 @@ Tempest root dir.
 ```
 
 See the [OpenStack Tempest Plugin
-Interface](http://docs.openstack.org/developer/tempest/plugin.html), for more
+Interface](https://docs.openstack.org/tempest/latest/plugin.html), for more
 details on Tempest Plugins and the plugin registration process.
 
 # Running the Monasca Log Api Tempest
 The Monasca Tempest Tests can be run using a variety of methods including:
 1. [Testr](https://wiki.openstack.org/wiki/Testr)
-2. [Os-testr](http://docs.openstack.org/developer/os-testr/)
+2. [Os-testr](https://docs.openstack.org/os-testr/latest/)
 3. [PyCharm](https://www.jetbrains.com/pycharm/)
 4. Tempest Scripts in Devstack
 
@@ -159,7 +159,7 @@ The Monasca Tempest Tests can be run using a variety of methods including:
 You can also use testr to create a list of specific tests for your needs.
 
 ## Run the tests from the CLI using os-testr (no file necessary)
-[Os-testr](http://docs.openstack.org/developer/os-testr/) is a test wrapper
+[Os-testr](https://docs.openstack.org/os-testr/latest/) is a test wrapper
 that can be used to run the Monasca Tempest tests.
 
 1. In the Tempest root dir:
@@ -196,9 +196,9 @@ Assuming that you have already created a PyCharm project for the
 
 # References
 This section provides a few additional references that might be useful:
-* [Tempest - The OpenStack Integration Test Suite](http://docs.openstack.org/developer/tempest/overview.html#quickstart)
+* [Tempest - The OpenStack Integration Test Suite](https://docs.openstack.org/tempest/latest/overview.html#quickstart)
 * [Tempest Configuration Guide](https://github.com/openstack/tempest/blob/master/doc/source/configuration.rst#id1)
-* [OpenStack Tempest Plugin Interface](http://docs.openstack.org/developer/tempest/plugin.html)
+* [OpenStack Tempest Plugin Interface](https://docs.openstack.org/tempest/latest/plugin.html)
 
 In addition to the above references, another source of information is the following OpenStack projects:
 * [Manila Tempest Tests](https://github.com/openstack/manila/tree/master/manila_tempest_tests)

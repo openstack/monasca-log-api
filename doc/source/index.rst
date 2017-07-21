@@ -31,7 +31,7 @@ any specific prior release.
           general documentation including API, install, operator and user
           guides see `docs.openstack.org`_
 
-.. _`docs.openstack.org`: http://docs.openstack.org
+.. _`docs.openstack.org`: https://docs.openstack.org
 
 .. toctree::
    :maxdepth: 2

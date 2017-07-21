@@ -23,7 +23,7 @@ cloud.
 
 This guide covers the concepts in the Monasca Log API.
 For a full reference listing, please see:
-`Monasca Log API Reference <http://developer.openstack.org/api-ref/monasca/#monasca-log-api>`__.
+`Monasca Log API Reference <https://developer.openstack.org/api-ref/monitoring-log-api/>`__.
 
 We welcome feedback, comments, and bug reports at
 `storyboard/monasca <https://storyboard.openstack.org/#!/project_group/59>`__.
