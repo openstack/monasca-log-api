@@ -1,19 +1,17 @@
 .. _configuring:
 
-============
-Cofiguration
-============
+=============
+Configuration
+=============
 
-This section provides a list of all possible options for each
-configuration file. Refer to :ref:`basic-configuration` for a
-detailed guide in getting started with various option settings.
-
-monasca-log-api uses the following configuration files
-for its various services.
+This section describes the configuration settings that can be specified.
+Refer to :ref:`basic-configuration` for more details on the
+available settings.
 
 .. toctree::
    :maxdepth: 1
 
    configuring
-   monasca_log_api
+   files
+   options
    sample
