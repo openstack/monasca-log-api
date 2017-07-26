@@ -2,6 +2,5 @@
  Command Line Interface
 ========================
 
-.. toctree::
-   :glob:
-   :maxdepth: 1
+At the moment, monasca-log-api cannot be used
+through the CLI.
