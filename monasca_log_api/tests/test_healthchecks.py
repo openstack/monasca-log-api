@@ -24,8 +24,8 @@ ENDPOINT = '/healthcheck'
 
 
 class TestApiHealthChecks(base.BaseApiTestCase):
+
     def before(self):
-        super(TestApiHealthChecks, self).before()
         self.resource = healthchecks.HealthChecks()
         self.api.add_route(
             ENDPOINT,

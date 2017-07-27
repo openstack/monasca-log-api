@@ -29,14 +29,9 @@ class KafkaCheckLogicTest(base.BaseTestCase):
         'kafka_topics': mocked_topics
     }
 
-    def __init__(self, *args, **kwargs):
-        super(KafkaCheckLogicTest, self).__init__(*args, **kwargs)
-        self._conf = None
-
     def setUp(self):
         super(KafkaCheckLogicTest, self).setUp()
-        self._conf = base.mock_config(self)
-        self._conf.config(group='kafka_healthcheck', **self.mock_config)
+        self.conf_default(group='kafka_healthcheck', **self.mock_config)
 
     @mock.patch('monasca_log_api.healthcheck.kafka_check.client.KafkaClient')
     def test_should_fail_kafka_unavailable(self, kafka_client):

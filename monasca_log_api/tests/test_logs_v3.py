@@ -203,9 +203,6 @@ class TestApiLogsMonitoring(base.BaseApiTestCase):
 
 class TestApiLogs(base.BaseApiTestCase):
 
-    def before(self):
-        self.conf = base.mock_config(self)
-
     @mock.patch('monasca_log_api.reference.v3.common.bulk_processor.'
                 'BulkProcessor')
     def test_should_pass_cross_tenant_id(self, bulk_processor):

@@ -22,11 +22,6 @@ from monasca_log_api.tests import base
 
 class TestRequest(base.BaseTestCase):
 
-    def setUp(self):
-        super(TestRequest, self).setUp()
-        base.mock_config(self)
-        base.mock_context(self)
-
     def test_use_context_from_request(self):
         req = request.Request(
             testing.create_environ(

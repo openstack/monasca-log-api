@@ -20,23 +20,16 @@ import string
 
 import falcon
 from falcon import testing
+import fixtures
 import mock
 from oslo_config import fixture as oo_cfg
 from oslo_context import fixture as oo_ctx
-from oslotest import base as os_test
+from oslotest import base as oslotest_base
 import six
 
 from monasca_log_api.api.core import request
 from monasca_log_api import conf
-
-
-def mock_config(test):
-    conf.register_opts()
-    return test.useFixture(oo_cfg.Config(conf=conf.CONF))
-
-
-def mock_context(test):
-    return test.useFixture(oo_ctx.ClearRequestContext())
+from monasca_log_api import config
 
 
 class MockedAPI(falcon.API):
@@ -125,19 +118,59 @@ UNICODE_MESSAGES = [
 ]
 
 
-class DisableStatsdMixin(object):
+class DisableStatsdFixture(fixtures.Fixture):
+
     def setUp(self):
-        super(DisableStatsdMixin, self).setUp()
-        self.statsd_patch = mock.patch('monascastatsd.Connection')
-        self.statsd_check = self.statsd_patch.start()
+        super(DisableStatsdFixture, self).setUp()
+        statsd_patch = mock.patch('monascastatsd.Connection')
+        statsd_patch.start()
+        self.addCleanup(statsd_patch.stop)
 
 
-class BaseTestCase(DisableStatsdMixin, os_test.BaseTestCase):
-    pass
+class ConfigFixture(oo_cfg.Config):
+    """Mocks configuration"""
+
+    def __init__(self):
+        super(ConfigFixture, self).__init__(config.CONF)
+
+    def setUp(self):
+        super(ConfigFixture, self).setUp()
+        self.addCleanup(self._clean_config_loaded_flag)
+        conf.register_opts()
+        self._set_defaults()
+        config.parse_args(argv=[])  # prevent oslo from parsing test args
+
+    @staticmethod
+    def _clean_config_loaded_flag():
+        config._CONF_LOADED = False
+
+    def _set_defaults(self):
+        self.conf.set_default('kafka_url', '127.0.0.1', 'kafka_healthcheck')
+        self.conf.set_default('kafka_url', '127.0.0.1', 'log_publisher')
+
+
+class BaseTestCase(oslotest_base.BaseTestCase):
+
+    def setUp(self):
+        super(BaseTestCase, self).setUp()
+        self.useFixture(ConfigFixture())
+        self.useFixture(DisableStatsdFixture())
+        self.useFixture(oo_ctx.ClearRequestContext())
+
+    @staticmethod
+    def conf_override(**kw):
+        """Override flag variables for a test."""
+        group = kw.pop('group', None)
+        for k, v in kw.items():
+            config.CONF.set_override(k, v, group)
+
+    @staticmethod
+    def conf_default(**kw):
+        """Override flag variables for a test."""
+        group = kw.pop('group', None)
+        for k, v in kw.items():
+            config.CONF.set_default(k, v, group)
 
 
 class BaseApiTestCase(BaseTestCase, testing.TestBase):
     api_class = MockedAPI
-
-    def before(self):
-        self.conf = mock_config(self)
