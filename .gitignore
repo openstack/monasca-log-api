@@ -9,6 +9,7 @@ cover/
 *.egg-info
 .eggs/
 .testrepository/
+.stestr/
 .tox/
 ChangeLog
 MANIFEST
