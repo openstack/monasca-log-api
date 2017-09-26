@@ -352,9 +352,10 @@ function install_logstash {
 
         local logstash_tarball=logstash-${LOGSTASH_VERSION}.tar.gz
         local logstash_url=http://download.elastic.co/logstash/logstash/${logstash_tarball}
-        local logstash_dest=${FILES}/${logstash_tarball}
 
-        download_file ${logstash_url} ${logstash_dest}
+        local logstash_dest
+        logstash_dest=`get_extra_file ${logstash_url}`
+
         tar xzf ${logstash_dest} -C $DEST
 
         sudo chown -R $STACK_USER $DEST/logstash-${LOGSTASH_VERSION}
@@ -378,9 +379,10 @@ function install_elasticsearch {
 
         local es_tarball=elasticsearch-${ELASTICSEARCH_VERSION}.tar.gz
         local es_url=http://download.elasticsearch.org/elasticsearch/elasticsearch/${es_tarball}
-        local es_dest=${FILES}/${es_tarball}
 
-        download_file ${es_url} ${es_dest}
+        local es_dest
+        es_dest=`get_extra_file ${es_url}`
+
         tar xzf ${es_dest} -C $DEST
 
         sudo chown -R $STACK_USER $DEST/elasticsearch-${ELASTICSEARCH_VERSION}
@@ -443,9 +445,10 @@ function install_kibana {
 
         local kibana_tarball=kibana-${KIBANA_VERSION}.tar.gz
         local kibana_tarball_url=http://download.elastic.co/kibana/kibana/${kibana_tarball}
-        local kibana_tarball_dest=${FILES}/${kibana_tarball}
 
-        download_file ${kibana_tarball_url} ${kibana_tarball_dest}
+        local kibana_tarball_dest
+        kibana_tarball_dest=`get_extra_file ${kibana_tarball_url}`
+
         tar xzf ${kibana_tarball_dest} -C $DEST
 
         sudo chown -R $STACK_USER $DEST/kibana-${KIBANA_VERSION}
@@ -663,8 +666,10 @@ function install_node_nvm {
         # so if kibana is enabled in this environment, let's install node
         echo_summary "Install Node ${NODE_JS_VERSION} with NVM ${NVM_VERSION}"
         local nvmUrl=https://raw.githubusercontent.com/creationix/nvm/v${NVM_VERSION}/install.sh
-        local nvmDest=${FILES}/nvm_install.sh
-        download_file ${nvmUrl} ${nvmDest}
+
+        local nvmDest
+        nvmDest=`get_extra_file ${nvmUrl}`
+
         bash ${nvmDest}
     fi
     if is_service_enabled kibana; then
@@ -783,47 +788,6 @@ function _run_process_sleep {
     local sleepTime=${3:-1}
     run_process "$name" "$cmd"
     sleep ${sleepTime}
-}
-
-# download_file
-#  $1 - url to download
-#  $2 - location where to save url to
-#
-#  File won't be downloaded if it already exists.
-#
-#  Uses global variables:
-#  - OFFLINE
-#  - DOWNLOAD_FILE_TIMEOUT
-# note(trebskit) maybe this function will enter upstream devstack in case it does
-#                we should remove it from here
-function download_file {
-    local url=$1
-    local file=$2
-
-    # if file is not there and it is OFFLINE mode
-    # that is bad...terminate everything
-    if [[ ${OFFLINE} == "True" ]] && [[ ! -f ${file} ]]; then
-        die $LINENO    "You are running in OFFLINE mode but
-                        the target file \"$file\" was not found"
-    fi
-
-    local curl_z_flag=""
-    if [[ -f ${file} ]]; then
-        # If the file exists tell cURL to download only if newer version
-        # is available
-        curl_z_flag="-z $file"
-    fi
-
-    local timeout=0
-    if [[ -n "${DOWNLOAD_FILE_TIMEOUT}" ]]; then
-        timeout=${DOWNLOAD_FILE_TIMEOUT}
-    fi
-
-    # yeah...downloading...devstack...hungry..om, om, om
-    time_start "download_file"
-    _safe_permission_operation ${CURL_GET} -L $url --connect-timeout $timeout --retry 3 --retry-delay 5 -o $file $curl_z_flag
-    time_stop "download_file"
-
 }
 
 function is_logstash_required {
