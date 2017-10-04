@@ -13,6 +13,7 @@ cover/
 .tox/
 MANIFEST
 AUTHORS
+ChangeLog
 monasca-log-api.log
 etc/monasca/log-api.conf.sample
 
