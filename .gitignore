@@ -11,7 +11,6 @@ cover/
 .testrepository/
 .stestr/
 .tox/
-ChangeLog
 MANIFEST
 AUTHORS
 monasca-log-api.log

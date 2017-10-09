@@ -1,0 +1,204 @@
+CHANGES
+=======
+
+* Provide installation documentation
+* Updated from global requirements
+* Refactor project tree
+* Minor language change
+* Allow to specify CLI arguments
+* Add CLI documentation part
+* Configuration documentation
+* Updated from global requirements
+* Fix deprecation detail
+* Update the documentation link for doc migration
+* Tweaks in tox.ini to speed it up
+
+2.2.1
+-----
+
+* Fix tarball building error missing log-api.conf
+
+2.2.0
+-----
+
+* Provide references to new docs
+* Use oslo-config-generator
+* Updated from global requirements
+* Enable codebase documenation
+* Add Py35 to setup.cfg
+* Migrate documentation to Sphinx
+* Fix WSGI startup script
+* Fix tempest test for empty\_body
+* Updated from global requirements
+* Ensure and verify utf-8 support
+* Mock monascastatsd in tests
+* Enable some off-by-default checks
+* Updated from global requirements
+* Updated from global requirements
+* Fix html\_last\_updated\_fmt for Python3
+* Fix wrong configuration file paths
+* Fix cross-tenant logs submission
+* Composite paste for monasca-log-api
+
+2.1.0
+-----
+
+* Updated from global requirements
+* Updated from global requirements
+* Replace test.attr with decorators.attr
+* Updated from global requirements
+* Updated from global requirements
+* Enable tempest tests with uwsgi keystone
+
+2.0.0
+-----
+
+* Update Readme references
+* Updated from global requirements
+* Optimize the link address
+* Replace six.iteritems() with .items()
+* Remove monasca\_log\_api/.gitignore
+* Updated from global requirements
+* Internal interfaces for log listing API implementation
+* Updated from global requirements
+* Specification for log listing API
+* Updated from global requirements
+* Updated from global requirements
+* Updated from global requirements
+* Adding WSGI support
+* Updated from global requirements
+
+1.4.0
+-----
+
+* Switch to use test\_utils.call\_until\_true
+* Use openstack/monasca-kibana-plugin repo in devstack
+* Lower log level
+* Fixing filename to start server
+* Updated from global requirements
+* Typo fix: adress => address
+* Use bento/ubuntu-16.04 box
+* Updated from global requirements
+* Make monasca-log-api work with Python 3.5
+* Migrate testing to ostestr and adding docs
+* Updated from global requirements
+* Fix the Monasca Log API tempest tests
+* Integration with oslo.context
+* Drop Java Implemention codebase
+* Enable checking with bandit
+* Add test for empty log message
+* Fix tempest tests
+* Upgrade monasca-common dependency version
+
+1.3.0
+-----
+
+* Add bashate check to tox file
+* Uprade ELK tarballs
+* Adjust monasca-log-api devstack to Xenial
+* Add Constraints support
+* Show team and repo badges on README
+* Replace LOG.warn with LOG.warning
+* Fixing problems with tox
+
+1.2.0
+-----
+
+* Changed home page link
+* Updated from global requirements
+* Updated from global requirements
+* Updated from global requirements
+* Change assertTrue(isinstance()) by optimal assert
+* Remove xrange for run both Python 2 and Python 3
+* Fix config-generator.tempest.conf path in README
+* Updated from global requirements
+* Fix typo: remove redundant 'the'
+* Add prefix "$" for command examples
+* TrivialFix: Removed redundant 'the'
+
+1.1.0
+-----
+
+* TrivialFix: Remove config import unused
+* Enable size-based log rotation for monasca-log-api
+* Removing gunicorn from requirements
+* TrivialFix: Remove logging import unused
+* TrivialFix: Remove cfg import unused
+* Update logstash-output-monasca\_log\_api from 0.5 to 0.5.2
+* Add tempest tests for Log API v3
+* Fix E126 test
+* Manual sync with requirements
+* Set up tempest tests for gate job
+* Install Kibana plugin in 'extra' phase
+* Optimize bulk processing
+* Install Kibana plugin for Keystone authentication
+* Monitoring for monasca-log-api
+* Change Monasca Port
+* Add monasca-log-metrics to devstack plugin
+* Allow to reuse ELK tarballs
+* Update monasca-log-agent in devstack plugin
+
+1.0.0
+-----
+
+* Import simport from monasca-common
+* Truncating too big message
+* Remove unnecessary tests
+* Remove kafka key building
+* Add Vagrantfile for deploying DevStack in a VM
+* Documentation fix
+* Remove six useless requirement
+* Https Support
+* Kafka message max size
+* Raise original exception
+* Tempest tests modification
+* Update specification
+* Add devstack plugin installer
+* Unification for v2 and v3 output
+* Adds [testenv:venv] section to tox.ini
+* Common code base for v2 and v3
+
+0.0.2
+-----
+
+* Mark /v2.0/log/single as deprecated
+* Add support for global dimensions
+* Use same abstract class for v2 and v3
+* Versions endpoint is working
+* Moving unversioned endpoints
+* Specification proposal for batch support
+* Add validation of log property
+* Fix redundant dependency
+* Change default config file
+* Fix run of java monasca-log-api with version option
+* Move dimensions into log object
+* Add support for Apache mod\_wsgi
+* Fix exception thrown when dimensions missing
+* Healthcheck endpoint docs
+* Add implementation of /v3.0/logs API
+* Adding healthcheck
+* Sync to never monasca-common
+* Updating requirements.txt
+
+0.0.1
+-----
+
+* Security update for monasca-log-api
+* Validating message size
+* Migrating tempest to project
+* Documentation update
+* Syncing API version
+* Cleaning python bytecode before tests run
+* Adding generating coverage
+* Remove not used config variable
+* Fixing issues spotted in dev environment
+* Fixing gunicorn dependency and README
+* Update information for PyPI registration
+* Convert creation\_time to string
+* Read region from config and handle payload
+* Change repositories from stackforge to openstack
+* Update .gitreview for new namespace
+* Adjust to specification
+* monasca-log-api python
+* Add log api functionality
+* Added .gitreview
