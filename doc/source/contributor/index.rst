@@ -28,11 +28,3 @@ Developer reference
 
    tox
    code
-
-Changelog
----------
-
-.. toctree::
-   :maxdepth: 1
-
-   history
