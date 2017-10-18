@@ -111,10 +111,10 @@ class BaseLogsTestCase(test.BaseTestCase):
             identity_version=auth_version)
         credentials = cred_provider.get_creds_by_roles(
             ['monasca-user', 'admin']).credentials
-        cls.os = clients.Manager(credentials=credentials)
+        cls.os_primary = clients.Manager(credentials=credentials)
 
-        cls.logs_clients = cls.os.log_api_clients
-        cls.logs_search_client = cls.os.log_search_client
+        cls.logs_clients = cls.os_primary.log_api_clients
+        cls.logs_search_client = cls.os_primary.log_search_client
 
     @staticmethod
     def cleanup_resources(method, list_of_ids):
