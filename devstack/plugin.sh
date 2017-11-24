@@ -258,7 +258,7 @@ function configure_monasca_log_api_wsgi {
     fi
 
     # copy proxy vhost and wsgi helper files
-    sudo cp $MONASCA_LOG_API_DIR/monasca_log_api/app/wsgi.py $MONASCA_LOG_API_WSGI_DIR/monasca_log_api
+    sudo cp $MONASCA_LOG_API_BIN_DIR/monasca-log-api-wsgi  $MONASCA_LOG_API_WSGI_DIR/monasca_log_api
     sudo cp $PLUGIN_FILES/apache-log-api.template $monasca_log_api_apache_conf
     sudo sed -e "
         s|%PUBLICPORT%|$monasca_log_api_api_port|g;
