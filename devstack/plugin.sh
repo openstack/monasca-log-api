@@ -726,9 +726,19 @@ function build_kibana_plugin {
 }
 
 function configure_kafka {
-    echo_summary "Configuring kafka topics"
-    /opt/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 4 --topic log
-    /opt/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 4 --topic transformed-log
+    echo_summary "Configuring Kafka topics"
+    /opt/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181 \
+        --replication-factor 1 --partitions 4 --topic log
+    /opt/kafka/bin/kafka-topics.sh --create --zookeeper localhost:2181 \
+        --replication-factor 1 --partitions 4 --topic transformed-log
+}
+
+function delete_kafka_topics {
+    echo_summary "Deleting Kafka topics"
+        /opt/kafka/bin/kafka-topics.sh --delete --zookeeper localhost:2181 \
+                --topic log || true
+        /opt/kafka/bin/kafka-topics.sh --delete --zookeeper localhost:2181 \
+                --topic transformed-log || true
 }
 
 function create_log_management_accounts {
@@ -827,6 +837,7 @@ if is_service_enabled monasca-log; then
         # Shut down Monasca services
         echo_summary "Unstacking Monasca Log Management"
         stop_monasca_log
+        delete_kafka_topics
     fi
 
     if [[ "$1" == "clean" ]]; then
