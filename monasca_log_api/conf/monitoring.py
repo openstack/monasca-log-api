@@ -19,6 +19,9 @@ _DEFAULT_PORT = 8125
 _DEFAULT_BUFFER_SIZE = 50
 
 monitoring_opts = [
+    cfg.BoolOpt('enable',
+                default=True,
+                help='Determine if self monitoring is enabled'),
     cfg.IPOpt('statsd_host',
               default=_DEFAULT_HOST,
               help=('IP address of statsd server, default to %s'

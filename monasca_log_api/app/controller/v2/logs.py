@@ -16,11 +16,14 @@
 import falcon
 import six
 
+
 from monasca_log_api.app.base import log_publisher
 from monasca_log_api.app.controller.api import headers
 from monasca_log_api.app.controller.api import logs_api
 from monasca_log_api.app.controller.v2.aid import service
+from monasca_log_api import conf
 
+CONF = conf.CONF
 _DEPRECATED_INFO = ('/v2.0/log/single has been deprecated. '
                     'Please use /v3.0/logs')
 
@@ -38,37 +41,44 @@ class Logs(logs_api.LogsApi):
 
     @falcon.deprecated(_DEPRECATED_INFO)
     def on_post(self, req, res):
-        with self._logs_processing_time.time(name=None):
-            try:
-                req.validate(self.SUPPORTED_CONTENT_TYPES)
-                tenant_id = (req.project_id if req.project_id
-                             else req.cross_project_id)
+        if CONF.monitoring.enable:
+            with self._logs_processing_time.time(name=None):
+                self.process_on_post_request(req, res)
+        else:
+            self.process_on_post_request(req, res)
 
-                log = self.get_log(request=req)
-                envelope = self.get_envelope(
-                    log=log,
-                    tenant_id=tenant_id
-                )
+    def process_on_post_request(self, req, res):
+        try:
+            req.validate(self.SUPPORTED_CONTENT_TYPES)
+            tenant_id = (req.project_id if req.project_id
+                         else req.cross_project_id)
 
+            log = self.get_log(request=req)
+            envelope = self.get_envelope(
+                log=log,
+                tenant_id=tenant_id
+            )
+            if CONF.monitoring.enable:
                 self._logs_size_gauge.send(name=None,
                                            value=int(req.content_length))
                 self._logs_in_counter.increment()
-            except Exception:
-                # any validation that failed means
-                # log is invalid and rejected
+        except Exception:
+            # any validation that failed means
+            # log is invalid and rejected
+            if CONF.monitoring.enable:
                 self._logs_rejected_counter.increment()
-                raise
+            raise
 
-            self._kafka_publisher.send_message(envelope)
+        self._kafka_publisher.send_message(envelope)
 
-            res.status = falcon.HTTP_204
-            res.add_link(
-                target=str(_get_v3_link(req)),
-                rel='current',  # [RFC5005]
-                title='V3 Logs',
-                type_hint='application/json'
-            )
-            res.append_header('DEPRECATED', 'true')
+        res.status = falcon.HTTP_204
+        res.add_link(
+            target=str(_get_v3_link(req)),
+            rel='current',  # [RFC5005]
+            title='V3 Logs',
+            type_hint='application/json'
+        )
+        res.append_header('DEPRECATED', 'true')
 
     def get_envelope(self, log, tenant_id):
         return self._log_creator.new_log_envelope(
