@@ -68,22 +68,22 @@ class LogPublisher(object):
         self._kafka_publisher = producer.KafkaProducer(
             url=CONF.log_publisher.kafka_url
         )
+        if CONF.monitoring.enable:
+            self._statsd = client.get_client()
 
-        self._statsd = client.get_client()
-
-        # setup counter, gauges etc
-        self._logs_published_counter = self._statsd.get_counter(
-            metrics.LOGS_PUBLISHED_METRIC
-        )
-        self._publish_time_ms = self._statsd.get_timer(
-            metrics.LOGS_PUBLISH_TIME_METRIC
-        )
-        self._logs_lost_counter = self._statsd.get_counter(
-            metrics.LOGS_PUBLISHED_LOST_METRIC
-        )
-        self._logs_truncated_gauge = self._statsd.get_gauge(
-            metrics.LOGS_TRUNCATED_METRIC
-        )
+            # setup counter, gauges etc
+            self._logs_published_counter = self._statsd.get_counter(
+                metrics.LOGS_PUBLISHED_METRIC
+            )
+            self._publish_time_ms = self._statsd.get_timer(
+                metrics.LOGS_PUBLISH_TIME_METRIC
+            )
+            self._logs_lost_counter = self._statsd.get_counter(
+                metrics.LOGS_PUBLISHED_LOST_METRIC
+            )
+            self._logs_truncated_gauge = self._statsd.get_gauge(
+                metrics.LOGS_TRUNCATED_METRIC
+            )
 
         LOG.info('Initializing LogPublisher <%s>', self)
 
@@ -117,8 +117,10 @@ class LogPublisher(object):
             for message in messages:
                 msg = self._transform_message(message)
                 send_messages.append(msg)
-
-            with self._publish_time_ms.time(name=None):
+            if CONF.monitoring.enable:
+                with self._publish_time_ms.time(name=None):
+                    self._publish(send_messages)
+            else:
                 self._publish(send_messages)
 
             sent_counter = len(send_messages)
@@ -199,11 +201,13 @@ class LogPublisher(object):
 
             envelope['log']['truncated'] = True
             envelope['log']['message'] = truncated_log_msg
-            self._logs_truncated_gauge.send(name=None, value=truncated_by)
+            if CONF.monitoring.enable:
+                self._logs_truncated_gauge.send(name=None, value=truncated_by)
 
             msg_str = rest_utils.as_json(envelope)
         else:
-            self._logs_truncated_gauge.send(name=None, value=0)
+            if CONF.monitoring.enable:
+                self._logs_truncated_gauge.send(name=None, value=0)
 
         return msg_str
 
@@ -255,6 +259,6 @@ class LogPublisher(object):
             error_str = ('Failed to send all messages, %d '
                          'messages out of %d have not been published')
             LOG.error(error_str, failed_to_send, to_send_count)
-
-        self._logs_published_counter.increment(value=send_count)
-        self._logs_lost_counter.increment(value=failed_to_send)
+        if CONF.monitoring.enable:
+            self._logs_published_counter.increment(value=send_count)
+            self._logs_lost_counter.increment(value=failed_to_send)

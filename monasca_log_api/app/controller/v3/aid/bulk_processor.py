@@ -32,7 +32,7 @@ class BulkProcessor(log_publisher.LogPublisher):
 
     """
 
-    def __init__(self, logs_in_counter, logs_rejected_counter):
+    def __init__(self, logs_in_counter=None, logs_rejected_counter=None):
         """Initializes BulkProcessor.
 
         :param logs_in_counter: V3 received logs counter
@@ -40,11 +40,11 @@ class BulkProcessor(log_publisher.LogPublisher):
         """
         super(BulkProcessor, self).__init__()
 
-        assert logs_in_counter is not None
-        assert logs_rejected_counter is not None
-
-        self._logs_in_counter = logs_in_counter
-        self._logs_rejected_counter = logs_rejected_counter
+        if CONF.monitoring.enable:
+            assert logs_in_counter is not None
+            assert logs_rejected_counter is not None
+            self._logs_in_counter = logs_in_counter
+            self._logs_rejected_counter = logs_rejected_counter
 
         self.service_region = CONF.service.region
 
@@ -70,10 +70,13 @@ class BulkProcessor(log_publisher.LogPublisher):
                                                log_tenant_id)
                 if t_el:
                     to_send_msgs.append(t_el)
-
-            with self._publish_time_ms.time(name=None):
+            if CONF.monitoring.enable:
+                with self._publish_time_ms.time(name=None):
+                    self._publish(to_send_msgs)
+            else:
                 self._publish(to_send_msgs)
-                sent_count = len(to_send_msgs)
+
+            sent_count = len(to_send_msgs)
 
         except Exception as ex:
             LOG.error('Failed to send bulk package <logs=%d, dimensions=%s>',
@@ -81,7 +84,8 @@ class BulkProcessor(log_publisher.LogPublisher):
             LOG.exception(ex)
             raise ex
         finally:
-            self._update_counters(len(to_send_msgs), num_of_msgs)
+            if CONF.monitoring.enable:
+                self._update_counters(len(to_send_msgs), num_of_msgs)
             self._after_publish(sent_count, len(to_send_msgs))
 
     def _update_counters(self, in_counter, to_send_counter):

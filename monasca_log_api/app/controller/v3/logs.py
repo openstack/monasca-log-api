@@ -21,8 +21,11 @@ from monasca_log_api.app.base import validation
 from monasca_log_api.app.controller.api import logs_api
 from monasca_log_api.app.controller.v3.aid import bulk_processor
 from monasca_log_api.app.controller.v3.aid import helpers
+from monasca_log_api import conf
 from monasca_log_api.monitoring import metrics
 
+
+CONF = conf.CONF
 LOG = log.getLogger(__name__)
 
 
@@ -34,51 +37,61 @@ class Logs(logs_api.LogsApi):
     def __init__(self):
         super(Logs, self).__init__()
 
-        self._processor = bulk_processor.BulkProcessor(
-            logs_in_counter=self._logs_in_counter,
-            logs_rejected_counter=self._logs_rejected_counter
-        )
-        self._bulks_rejected_counter = self._statsd.get_counter(
-            name=metrics.LOGS_BULKS_REJECTED_METRIC,
-            dimensions=self._metrics_dimensions
-        )
+        if CONF.monitoring.enable:
+            self._processor = bulk_processor.BulkProcessor(
+                logs_in_counter=self._logs_in_counter,
+                logs_rejected_counter=self._logs_rejected_counter
+            )
+            self._bulks_rejected_counter = self._statsd.get_counter(
+                name=metrics.LOGS_BULKS_REJECTED_METRIC,
+                dimensions=self._metrics_dimensions
+            )
+        else:
+            self._processor = bulk_processor.BulkProcessor()
 
     def on_post(self, req, res):
-        with self._logs_processing_time.time(name=None):
-            try:
-                req.validate(self.SUPPORTED_CONTENT_TYPES)
+        if CONF.monitoring.enable:
+            with self._logs_processing_time.time(name=None):
+                self.process_on_post_request(req, res)
+        else:
+            self.process_on_post_request(req, res)
 
-                request_body = helpers.read_json_msg_body(req)
+    def process_on_post_request(self, req, res):
+        try:
+            req.validate(self.SUPPORTED_CONTENT_TYPES)
 
-                log_list = self._get_logs(request_body)
-                global_dimensions = self._get_global_dimensions(request_body)
+            request_body = helpers.read_json_msg_body(req)
 
-            except Exception as ex:
-                LOG.error('Entire bulk package has been rejected')
-                LOG.exception(ex)
+            log_list = self._get_logs(request_body)
+            global_dimensions = self._get_global_dimensions(request_body)
 
+        except Exception as ex:
+            LOG.error('Entire bulk package has been rejected')
+            LOG.exception(ex)
+            if CONF.monitoring.enable:
                 self._bulks_rejected_counter.increment(value=1)
 
-                raise ex
+            raise ex
 
+        if CONF.monitoring.enable:
             self._bulks_rejected_counter.increment(value=0)
             self._logs_size_gauge.send(name=None,
                                        value=int(req.content_length))
 
-            tenant_id = (req.cross_project_id if req.cross_project_id
-                         else req.project_id)
+        tenant_id = (req.cross_project_id if req.cross_project_id
+                     else req.project_id)
 
-            try:
-                self._processor.send_message(
-                    logs=log_list,
-                    global_dimensions=global_dimensions,
-                    log_tenant_id=tenant_id
-                )
-            except Exception as ex:
-                res.status = getattr(ex, 'status', falcon.HTTP_500)
-                return
+        try:
+            self._processor.send_message(
+                logs=log_list,
+                global_dimensions=global_dimensions,
+                log_tenant_id=tenant_id
+            )
+        except Exception as ex:
+            res.status = getattr(ex, 'status', falcon.HTTP_500)
+            return
 
-            res.status = falcon.HTTP_204
+        res.status = falcon.HTTP_204
 
     @staticmethod
     def _get_global_dimensions(request_body):

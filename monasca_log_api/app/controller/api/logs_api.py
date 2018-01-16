@@ -16,9 +16,11 @@
 import falcon
 from oslo_log import log
 
+from monasca_log_api import conf
 from monasca_log_api.monitoring import client
 from monasca_log_api.monitoring import metrics
 
+CONF = conf.CONF
 LOG = log.getLogger(__name__)
 
 
@@ -32,27 +34,28 @@ class LogsApi(object):
     """
     def __init__(self):
         super(LogsApi, self).__init__()
-        self._statsd = client.get_client()
+        if CONF.monitoring.enable:
+            self._statsd = client.get_client()
 
-        # create_common counters, gauges etc.
-        self._metrics_dimensions = dimensions = {'version': self.version}
+            # create_common counters, gauges etc.
+            self._metrics_dimensions = dimensions = {'version': self.version}
 
-        self._logs_in_counter = self._statsd.get_counter(
-            name=metrics.LOGS_RECEIVED_METRIC,
-            dimensions=dimensions
-        )
-        self._logs_size_gauge = self._statsd.get_gauge(
-            name=metrics.LOGS_RECEIVED_BYTE_SIZE_METRICS,
-            dimensions=dimensions
-        )
-        self._logs_rejected_counter = self._statsd.get_counter(
-            name=metrics.LOGS_REJECTED_METRIC,
-            dimensions=dimensions
-        )
-        self._logs_processing_time = self._statsd.get_timer(
-            name=metrics.LOGS_PROCESSING_TIME_METRIC,
-            dimensions=dimensions
-        )
+            self._logs_in_counter = self._statsd.get_counter(
+                name=metrics.LOGS_RECEIVED_METRIC,
+                dimensions=dimensions
+            )
+            self._logs_size_gauge = self._statsd.get_gauge(
+                name=metrics.LOGS_RECEIVED_BYTE_SIZE_METRICS,
+                dimensions=dimensions
+            )
+            self._logs_rejected_counter = self._statsd.get_counter(
+                name=metrics.LOGS_REJECTED_METRIC,
+                dimensions=dimensions
+            )
+            self._logs_processing_time = self._statsd.get_timer(
+                name=metrics.LOGS_PROCESSING_TIME_METRIC,
+                dimensions=dimensions
+            )
 
         LOG.info('Initializing LogsApi %s!' % self.version)
 
