@@ -25,7 +25,6 @@
     parent: monascalog-tempest-base
 
 - project:
-    name: openstack/monasca-log-api
     check:
       jobs:
         - monascalog-tempest
