@@ -75,8 +75,11 @@ class TestLogApiConstraints(base.BaseLogsTestCase):
             except exceptions.OverLimit as urc:
                 self.assertEqual(413, urc.resp.status)
                 return
+            except exceptions.UnexpectedContentType as uct:
+                self.assertEqual(503, uct.resp.status)
+                return
 
-            self.assertTrue(False, 'API should respond with 413')
+            self.assertTrue(False, 'API should respond with 413 or 503')
 
     @decorators.attr(type='gate')
     def test_should_reject_too_big_message_multiline(self):
@@ -97,5 +100,8 @@ class TestLogApiConstraints(base.BaseLogsTestCase):
             except exceptions.OverLimit as urc:
                 self.assertEqual(413, urc.resp.status)
                 return
+            except exceptions.UnexpectedContentType as uct:
+                self.assertEqual(503, uct.resp.status)
+                return
 
-            self.assertTrue(False, 'API should respond with 413')
+            self.assertTrue(False, 'API should respond with 413 or 503')

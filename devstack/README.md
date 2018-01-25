@@ -87,6 +87,14 @@ contains:
 MONASCA_LOG_API_USE_MOD_WSGI=True
 ```
 
+Actual ```MONASCA_LOG_API_DEPLOY``` value is determined using devstack`s
+```WSGI_MODE``` variable. Nevertheless there are only three possible values,
+that ```MONASCA_LOG_API_DEPLOY``` can take:
+
+* ```gunicorn``` if ```MONASCA_LOG_API_USE_MOD_WSGI=False```
+* ```mod_wsgi``` if ```MONASCA_LOG_API_USE_MOD_WSGI=True && WSGI_MODE="mod_wsgi""```
+* ```uwsgi``` if ```MONASCA_LOG_API_USE_MOD_WSGI=True && WSGI_MODE="uwsgi""```
+
 # Using Vagrant
 
 Vagrant can be used to deploy a VM with Devstack and Monasca Logging

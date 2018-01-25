@@ -1,0 +1,8 @@
+---
+prelude: >
+    https://governance.openstack.org/tc/goals/pike/deploy-api-in-wsgi.html
+features:
+  - |
+    According to Pike release goals, all APIs should have the possibility
+    to be deployed under WSGI. With this change, monasca-log-api is capable
+    of running on either of following: gunicorn, uwsgi or mod_wsgi.
