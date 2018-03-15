@@ -31,7 +31,7 @@ linecache2==1.0.0
 MarkupSafe==1.0
 mccabe==0.2.1
 mock==2.0.0
-monasca-common==1.4.0
+monasca-common==2.7.0
 monasca-statsd==1.1.0
 monotonic==0.6
 mox3==0.20.0
@@ -42,7 +42,7 @@ openstackdocstheme==1.18.1
 os-api-ref==1.4.0
 os-client-config==1.28.0
 os-testr==1.0.0
-oslo.config==5.1.0
+oslo.config==5.2.0
 oslo.context==2.19.2
 oslo.i18n==3.15.3
 oslo.log==3.36.0
