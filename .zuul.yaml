@@ -29,6 +29,8 @@
     check:
       jobs:
         - monascalog-tempest
+        - openstack-tox-lower-constraints
     gate:
       jobs:
         - monascalog-tempest
+        - openstack-tox-lower-constraints
