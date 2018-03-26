@@ -101,11 +101,3 @@ sudo chown -R "${USER}":stack $TEMPEST_DIR
 load_devstack_utilities
 setup_monasca_log
 set_tempest_conf
-
-# Run functional tests
-echo "Running monasca-log tempest test suite"
-
-(cd $TEMPEST_DIR; testr init)
-(cd $TEMPEST_DIR; testr list-tests monasca_log_api_tempest > monasca_log_api_tempest)
-(cd $TEMPEST_DIR; cat monasca_log_api_tempest | grep gate > monasca_log_api_tempest_gate)
-(cd $TEMPEST_DIR; testr run --subunit --load-list=$TEMPEST_DIR/monasca_log_api_tempest_gate | subunit-trace --fails)
