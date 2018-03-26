@@ -30,6 +30,7 @@
           [[local|localrc]]
           enable_plugin monasca-api git://git.openstack.org/openstack/monasca-api
           enable_plugin monasca-log-api git://git.openstack.org/openstack/monasca-log-api
+          TEMPEST_PLUGINS+='/opt/stack/new/monasca-tempest-plugin'
           EOF
         executable: /bin/bash
         chdir: '{{ ansible_user_dir }}/workspace'
@@ -43,7 +44,9 @@
 
           export ENABLED_SERVICES=tempest
           export DEVSTACK_GATE_NEUTRON=1
+          export DEVSTACK_GATE_TEMPEST=1
           export DEVSTACK_GATE_EXERCISES=0
+          export DEVSTACK_GATE_TEMPEST_REGEX="monasca_tempest_tests.tests.log_api"
 
           export PROJECTS="openstack/monasca-api $PROJECTS"
           export PROJECTS="openstack/monasca-persister $PROJECTS"
@@ -57,14 +60,10 @@
           export PROJECTS="openstack/monasca-ui $PROJECTS"
           export PROJECTS="openstack/monasca-log-api $PROJECTS"
           export PROJECTS="openstack/monasca-kibana-plugin $PROJECTS"
-
-          function pre_test_hook {
-              source $BASE/new/monasca-log-api/monasca_log_api_tempest/contrib/pre_test_hook.sh
-          }
-          export -f pre_test_hook
+          export PROJECTS="openstack/monasca-tempest-plugin $PROJECTS"
 
           function post_test_hook {
-              source $BASE/new/monasca-log-api/monasca_log_api_tempest/contrib/post_test_hook.sh
+              source $BASE/new/monasca-log-api/contrib/post_test_hook.sh
           }
           export -f post_test_hook
 
