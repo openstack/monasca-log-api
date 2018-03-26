@@ -36,6 +36,11 @@ def read_json_msg_body(req):
         msg = req.stream.read()
         json_msg = rest_utils.from_json(msg)
         return json_msg
+
+    except rest_utils.exceptions.DataConversionException as ex:
+        LOG.debug(ex)
+        raise falcon.HTTPBadRequest('Bad request',
+                                    'Request body is not valid JSON')
     except ValueError as ex:
         LOG.debug(ex)
         raise falcon.HTTPBadRequest('Bad request',

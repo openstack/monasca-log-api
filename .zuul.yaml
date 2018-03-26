@@ -19,6 +19,7 @@
       - openstack/tempest
       - openstack/monasca-log-api
       - openstack/monasca-kibana-plugin
+      - openstack/monasca-tempest-plugin
 
 - job:
     name: monascalog-tempest
