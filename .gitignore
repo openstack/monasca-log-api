@@ -4,6 +4,7 @@ doc/build/*
 dist
 build
 cover/
+.coverage
 .coverage.*
 *.egg
 *.egg-info
