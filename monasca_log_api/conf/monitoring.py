@@ -22,10 +22,10 @@ monitoring_opts = [
     cfg.BoolOpt('enable',
                 default=True,
                 help='Determine if self monitoring is enabled'),
-    cfg.IPOpt('statsd_host',
-              default=_DEFAULT_HOST,
-              help=('IP address of statsd server, default to %s'
-                    % _DEFAULT_HOST)),
+    cfg.HostAddressOpt('statsd_host',
+                       default=_DEFAULT_HOST,
+                       help=('IP address or host domain name of statsd server, default to %s'
+                             % _DEFAULT_HOST)),
     cfg.PortOpt('statsd_port',
                 default=_DEFAULT_PORT,
                 help='Port of statsd server, default to %d' % _DEFAULT_PORT),
