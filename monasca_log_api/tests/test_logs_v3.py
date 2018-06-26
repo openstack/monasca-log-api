@@ -237,11 +237,12 @@ class TestApiLogs(base.BaseApiTestCase):
             method='POST',
             query_string='tenant_id=1',
             headers={
+                headers.X_ROLES.name: ROLES,
                 'Content-Type': 'application/json',
                 'Content-Length': '0'
             }
         )
-        self.assertEqual(falcon.HTTP_403, self.srmock.status)
+        self.assertEqual(falcon.HTTP_400, self.srmock.status)
 
     @mock.patch('monasca_log_api.app.controller.v3.aid.bulk_processor.'
                 'BulkProcessor')
@@ -257,7 +258,7 @@ class TestApiLogs(base.BaseApiTestCase):
             '/logs',
             method='POST',
             headers={
-                headers.X_ROLES.name: 'some_role',
+                headers.X_ROLES.name: ROLES,
                 'Content-Type': 'application/json',
                 'Content-Length': str(content_length)
             },

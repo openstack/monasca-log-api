@@ -83,3 +83,17 @@ To enable ``oslo_middleware.debug:Debug`` for ``Log v3`` pipeline,
 This particular filter might be useful for examining the
 WSGI environment during troubleshooting or local development.
 
+log-api.policy.yaml
+-------------------
+
+This is the configuration file for policies to access the services.
+the path of the file can be defined in ``log-api.conf``::
+
+  [oslo_policy]
+  policy_file = log-api.policy.yaml
+
+More information about policy file configuration can be found at
+`oslo.policy <https://docs.openstack.org/oslo.policy/latest/admin/policy-yaml-file.html>`_
+
+A sample of this configuration file is also available
+:ref:`here <sample-configuration-policy>`

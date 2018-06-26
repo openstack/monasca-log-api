@@ -51,7 +51,7 @@ class TestApiLogs(base.BaseApiTestCase):
             '/log/single',
             method='POST',
             headers={
-                headers.X_ROLES.name: 'some_role',
+                headers.X_ROLES.name: ROLES,
                 headers.X_DIMENSIONS.name: 'a:1',
                 'Content-Type': 'application/json',
                 'Content-Length': '0'
@@ -75,7 +75,7 @@ class TestApiLogs(base.BaseApiTestCase):
                 'Content-Length': '0'
             }
         )
-        self.assertEqual(falcon.HTTP_403, self.srmock.status)
+        self.assertEqual(falcon.HTTP_401, self.srmock.status)
 
     @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
     @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
@@ -90,7 +90,7 @@ class TestApiLogs(base.BaseApiTestCase):
             '/log/single',
             method='POST',
             headers={
-                headers.X_ROLES.name: 'some_role',
+                headers.X_ROLES.name: ROLES,
                 headers.X_DIMENSIONS.name: 'a:1',
                 'Content-Type': 'application/json',
                 'Content-Length': '0'

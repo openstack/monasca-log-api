@@ -29,7 +29,11 @@ role_m_opts = [
     cfg.ListOpt(name='delegate_roles',
                 default=['admin'],
                 help=('Roles that are allowed to POST logs on '
-                      'behalf of another tenant (project)'))
+                      'behalf of another tenant (project)')),
+    cfg.ListOpt(name='check_roles',
+                default=['@'],
+                help=('Roles that are allowed to do check  '
+                      'version and health'))
 ]
 role_m_group = cfg.OptGroup(name='roles_middleware', title='roles_middleware')
 

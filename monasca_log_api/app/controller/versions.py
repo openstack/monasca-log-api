@@ -18,6 +18,7 @@ import six
 
 from monasca_common.rest import utils as rest_utils
 
+from monasca_log_api.app.base.validation import validate_authorization
 from monasca_log_api.app.controller.api import versions_api
 
 _VERSIONS_TPL_DICT = {
@@ -69,6 +70,7 @@ class Versions(versions_api.VersionsAPI):
             res.status = falcon.HTTP_400
 
     def on_get(self, req, res, version_id=None):
+        validate_authorization(req, ['log_api:versions:get'])
         result = {
             'links': _get_common_links(req),
             'elements': []

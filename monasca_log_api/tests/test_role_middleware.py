@@ -125,23 +125,7 @@ class RolesMiddlewareSideLogicTest(base.BaseTestCase):
 
         self.assertFalse(instance._is_authenticated(req))
 
-    def test_should_return_true_if_authorized_no_agent(self):
-        roles = 'cmm-admin,cmm-user'
-        roles_array = roles.split(',')
-
-        instance = rm.RoleMiddleware(None)
-        instance._default_roles = roles_array
-        instance._agent_roles = []
-
-        req = mock.Mock()
-        req.headers = {rm._X_ROLES: roles}
-
-        is_authorized, is_agent = instance._is_authorized(req)
-
-        self.assertFalse(is_agent)
-        self.assertTrue(is_authorized)
-
-    def test_should_return_true_if_authorized_with_agent(self):
+    def test_should_return_true_if_is_agent(self):
         roles = 'cmm-admin,cmm-user'
         roles_array = roles.split(',')
 
@@ -155,48 +139,9 @@ class RolesMiddlewareSideLogicTest(base.BaseTestCase):
         req = mock.Mock()
         req.headers = {rm._X_ROLES: roles}
 
-        is_authorized, is_agent = instance._is_authorized(req)
+        is_agent = instance._is_agent(req)
 
         self.assertTrue(is_agent)
-        self.assertTrue(is_authorized)
-
-    def test_should_return_not_authorized_no_x_roles(self):
-        roles = 'cmm-admin,cmm-user'
-        roles_array = roles.split(',')
-
-        default_roles = [roles_array[0]]
-        admin_roles = [roles_array[1]]
-
-        instance = rm.RoleMiddleware(None)
-        instance._default_roles = default_roles
-        instance._agent_roles = admin_roles
-
-        req = mock.Mock()
-        req.headers = {}
-
-        is_authorized, is_agent = instance._is_authorized(req)
-
-        self.assertFalse(is_agent)
-        self.assertFalse(is_authorized)
-
-    def test_should_return_authorized_if_at_least_agent_true(self):
-        roles = 'cmm-admin,cmm-user'
-        roles_array = roles.split(',')
-
-        default_roles = ['different_role']
-        admin_roles = [roles_array[1]]
-
-        instance = rm.RoleMiddleware(None)
-        instance._default_roles = default_roles
-        instance._agent_roles = admin_roles
-
-        req = mock.Mock()
-        req.headers = {rm._X_ROLES: roles}
-
-        is_authorized, is_agent = instance._is_authorized(req)
-
-        self.assertTrue(is_agent)
-        self.assertTrue(is_authorized)
 
 
 class RolesMiddlewareLogicTest(base.BaseTestCase):
@@ -215,7 +160,7 @@ class RolesMiddlewareLogicTest(base.BaseTestCase):
 
         # spying
         instance._is_authenticated = mock.Mock()
-        instance._is_authorized = mock.Mock()
+        instance._is_agent = mock.Mock()
 
         req = mock.Mock()
         req.headers = {rm._X_ROLES: roles}
@@ -224,7 +169,7 @@ class RolesMiddlewareLogicTest(base.BaseTestCase):
         instance.process_request(req=req)
 
         self.assertFalse(instance._is_authenticated.called)
-        self.assertFalse(instance._is_authorized.called)
+        self.assertFalse(instance._is_agent.called)
 
     def test_not_process_further_if_cannot_apply_method(self):
         roles = 'cmm-admin,cmm-user'
@@ -240,7 +185,7 @@ class RolesMiddlewareLogicTest(base.BaseTestCase):
 
         # spying
         instance._is_authenticated = mock.Mock()
-        instance._is_authorized = mock.Mock()
+        instance._is_agent = mock.Mock()
 
         req = mock.Mock()
         req.headers = {rm._X_ROLES: roles}
@@ -250,65 +195,16 @@ class RolesMiddlewareLogicTest(base.BaseTestCase):
         instance.process_request(req=req)
 
         self.assertFalse(instance._is_authenticated.called)
-        self.assertFalse(instance._is_authorized.called)
+        self.assertFalse(instance._is_agent.called)
 
-    def test_should_return_None_if_authenticated_authorized(self):
-        instance = rm.RoleMiddleware(None)
-        is_authorized = True
-        is_agent = True
-
-        instance._can_apply_middleware = mock.Mock(return_value=True)
-        instance._is_authorized = mock.Mock(return_value=(is_authorized,
-                                                          is_agent))
-        instance._is_authenticated = mock.Mock(return_value=True)
-
-        req = mock.Mock()
-        req.environ = {}
-
-        result = instance.process_request(req=req)
-
-        self.assertIsNone(result)
-
-    def test_should_produce_json_response_if_not_authorized_but_authenticated(
+    def test_should_produce_json_response_if_not_authenticated(
             self):
         instance = rm.RoleMiddleware(None)
-        is_authorized = False
-        is_agent = False
-        is_authenticated = True
-
-        instance._can_apply_middleware = mock.Mock(return_value=True)
-        instance._is_authorized = mock.Mock(return_value=(is_authorized,
-                                                          is_agent))
-        instance._is_authenticated = mock.Mock(return_value=is_authenticated)
-
-        req = mock.Mock()
-        req.environ = {}
-        req.headers = {
-            'X-Tenant-Id': '11111111'
-        }
-
-        result = instance.process_request(req=req)
-
-        self.assertIsNotNone(result)
-        self.assertIsInstance(result, response.Response)
-
-        status = result.status_code
-        json_body = result.json_body
-        message = json_body.get('message')
-
-        self.assertIn('is missing a required role to access', message)
-        self.assertEqual(401, status)
-
-    def test_should_produce_json_response_if_not_authenticated_but_authorized(
-            self):
-        instance = rm.RoleMiddleware(None)
-        is_authorized = True
         is_agent = True
         is_authenticated = False
 
         instance._can_apply_middleware = mock.Mock(return_value=True)
-        instance._is_authorized = mock.Mock(return_value=(is_authorized,
-                                                          is_agent))
+        instance._is_agent = mock.Mock(return_value=is_agent)
         instance._is_authenticated = mock.Mock(return_value=is_authenticated)
 
         req = mock.Mock()
