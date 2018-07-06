@@ -20,6 +20,11 @@
       - openstack/monasca-log-api
       - openstack/monasca-kibana-plugin
       - openstack/monasca-tempest-plugin
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^.*\.md$
+      - ^doc/.*$
+      - ^releasenotes/.*$
 
 - job:
     name: monascalog-tempest
