@@ -17,7 +17,7 @@ configuration files.
     This means that gunicorn reports the CLI options of
     oslo as unknown, and vice versa.
 
-There are 3 configuration files. For more details on the configuration
+There are 4 configuration files. For more details on the configuration
 options, see :ref:`here <configuration-files>`.
 
 Configuring Keystone Authorization
@@ -82,7 +82,8 @@ The configuration for ``monitoring`` should either be provided in
 Configuring RBAC
 ----------------
 
-At the moment monasca-log-api does not feature RBAC with ``oslo.policies``.
+At the moment monasca-log-api does not feature RBAC fully with
+``oslo.policies``.
 It provides a custom mechanism, however, that can be configured as follows:
 
 * ``path`` - list of URIs that RBAC applies to
@@ -94,6 +95,9 @@ It provides a custom mechanism, however, that can be configured as follows:
 
 The configuration for ``roles_middleware`` should either be provided in
 ``log-api.conf`` or in a file in one of the configuration directories.
+
+The configuration for accessing the services by ``oslo.policies`` can be
+provided in ``log-api.policy.yaml``.
 
 Configuring Logging
 -------------------
@@ -137,3 +141,21 @@ based on your deployment:
   * `oslo.log <https://docs.openstack.org/oslo.log/latest/index.html>`_
   * `Python HowTo <https://docs.python.org/2/howto/logging.html>`_
   * `Logging handlers <https://docs.python.org/2/library/logging.handlers.html>`_
+
+Configuring Policies
+--------------------
+
+The policies for accessing each service can be configured in the
+``log-api.policy.yaml`` configuration file::
+
+  Policy Description
+  Method Path
+  "Policy string": "Roles"
+
+example::
+
+  Logs post rule
+  POST  /logs
+  POST  /log/single
+  "log_api:logs:post": "role:monasca-user"
+

@@ -18,6 +18,7 @@ import six
 
 
 from monasca_log_api.app.base import log_publisher
+from monasca_log_api.app.base.validation import validate_authorization
 from monasca_log_api.app.controller.api import headers
 from monasca_log_api.app.controller.api import logs_api
 from monasca_log_api.app.controller.v2.aid import service
@@ -41,6 +42,7 @@ class Logs(logs_api.LogsApi):
 
     @falcon.deprecated(_DEPRECATED_INFO)
     def on_post(self, req, res):
+        validate_authorization(req, ['log_api:logs:post'])
         if CONF.monitoring.enable:
             with self._logs_processing_time.time(name=None):
                 self.process_on_post_request(req, res)

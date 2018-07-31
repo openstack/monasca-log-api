@@ -98,47 +98,38 @@ class RoleMiddleware(om.ConfigurableMiddleware):
             return None
 
         is_authenticated = self._is_authenticated(req)
-        is_authorized, is_agent = self._is_authorized(req)
+        is_agent = self._is_agent(req)
         tenant_id = req.headers.get('X-Tenant-Id')
 
         req.environ[_X_MONASCA_LOG_AGENT] = is_agent
 
-        LOG.debug('%s is authenticated=%s, authorized=%s, log_agent=%s',
-                  tenant_id, is_authenticated, is_authorized, is_agent)
+        LOG.debug('%s is authenticated=%s, log_agent=%s',
+                  tenant_id, is_authenticated, is_agent)
 
-        if is_authenticated and is_authorized:
-            LOG.debug('%s has been authenticated and authorized', tenant_id)
+        if is_authenticated:
+            LOG.debug('%s has been authenticated', tenant_id)
             return  # do return nothing to enter API internal
 
-        # whoops
-        if is_authorized:
-            explanation = u'Failed to authenticate request for %s' % tenant_id
-        else:
-            explanation = (u'Tenant %s is missing a required role to access '
-                           u'this service' % tenant_id)
+        explanation = u'Failed to authenticate request for %s' % tenant_id
+        LOG.error(explanation)
+        json_body = {u'title': u'Unauthorized', u'message': explanation}
+        return response.Response(status=401,
+                                 json_body=json_body,
+                                 content_type='application/json')
 
-        if explanation is not None:
-            LOG.error(explanation)
-            json_body = {u'title': u'Unauthorized', u'message': explanation}
-            return response.Response(status=401,
-                                     json_body=json_body,
-                                     content_type='application/json')
-
-    def _is_authorized(self, req):
+    def _is_agent(self, req):
         headers = req.headers
         roles = headers.get(_X_ROLES)
 
         if not roles:
             LOG.warning('Couldn\'t locate %s header,or it was empty', _X_ROLES)
-            return False, False
+            return False
         else:
             roles = _ensure_lower_roles(roles.split(','))
 
         is_agent = len(_intersect(roles, self._agent_roles)) > 0
-        is_authorized = (len(_intersect(roles, self._default_roles)) > 0 or
-                         is_agent)
 
-        return is_authorized, is_agent
+        return is_agent
 
     def _is_authenticated(self, req):
         headers = req.headers

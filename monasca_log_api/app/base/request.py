@@ -14,9 +14,14 @@
 
 import falcon
 
-from oslo_context import context
+from monasca_common.policy import policy_engine as policy
 
+from monasca_log_api.app.base import request_context
 from monasca_log_api.app.base import validation
+from monasca_log_api import policies
+
+policy.POLICIES = policies
+
 
 _TENANT_ID_PARAM = 'tenant_id'
 """Name of the query-param pointing at project-id (tenant-id)"""
@@ -32,7 +37,7 @@ class Request(falcon.Request):
 
     def __init__(self, env, options=None):
         super(Request, self).__init__(env, options)
-        self.context = context.RequestContext.from_environ(self.env)
+        self.context = request_context.RequestContext.from_environ(self.env)
 
     def validate(self, content_types):
         """Performs common request validation
@@ -98,6 +103,9 @@ class Request(falcon.Request):
 
         """
         return self.context.roles
+
+    def can(self, action, target=None):
+        return self.context.can(action, target)
 
     def __repr__(self):
         return '%s, context=%s' % (self.path, self.context)

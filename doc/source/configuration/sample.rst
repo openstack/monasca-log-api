@@ -38,3 +38,14 @@ This sample configuration can also be viewed in `log-api-paste.ini
 <https://github.com/openstack/monasca-log-api/blob/master/etc/monasca/log-api-paste.ini>`_.
 
 .. literalinclude:: ../../../etc/monasca/log-api-paste.ini
+
+.. _sample-configuration-policy:
+
+Sample Configuration For Policy
+-------------------------------
+
+This sample configuration can also be viewed in `log-api-policy.yaml.sample
+<../_static/log-api-policy.yaml.sample>`_.
+
+.. literalinclude:: ../_static/log-api.policy.yaml.sample
+

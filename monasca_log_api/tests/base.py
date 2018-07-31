@@ -1,6 +1,7 @@
 # coding=utf-8
 # Copyright 2015 kornicameister@gmail.com
 # Copyright 2015-2017 FUJITSU LIMITED
+# Copyright 2018 OP5 AB
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -15,6 +16,7 @@
 # under the License.
 
 import codecs
+import os
 import random
 import string
 
@@ -22,14 +24,19 @@ import falcon
 from falcon import testing
 import fixtures
 import mock
+from monasca_common.policy import policy_engine as policy
 from oslo_config import fixture as oo_cfg
 from oslo_context import fixture as oo_ctx
+from oslo_serialization import jsonutils
 from oslotest import base as oslotest_base
 import six
 
 from monasca_log_api.app.base import request
 from monasca_log_api import conf
 from monasca_log_api import config
+from monasca_log_api import policies
+
+policy.POLICIES = policies
 
 
 class MockedAPI(falcon.API):
@@ -149,6 +156,40 @@ class ConfigFixture(oo_cfg.Config):
         self.conf.set_default('kafka_url', '127.0.0.1', 'log_publisher')
 
 
+class PolicyFixture(fixtures.Fixture):
+
+    """Override the policy with a completely new policy file.
+
+    This overrides the policy with a completely fake and synthetic
+    policy file.
+
+     """
+
+    def setUp(self):
+        super(PolicyFixture, self).setUp()
+        self._prepare_policy()
+        policy.reset()
+        policy.init()
+
+    def _prepare_policy(self):
+        policy_dir = self.useFixture(fixtures.TempDir())
+        policy_file = os.path.join(policy_dir.path, 'policy.yaml')
+        # load the fake_policy data and add the missing default rules.
+        policy_rules = jsonutils.loads('{}')
+        self.add_missing_default_rules(policy_rules)
+        with open(policy_file, 'w') as f:
+            jsonutils.dump(policy_rules, f)
+
+        BaseTestCase.conf_override(policy_file=policy_file, group='oslo_policy')
+        BaseTestCase.conf_override(policy_dirs=[], group='oslo_policy')
+
+    @staticmethod
+    def add_missing_default_rules(rules):
+        for rule in policies.list_rules():
+            if rule.name not in rules:
+                rules[rule.name] = rule.check_str
+
+
 class BaseTestCase(oslotest_base.BaseTestCase):
 
     def setUp(self):
@@ -156,6 +197,7 @@ class BaseTestCase(oslotest_base.BaseTestCase):
         self.useFixture(ConfigFixture())
         self.useFixture(DisableStatsdFixture())
         self.useFixture(oo_ctx.ClearRequestContext())
+        self.useFixture(PolicyFixture())
 
     @staticmethod
     def conf_override(**kw):

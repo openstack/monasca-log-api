@@ -50,6 +50,7 @@ class Logs(logs_api.LogsApi):
             self._processor = bulk_processor.BulkProcessor()
 
     def on_post(self, req, res):
+        validation.validate_authorization(req, ['log_api:logs:post'])
         if CONF.monitoring.enable:
             with self._logs_processing_time.time(name=None):
                 self.process_on_post_request(req, res)

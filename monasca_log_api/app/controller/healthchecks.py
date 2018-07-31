@@ -15,6 +15,7 @@
 import falcon
 from monasca_common.rest import utils as rest_utils
 
+from monasca_log_api.app.base.validation import validate_authorization
 from monasca_log_api.app.controller.api import healthcheck_api
 from monasca_log_api.healthcheck import kafka_check
 
@@ -33,13 +34,14 @@ class HealthChecks(healthcheck_api.HealthChecksApi):
         super(HealthChecks, self).__init__()
 
     def on_head(self, req, res):
+        validate_authorization(req, ['log_api:healthcheck:head'])
         res.status = self.HEALTHY_CODE_HEAD
         res.cache_control = self.CACHE_CONTROL
 
     def on_get(self, req, res):
         # at this point we know API is alive, so
         # keep up good work and verify kafka status
-
+        validate_authorization(req, ['log_api:healthcheck:get'])
         kafka_result = self._kafka_check.healthcheck()
 
         # in case it'd be unhealthy,

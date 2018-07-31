@@ -39,6 +39,7 @@ extensions = [
     'oslo_config.sphinxconfiggen',
     'oslo_config.sphinxext',
     'openstackdocstheme',
+    'oslo_policy.sphinxpolicygen'
 ]
 
 # geeneral information about project
@@ -54,6 +55,11 @@ author = u'OpenStack Foundation'
 # sample config
 config_generator_config_file = [
     ('config-generator/monasca-log-api.conf', '_static/log-api')
+
+]
+policy_generator_config_file = [
+    ('config-generator/policy.conf', '_static/log-api')
+
 ]
 
 # Add any paths that contain templates here, relative to this directory.
