@@ -82,9 +82,12 @@ The configuration for ``monitoring`` should either be provided in
 Configuring RBAC
 ----------------
 
-At the moment monasca-log-api does not feature RBAC fully with
-``oslo.policies``.
-It provides a custom mechanism, however, that can be configured as follows:
+The role-based access policy can be defined in the ``log-api.policy.yaml`` file
+as described in `oslo.policy documentation
+<https://docs.openstack.org/oslo.policy>`_.
+
+Additionally, for historical reasons, custom RBAC mechanism is provided. It can
+be configured as follows:
 
 * ``path`` - list of URIs that RBAC applies to
 * ``default_roles`` - list of roles that are permitted to access the API
@@ -93,11 +96,8 @@ It provides a custom mechanism, however, that can be configured as follows:
 * ``delegate_roles`` - list of roles required by log-agent for sending logs
   on behalf of another project (tenant)
 
-The configuration for ``roles_middleware`` should either be provided in
+The configuration for ``roles_middleware`` can be provided either in
 ``log-api.conf`` or in a file in one of the configuration directories.
-
-The configuration for accessing the services by ``oslo.policies`` can be
-provided in ``log-api.policy.yaml``.
 
 Configuring Logging
 -------------------
@@ -158,4 +158,3 @@ example::
   POST  /logs
   POST  /log/single
   "log_api:logs:post": "role:monasca-user"
-
