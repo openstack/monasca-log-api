@@ -12,12 +12,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from oslo_config import cfg
 from oslo_policy import policy
 
-from monasca_log_api.policies import AGENT_AUTHORIZED_ROLES
-from monasca_log_api.policies import DEFAULT_AUTHORIZED_ROLES
-from monasca_log_api.policies import DELEGATE_AUTHORIZED_ROLES
+from monasca_log_api import policies
 
+DEFAULT_AUTHORIZED_ROLES = policies.roles_list_to_check_str(
+    cfg.CONF.roles_middleware.default_roles)
+AGENT_AUTHORIZED_ROLES = policies.roles_list_to_check_str(
+    cfg.CONF.roles_middleware.agent_roles)
+DELEGATE_AUTHORIZED_ROLES = policies.roles_list_to_check_str(
+    cfg.CONF.roles_middleware.delegate_roles)
 
 rules = [
     policy.DocumentedRuleDefault(
