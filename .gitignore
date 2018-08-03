@@ -9,7 +9,6 @@ cover/
 *.egg
 *.egg-info
 .eggs/
-.testrepository/
 .stestr/
 .tox/
 MANIFEST
