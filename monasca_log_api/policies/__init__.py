@@ -16,7 +16,6 @@
 import os
 import pkgutil
 
-
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import importutils
@@ -37,11 +36,6 @@ def roles_list_to_check_str(roles_list):
 
 
 role_middleware.register_opts(CONF)
-
-DEFAULT_AUTHORIZED_ROLES = roles_list_to_check_str(cfg.CONF.roles_middleware.default_roles)
-AGENT_AUTHORIZED_ROLES = roles_list_to_check_str(cfg.CONF.roles_middleware.agent_roles)
-DELEGATE_AUTHORIZED_ROLES = roles_list_to_check_str(cfg.CONF.roles_middleware.delegate_roles)
-CHECK_AUTHORIZED_ROLES = roles_list_to_check_str(cfg.CONF.roles_middleware.check_roles)
 
 
 def load_policy_modules():
