@@ -43,7 +43,7 @@ in the HACKING.rst file, and pass all unit tests as well as linters.
 
 Further developer focused documentation is available at:
 
-* `Openstack Monasca-Log-Api <https://docs.openstack.org/monasca-log-api/latest/>`_
+* `Monasca-Log-Api <https://docs.openstack.org/monasca-log-api/latest/>`_
 
 Operators
 ---------
