@@ -42,6 +42,9 @@ function install_monasca_log {
     if is_service_enabled monasca-log-api; then
         # install_monasca-log-api is not called directly
         # stack_install_service calls it
+        if python3_enabled; then
+            enable_python3_package monasca-log-api
+        fi
         stack_install_service monasca-log-api
     fi
     install_log_agent
