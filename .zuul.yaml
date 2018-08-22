@@ -26,9 +26,20 @@
     parent: monascalog-tempest-base
 
 - project:
+    templates:
+      - openstack-python-jobs
+      - openstack-python35-jobs
+      - check-requirements
+      - publish-openstack-sphinx-docs
+      - release-notes-jobs
     check:
       jobs:
         - monascalog-tempest
+        - openstack-tox-cover
     gate:
+      queue: monasca
       jobs:
         - monascalog-tempest
+    post:
+      jobs:
+        - openstack-tox-cover
