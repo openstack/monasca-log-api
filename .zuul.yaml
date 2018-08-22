@@ -1,0 +1,15 @@
+- project:
+    templates:
+      - openstack-python-jobs
+      - openstack-python35-jobs
+      - check-requirements
+      - publish-openstack-sphinx-docs
+      - release-notes-jobs
+    check:
+      jobs:
+        - openstack-tox-cover
+    gate:
+      queue: monasca
+    post:
+      jobs:
+        - openstack-tox-cover
