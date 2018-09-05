@@ -92,6 +92,26 @@ function init_monasca_log {
     create_log_management_accounts
 }
 
+function init_monasca_grafana_dashboards {
+    if is_service_enabled horizon; then
+        echo_summary "Init Grafana dashboards"
+
+        sudo python "${PLUGIN_FILES}"/grafana/grafana.py "${PLUGIN_FILES}"/grafana/dashboards.d
+    fi
+}
+
+function init_agent {
+    echo_summary "Init Monasca agent"
+
+    sudo cp -f "${PLUGIN_FILES}"/monasca-agent/http_check.yaml /etc/monasca/agent/conf.d/http_check.yaml
+    sudo cp -f "${PLUGIN_FILES}"/monasca-agent/process.yaml /etc/monasca/agent/conf.d/process.yaml
+    sudo cp -f "${PLUGIN_FILES}"/monasca-agent/elastic.yaml /etc/monasca/agent/conf.d/elastic.yaml
+
+    sudo sed -i "s/{{IP}}/$(ip -o -4 addr list eth1 | awk '{print $4}' | cut -d/ -f1 | head -1)/" /etc/monasca/agent/conf.d/*.yaml
+    sudo sed -i "s/127\.0\.0\.1/$(hostname)/" /etc/monasca/agent/conf.d/*.yaml
+    sudo systemctl restart monasca-collector
+}
+
 function stop_monasca_log {
     stop_process "monasca-log-agent" || true
     stop_monasca_log_api
@@ -820,6 +840,8 @@ if is_service_enabled monasca-log; then
         # Initialize and start the Monasca service
         echo_summary "Initializing Monasca Log Management"
         init_monasca_log
+        init_monasca_grafana_dashboards
+        init_agent
         start_monasca_log
     fi
 
