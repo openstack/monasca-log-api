@@ -32,22 +32,18 @@
 
 - project:
     templates:
+      - check-requirements
+      - openstack-cover-jobs
+      - openstack-lower-constraints-jobs
       - openstack-python-jobs
       - openstack-python35-jobs
       - openstack-python36-jobs
-      - check-requirements
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
     check:
       jobs:
         - monascalog-tempest
-        - openstack-tox-lower-constraints
-        - openstack-tox-cover
     gate:
       queue: monasca
       jobs:
         - monascalog-tempest
-        - openstack-tox-lower-constraints
-    post:
-      jobs:
-        - openstack-tox-cover
