@@ -785,9 +785,14 @@ function enable_log_management {
         local localSettings=${DEST}/horizon/monitoring/config/local_settings.py
 
         sudo sed -e "
-            s|ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', False)|ENABLE_KIBANA_BUTTON = getattr(settings, 'ENABLE_KIBANA_BUTTON', True)|g;
             s|KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http://192.168.10.4:5601/')|KIBANA_HOST = getattr(settings, 'KIBANA_HOST', 'http://${KIBANA_SERVICE_HOST}:${KIBANA_SERVICE_PORT}/')|g;
         " -i ${localSettings}
+
+        if is_service_enabled monasca-log-api; then
+            sudo sed -e "
+                s|'ENABLE_LOG_MANAGEMENT_BUTTON', False|'ENABLE_LOG_MANAGEMENT_BUTTON', True|g;
+            " -i ${localSettings}
+        fi
 
         restart_apache_server
     fi
