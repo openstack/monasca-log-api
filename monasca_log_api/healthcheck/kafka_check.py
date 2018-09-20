@@ -16,6 +16,7 @@ import collections
 
 from monasca_common.kafka_lib import client
 from oslo_log import log
+from six import PY3
 
 from monasca_log_api import conf
 
@@ -71,6 +72,9 @@ class KafkaHealthCheck(object):
     # noinspection PyMethodMayBeStatic
     def _verify_topics(self, kafka_client):
         topics = CONF.kafka_healthcheck.kafka_topics
+
+        if PY3:
+            topics = tuple(topic.encode('utf-8') for topic in topics)
 
         for t in topics:
             # kafka client loads metadata for topics as fast
