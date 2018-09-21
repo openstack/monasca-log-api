@@ -74,7 +74,9 @@ def create_version_app(global_conf, **local_conf):
         '/version/{version_id}': ctrl  # display details of the version
     }
 
-    wsgi_app = falcon.API()
+    wsgi_app = falcon.API(
+        request_type=request.Request
+    )
     for route, ctrl in controllers.items():
         wsgi_app.add_route(route, ctrl)
     return wsgi_app
@@ -89,7 +91,9 @@ def create_healthcheck_app(global_conf, **local_conf):
         '/': ctrl
     }
 
-    wsgi_app = falcon.API()
+    wsgi_app = falcon.API(
+        request_type=request.Request
+    )
     for route, ctrl in controllers.items():
         wsgi_app.add_route(route, ctrl)
     return wsgi_app
