@@ -26,7 +26,7 @@ rules = [
         check_str=CHECK_AUTHORIZED_ROLES,
         description='Healthcheck head rule',
         operations=[
-            {'path': '/', 'method': 'HEAD'}
+            {'path': '/healthcheck', 'method': 'HEAD'}
         ]
     ),
     policy.DocumentedRuleDefault(
@@ -34,7 +34,7 @@ rules = [
         check_str=CHECK_AUTHORIZED_ROLES,
         description='Healthcheck get rule',
         operations=[
-            {'path': '/', 'method': 'GET'}
+            {'path': '/healthcheck', 'method': 'GET'}
         ]
     ),
 ]
