@@ -19,6 +19,7 @@ import falcon
 from monasca_common.kafka import producer
 from monasca_common.rest import utils as rest_utils
 from oslo_log import log
+from oslo_utils import encodeutils
 
 from monasca_log_api.app.base import model
 from monasca_log_api import conf
@@ -148,21 +149,7 @@ class LogPublisher(object):
         if not self._is_message_valid(message):
             raise InvalidMessageException()
         truncated = self._truncate(message)
-        proper = self._ensure_type_bytes(truncated)
-        return proper
-
-    def _ensure_type_bytes(self, message):
-        """Ensures that message will have proper type.
-
-        Kafka client expects that messages being
-        posted have certain data type (:py:func:`six.binary_type`).
-        This method ensures by the means of encoding that such type
-        will always be a case regardless if codebase runs under
-        :py:data:`six.PY2` or :py:data:`six.PY3`
-
-        """
-        message = message.encode('utf-8')
-        return message
+        return encodeutils.safe_encode(truncated, incoming='utf-8')
 
     def _truncate(self, envelope):
         """Truncates the message if needed.
