@@ -64,13 +64,13 @@ After finishing the installation, you can find the "Log Management" button on
 At first time, you need to specify the index pattern and time-field name.
 
 The index name is created as the following format.
-  \[mini-mon tenant id\]-YYYY-MM-DD
+  logs-\[mini-mon tenant id\]-YYYY-MM-DD
 For example:
-  20c4fbd37a2345dd84266dfc92da7bd1-2016-04-07
+  logs-20c4fbd37a2345dd84266dfc92da7bd1-2016-04-07
 
 Set the value as the above to index pattern.
 Or you can use "\*" as a wild card, like below.
-  20c4fbd37a2345dd84266dfc92da7bd1-\*
+  logs-20c4fbd37a2345dd84266dfc92da7bd1-\*
 
 Select @timestamp as time-field name.
 
