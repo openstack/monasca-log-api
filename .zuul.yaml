@@ -1,8 +1,6 @@
 - job:
     name: monascalog-tempest-base
-    parent: legacy-dsvm-base
-    run: playbooks/legacy/monascalog-tempest-base/run.yaml
-    post-run: playbooks/legacy/monascalog-tempest-base/post.yaml
+    parent: devstack-tempest
     timeout: 7800
     required-projects:
       - openstack-infra/devstack-gate
@@ -20,6 +18,13 @@
       - openstack/monasca-log-api
       - openstack/monasca-kibana-plugin
       - openstack/monasca-tempest-plugin
+    vars:
+      tox_envlist: all
+      tempest_test_regex: monasca_tempest_tests.tests.log_api
+      devstack_plugins:
+        monasca-api: git://git.openstack.org/openstack/monasca-api
+        monasca-log-api: git://git.openstack.org/openstack/monasca-log-api
+        monasca-tempest-plugin: git://git.openstack.org/openstack/monasca-tempest-plugin
     irrelevant-files:
       - ^.*\.rst$
       - ^.*\.md$
@@ -29,6 +34,9 @@
 - job:
     name: monascalog-tempest
     parent: monascalog-tempest-base
+    vars:
+      devstack_localrc:
+        TEMPEST_PLUGINS: /opt/stack/monasca-tempest-plugin
 
 - project:
     templates:
