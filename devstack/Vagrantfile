@@ -15,7 +15,7 @@ Vagrant.configure(2) do |config|
   config.ssh.forward_agent = true
 
   config.vm.hostname = "devstack"
-  config.vm.box = "bento/ubuntu-16.04"
+  config.vm.box = "bento/ubuntu-18.04"
   config.vm.network "private_network",ip:"192.168.10.6"
   config.vm.synced_folder "~/", "/vagrant_home"
   config.vm.provider "virtualbox" do |vb|
@@ -113,7 +113,7 @@ MONASCA_METRICS_DB=${MONASCA_METRICS_DB:-influxdb}
 # MONASCA_LOG_API_USE_MOD_WSGI=True
 
 # Uncomment one of the following lines and modify accordingly to enable the Monasca DevStack Plugin
-enable_plugin monasca-api https://git.openstack.org/openstack/monasca-api
+enable_plugin monasca-api https://git.openstack.org/openstack/monasca-api.git
 enable_plugin monasca-log-api https://git.openstack.org/openstack/monasca-log-api.git
 
 ' > local.conf

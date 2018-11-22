@@ -33,7 +33,7 @@ source ${MONASCA_LOG_API_DIR}/devstack/lib/config.sh
 ###############################################################################
 function pre_install {
     install_elk
-    install_node_nvm
+    install_nodejs
     install_gate_config_holder
 }
 
@@ -120,7 +120,7 @@ function clean_monasca_log {
     clean_kibana
     clean_elasticsearch
     clean_logstash
-    clean_node_nvm
+    clean_nodejs
     clean_gate_config_holder
 }
 ###############################################################################
@@ -660,38 +660,22 @@ function start_monasca_log_agent {
     fi
 }
 
-function install_node_nvm {
-    set -i
-    if [[ ! -f "${HOME}/.nvm/nvm.sh" ]] && is_service_enabled kibana; then
-        # note(trebskit) we need node to build kibana plugin
-        # so if kibana is enabled in this environment, let's install node
-        echo_summary "Install Node ${NODE_JS_VERSION} with NVM ${NVM_VERSION}"
-        local nvmUrl=https://raw.githubusercontent.com/creationix/nvm/v${NVM_VERSION}/install.sh
-
-        local nvmDest
-        nvmDest=`get_extra_file ${nvmUrl}`
-
-        bash ${nvmDest}
-    fi
+function install_nodejs {
     if is_service_enabled kibana; then
         # refresh installation
+        apt_get install nodejs npm
         (
-            source "${HOME}"/.nvm/nvm.sh >> /dev/null; \
-            nvm install ${NODE_JS_VERSION}; \
-            nvm use ${NODE_JS_VERSION}; \
             npm config set registry "http://registry.npmjs.org/"; \
             npm config set proxy "${HTTP_PROXY}"; \
             npm set strict-ssl false;
         )
     fi
-    set +i
 }
 
-function clean_node_nvm {
-    if [[ -f "${HOME}/.nvm/nvm.sh" ]] && is_service_enabled kibana; then
-        echo_summary "Cleaning Node ${NODE_JS_VERSION} with NVM ${NVM_VERSION}"
-        sudo rm ${FILES}/nvm_install.sh
-        sudo rm -rf "${HOME}/.nvm/nvm.sh"
+function clean_nodejs {
+    if is_service_enabled kibana; then
+        echo_summary "Cleaning Node.js"
+        apt_get purge nodejs npm
     fi
 }
 
@@ -712,10 +696,8 @@ function build_kibana_plugin {
         monasca_kibana_plugin_version="$(python -c 'import json; \
             obj = json.load(open("package.json")); print obj["version"]')"
 
-        set -i
-        (source "${HOME}"/.nvm/nvm.sh >> /dev/null; nvm use ${NODE_JS_VERSION}; npm install)
-        (source "${HOME}"/.nvm/nvm.sh >> /dev/null; nvm use ${NODE_JS_VERSION}; npm run package)
-        set +i
+        npm install
+        npm run package
 
         local pkg=$MONASCA_KIBANA_PLUGIN_DIR/target/monasca-kibana-plugin-${monasca_kibana_plugin_version}.tar.gz
         local easyPkg=$DEST/monasca-kibana-plugin.tar.gz
