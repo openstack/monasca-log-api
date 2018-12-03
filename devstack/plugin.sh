@@ -638,10 +638,8 @@ function install_log_agent {
     if is_service_enabled monasca-log-agent; then
         echo_summary "Installing monasca-log-agent [monasca-output-plugin]"
 
-        local monasca_log_agent_version=0.5.2
-        local ls_plugin_filename=logstash-output-monasca_log_api-${monasca_log_agent_version}.gem
-
-        $LOGSTASH_DIR/bin/plugin install "${PLUGIN_FILES}"/monasca-log-agent/${ls_plugin_filename}
+        $LOGSTASH_DIR/bin/plugin install --version \
+            "${LOGSTASH_OUTPUT_MONASCA_VERSION}" logstash-output-monasca_log_api
     fi
 }
 
