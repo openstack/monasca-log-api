@@ -839,7 +839,9 @@ if is_service_enabled monasca-log; then
         echo_summary "Initializing Monasca Log Management"
         init_monasca_log
         init_monasca_grafana_dashboards
-        init_agent
+        if is_service_enabled monasca-agent; then
+            init_agent
+        fi
         start_monasca_log
     fi
 
