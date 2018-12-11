@@ -57,10 +57,18 @@
       - ^releasenotes/.*$
 
 - job:
-    name: monascalog-tempest
+    name: monascalog-python2-tempest
     parent: monascalog-tempest-base
     vars:
       devstack_localrc:
+        TEMPEST_PLUGINS: /opt/stack/monasca-tempest-plugin
+
+- job:
+    name: monascalog-python3-tempest
+    parent: monascalog-tempest-base
+    vars:
+      devstack_localrc:
+        USE_PYTHON3: true
         TEMPEST_PLUGINS: /opt/stack/monasca-tempest-plugin
 
 - project:
@@ -75,8 +83,10 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - monascalog-tempest
+        - monascalog-python2-tempest
+        - monascalog-python3-tempest
     gate:
       queue: monasca
       jobs:
-        - monascalog-tempest
+        - monascalog-python2-tempest
+        - monascalog-python3-tempest
