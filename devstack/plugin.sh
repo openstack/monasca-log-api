@@ -399,7 +399,7 @@ function install_elasticsearch {
         echo_summary "Installing ElasticSearch ${ELASTICSEARCH_VERSION}"
 
         local es_tarball=elasticsearch-${ELASTICSEARCH_VERSION}.tar.gz
-        local es_url=http://download.elasticsearch.org/elasticsearch/elasticsearch/${es_tarball}
+        local es_url=https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/${ELASTICSEARCH_VERSION}/${es_tarball}
 
         local es_dest
         es_dest=`get_extra_file ${es_url}`
