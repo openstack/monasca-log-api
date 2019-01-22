@@ -14,6 +14,7 @@
 
 import sys
 
+from oslo_config import cfg
 from oslo_log import log
 from oslo_policy import opts as policy_opts
 
@@ -34,6 +35,25 @@ def _is_running_under_gunicorn():
     return len(list(content) if not isinstance(content, list) else content) > 0
 
 
+def get_config_files():
+    """Get the possible configuration files accepted by oslo.config
+
+    This also includes the deprecated ones
+    """
+    # default files
+    conf_files = cfg.find_config_files(project='monasca',
+                                       prog='monasca-log-api')
+    # deprecated config files (only used if standard config files are not there)
+    if len(conf_files) == 0:
+        old_conf_files = cfg.find_config_files(project='monasca',
+                                               prog='log-api')
+        if len(old_conf_files) > 0:
+            LOG.warning('Found deprecated old location "{}" '
+                        'of main configuration file'.format(old_conf_files))
+            conf_files += old_conf_files
+    return conf_files
+
+
 def parse_args(argv=None):
     global _CONF_LOADED
     if _CONF_LOADED:
@@ -47,9 +67,10 @@ def parse_args(argv=None):
     args = ([] if _is_running_under_gunicorn() else argv or [])
 
     CONF(args=args,
-         prog='log-api',
+         prog=sys.argv[1:],
          project='monasca',
          version=version.version_str,
+         default_config_files=get_config_files(),
          description='RESTful API to collect log files')
 
     log.setup(CONF,

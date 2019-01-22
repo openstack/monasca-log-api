@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    Configuration file path /etc/monasca/log-api.conf is deprecated.
+    Use the standard path /etc/monasca/monasca-log-api.conf or the
+    configuration dir (supported via oslo.config)
+    /etc/monasca/monasca-log-api.conf.d/any_config_name.conf
