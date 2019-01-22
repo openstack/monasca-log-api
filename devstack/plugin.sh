@@ -200,13 +200,13 @@ function configure_monasca_log_api_core {
 
     $MONASCA_LOG_API_BIN_DIR/oslo-config-generator \
         --config-file $MONASCA_LOG_API_DIR/config-generator/monasca-log-api.conf \
-        --output-file /tmp/log-api.conf
+        --output-file /tmp/monasca-log-api.conf
 
-    install -m 600 /tmp/log-api.conf $MONASCA_LOG_API_CONF && rm -rf /tmp/log-api.conf
+    install -m 600 /tmp/monasca-log-api.conf $MONASCA_LOG_API_CONF && rm -rf /tmp/monasca-log-api.conf
     install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-paste.ini $MONASCA_LOG_API_PASTE
     install -m 600 $MONASCA_LOG_API_DIR/etc/monasca/log-api-logging.conf $MONASCA_LOG_API_LOGGING_CONF
 
-    # configure log-api.conf
+    # configure monasca-log-api.conf
     iniset "$MONASCA_LOG_API_CONF" DEFAULT log_config_append $MONASCA_LOG_API_LOGGING_CONF
     iniset "$MONASCA_LOG_API_CONF" service region $REGION_NAME
 

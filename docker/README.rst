@@ -72,7 +72,7 @@ STAY_ALIVE_ON_FAILURE          false                                            
 
 Provide configuration templates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-* log-api.conf.j2
+* monasca-log-api.conf.j2
 * log-api-gunicorn.conf.j2
 * log-api-logging.conf.j2
 * log-api.paste.ini.j2

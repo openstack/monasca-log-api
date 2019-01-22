@@ -54,7 +54,7 @@ author = u'OpenStack Foundation'
 
 # sample config
 config_generator_config_file = [
-    ('config-generator/monasca-log-api.conf', '_static/log-api')
+    ('config-generator/monasca-log-api.conf', '_static/monasca-log-api')
 
 ]
 policy_generator_config_file = [

@@ -25,7 +25,7 @@ python3 /kafka_wait_for_topics.py
 # Template all config files before start, it will use env variables.
 # Read usage examples: https://pypi.org/project/Templer/
 echo "Start script: creating config files from templates"
-templer -v -f /etc/monasca/log-api.conf.j2          /etc/monasca/log-api.conf
+templer -v -f /etc/monasca/monasca-log-api.conf.j2  /etc/monasca/monasca-log-api.conf
 templer -v -f /etc/monasca/log-api-gunicorn.conf.j2 /etc/monasca/log-api-gunicorn.conf
 templer -v -f /etc/monasca/log-api-logging.conf.j2  /etc/monasca/log-api-logging.conf
 templer -v -f /etc/monasca/log-api-paste.ini.j2     /etc/monasca/log-api-paste.ini

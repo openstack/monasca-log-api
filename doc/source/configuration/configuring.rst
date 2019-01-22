@@ -29,7 +29,7 @@ It prevents from unauthorized access and provides the isolation
 needed for multi-tenancy.
 
 The configuration for ``keystonemiddleware`` should either be provided in
-``log-api.conf`` or in a file in one of the configuration directories.
+``monasca-log-api.conf`` or in a file in one of the configuration directories.
 For more details about configuration options, check
 `here <https://docs.openstack.org/keystonemiddleware/latest/middlewarearchitecture.html#configuration>`_.
 
@@ -44,7 +44,7 @@ Proper configuration should include:
 * ``max_message_size`` - maximum message size that can be posted a topic
 
 The configuration for ``log_publisher`` should either be provided in
-``log-api.conf`` or in a file in one of the configuration directories.
+``monasca-log-api.conf`` or in a file in one of the configuration directories.
 
 Configuring Healthcheck
 -----------------------
@@ -57,7 +57,7 @@ availability of the API. Configuration of healthcheck includes:
 * ``kafka_topics`` - list of topics that existence is verified by healthcheck
 
 The configuration for ``kafka_healthcheck`` should either be provided in
-``log-api.conf`` or in a file in one of the configuration directories.
+``monasca-log-api.conf`` or in a file in one of the configuration directories.
 
 Configuring Monitoring
 ----------------------
@@ -77,7 +77,7 @@ There are several options you may want to tweak if necessary:
   metrics for this monasca-log-api instance
 
 The configuration for ``monitoring`` should either be provided in
-``log-api.conf`` or in a file in one of the configuration directories.
+``monasca-log-api.conf`` or in a file in one of the configuration directories.
 
 Configuring RBAC
 ----------------
@@ -97,7 +97,7 @@ be configured as follows:
   on behalf of another project (tenant)
 
 The configuration for ``roles_middleware`` can be provided either in
-``log-api.conf`` or in a file in one of the configuration directories.
+``monasca-log-api.conf`` or in a file in one of the configuration directories.
 
 Configuring Logging
 -------------------
@@ -132,8 +132,8 @@ based on your deployment:
   of 100MBs)
 
   The configuration of ``logging`` should be presented inside
-  ``log-api-logging.conf`` file and referenced from ``log-api.conf`` using
-  ``log_config_append`` option.
+  ``log-api-logging.conf`` file and referenced from ``monasca-log-api.conf``
+  using ``log_config_append`` option.
 
   If you want to know more about possible ways to save monasca-log-api logs,
   feel free to visit:

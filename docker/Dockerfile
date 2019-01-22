@@ -41,7 +41,7 @@ ENV \
     STAY_ALIVE_ON_FAILURE="false"
 
 # Copy all neccessary files to proper locations.
-COPY log-api* /etc/monasca/
+COPY log-api* monasca-log-api* /etc/monasca/
 
 # Run here all additionals steps your service need post installation.
 # Stay with only one `RUN` and use `&& \` for next steps to don't create

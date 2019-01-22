@@ -15,10 +15,10 @@ of code in the monasca-log-api repository.
 Sample Configuration For Application
 ------------------------------------
 
-This sample configuration can also be viewed in `log-api.conf.sample
-<../_static/log-api.conf.sample>`_.
+This sample configuration can also be viewed in `monasca-log-api.conf.sample
+<../_static/monasca-log-api.conf.sample>`_.
 
-.. literalinclude:: ../_static/log-api.conf.sample
+.. literalinclude:: ../_static/monasca-log-api.conf.sample
 
 .. _sample-configuration-logging:
 

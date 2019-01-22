@@ -6,8 +6,8 @@ Configuration files
 
 Overview of monasca-log-api's configuration files.
 
-log-api.conf
-------------
+monasca-log-api.conf
+--------------------
 
 This is the main configuration file of monasca-log-api.
 It can be located in several places. During startup,
@@ -23,23 +23,23 @@ In this case, monasca-log-api searches the configuration files
 in the following directories:
 
 * ``~/.monasca/monasca.conf.d/``
-* ``~/.monasca/log-api.conf.d/``
+* ``~/.monasca/monasca-log-api.conf.d/``
 * ``~/monasca.conf.d/``
-* ``~/log-api.conf.d/``
+* ``~/monasca-log-api.conf.d/``
 * ``/etc/monasca/monasca.conf.d/``
-* ``/etc/monasca/log-api.conf.d/``
+* ``/etc/monasca/monasca-log-api.conf.d/``
 * ``/etc/monasca.conf.d/``
-* ``/etc/log-api.conf.d/``
+* ``/etc/monasca-log-api.conf.d/``
 
 Regardless of the location, the name of the main configuration file
-should always be ``log-api.conf``. For files located
+should always be ``monasca-log-api.conf``. For files located
 in ``.conf.d`` directories, the name is irrelevant, but it should
 indicate the file content.
 
 For example, when guring keystone communication. The
 `keystonemiddleware <https://docs.openstack.org/keystonemiddleware/latest/>`_
 configuration would be, therefore, located in, for example,
-``/etc/log-api.conf.d/keystonemiddleware.conf``
+``/etc/monasca-log-api.conf.d/keystonemiddleware.conf``
 
 A sample of this configuration file is also available
 :ref:`here <sample-configuration-api>`
@@ -48,7 +48,7 @@ log-api-logging.conf
 --------------------
 
 This file contains the logging setup for monasca-log-api. It should be
-referenced from ``log-api.conf`` using, for example,
+referenced from ``monasca-log-api.conf`` using, for example,
 the following code snippet::
 
     [DEFAULT]
@@ -87,7 +87,7 @@ log-api.policy.yaml
 -------------------
 
 This is the configuration file for policies to access the services.
-the path of the file can be defined in ``log-api.conf``::
+the path of the file can be defined in ``monasca-log-api.conf``::
 
   [oslo_policy]
   policy_file = log-api.policy.yaml
