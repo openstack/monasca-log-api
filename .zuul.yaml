@@ -85,6 +85,7 @@
       jobs:
         - monascalog-python2-tempest
         - monascalog-python3-tempest
+        - docker-build-monasca-service
     gate:
       queue: monasca
       jobs:
