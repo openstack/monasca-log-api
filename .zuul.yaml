@@ -24,8 +24,8 @@
       tox_envlist: all
       tempest_test_regex: monasca_tempest_tests.tests.log_api
       devstack_plugins:
-        monasca-api: git://git.openstack.org/openstack/monasca-api
-        monasca-log-api: git://git.openstack.org/openstack/monasca-log-api
+        monasca-api: https://git.openstack.org/openstack/monasca-api
+        monasca-log-api: https://git.openstack.org/openstack/monasca-log-api
       devstack_services:
         # Disable unneeded services.
         etcd3: false
