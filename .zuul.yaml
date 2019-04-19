@@ -5,7 +5,7 @@
       Job for running tempest tests on monasca-log-api devstack plugin.
     timeout: 7800
     required-projects:
-      - openstack-infra/devstack-gate
+      - openstack/devstack-gate
       - openstack/monasca-agent
       - openstack/monasca-api
       - openstack/monasca-common
@@ -24,8 +24,8 @@
       tox_envlist: all
       tempest_test_regex: monasca_tempest_tests.tests.log_api
       devstack_plugins:
-        monasca-api: https://git.openstack.org/openstack/monasca-api
-        monasca-log-api: https://git.openstack.org/openstack/monasca-log-api
+        monasca-api: https://opendev.org/openstack/monasca-api
+        monasca-log-api: https://opendev.org/openstack/monasca-log-api
       devstack_services:
         # Disable unneeded services.
         etcd3: false
