@@ -59,12 +59,12 @@ cd "$(dirname "$REAL_PATH")/../docker/"
 REPO_VERSION_CLEAN=$(echo "$REPO_VERSION" | sed 's|/|-|g')
 
 [ -z "$APP_REPO" ] && APP_REPO=$(\grep APP_REPO Dockerfile | cut -f2 -d"=")
-GITHUB_REPO=$(echo "$APP_REPO" | sed 's/git.openstack.org/github.com/' | \
+GITHUB_REPO=$(echo "$APP_REPO" | sed 's/opendev.org/github.com/' | \
               sed 's/ssh:/https:/')
 
 if [ -z "$CONSTRAINTS_FILE" ]; then
     CONSTRAINTS_FILE=$(\grep CONSTRAINTS_FILE Dockerfile | cut -f2 -d"=") || true
-    : "${CONSTRAINTS_FILE:=http://git.openstack.org/cgit/openstack/requirements/plain/upper-constraints.txt}"
+    : "${CONSTRAINTS_FILE:=https://releases.openstack.org/constraints/upper/master}"
 fi
 
 : "${CONSTRAINTS_BRANCH:=$2}"
@@ -92,7 +92,7 @@ esac
 # Monasca-common variables.
 if [ -z "$COMMON_REPO" ]; then
     COMMON_REPO=$(\grep COMMON_REPO Dockerfile | cut -f2 -d"=") || true
-    : "${COMMON_REPO:=https://git.openstack.org/openstack/monasca-common}"
+    : "${COMMON_REPO:=https://opendev.org/openstack/monasca-common}"
 fi
 
 : "${COMMON_VERSION:=$3}"
