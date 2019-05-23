@@ -15,6 +15,7 @@
 
 import falcon
 import mock
+import ujson
 
 from monasca_log_api.app.base import exceptions as log_api_exceptions
 from monasca_log_api.app.controller.api import headers
@@ -26,7 +27,7 @@ ROLES = 'admin'
 
 def _init_resource(test):
     resource = logs.Logs()
-    test.api.add_route('/log/single', resource)
+    test.app.add_route('/log/single', resource)
     return resource
 
 
@@ -47,8 +48,8 @@ class TestApiLogs(base.BaseApiTestCase):
                                                                       __):
         _init_resource(self)
 
-        self.simulate_request(
-            '/log/single',
+        res = self.simulate_request(
+            path='/log/single',
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
@@ -58,16 +59,16 @@ class TestApiLogs(base.BaseApiTestCase):
             }
         )
 
-        self.assertEqual(falcon.HTTP_204, self.srmock.status)
-        self.assertIn('deprecated', self.srmock.headers_dict)
-        self.assertIn('link', self.srmock.headers_dict)
+        self.assertEqual(falcon.HTTP_204, res.status)
+        self.assertIn('deprecated', res.headers)
+        self.assertIn('link', res.headers)
 
     @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
     @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
     def test_should_fail_not_delegate_ok_cross_tenant_id(self, _, __):
         _init_resource(self)
-        self.simulate_request(
-            '/log/single',
+        res = self.simulate_request(
+            path='/log/single',
             method='POST',
             query_string='tenant_id=1',
             headers={
@@ -75,7 +76,7 @@ class TestApiLogs(base.BaseApiTestCase):
                 'Content-Length': '0'
             }
         )
-        self.assertEqual(falcon.HTTP_401, self.srmock.status)
+        self.assertEqual(falcon.HTTP_401, res.status)
 
     @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
     @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
@@ -86,8 +87,8 @@ class TestApiLogs(base.BaseApiTestCase):
         logs_resource._log_creator = log_creator
         logs_resource._kafka_publisher = kafka_publisher
 
-        self.simulate_request(
-            '/log/single',
+        res = self.simulate_request(
+            path='/log/single',
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
@@ -96,7 +97,7 @@ class TestApiLogs(base.BaseApiTestCase):
                 'Content-Length': '0'
             }
         )
-        self.assertEqual(falcon.HTTP_204, self.srmock.status)
+        self.assertEqual(falcon.HTTP_204, res.status)
 
         self.assertEqual(1, kafka_publisher.send_message.call_count)
         self.assertEqual(1, log_creator.new_log.call_count)
@@ -111,8 +112,8 @@ class TestApiLogs(base.BaseApiTestCase):
         logs_resource._log_creator = log_creator
         logs_resource._kafka_publisher = kafka_publisher
 
-        self.simulate_request(
-            '/log/single',
+        res = self.simulate_request(
+            path='/log/single',
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
@@ -121,7 +122,7 @@ class TestApiLogs(base.BaseApiTestCase):
                 'Content-Length': '0'
             }
         )
-        self.assertEqual(falcon.HTTP_204, self.srmock.status)
+        self.assertEqual(falcon.HTTP_204, res.status)
 
         self.assertEqual(1, kafka_publisher.send_message.call_count)
         self.assertEqual(1, log_creator.new_log.call_count)
@@ -136,8 +137,8 @@ class TestApiLogs(base.BaseApiTestCase):
         resource._log_creator = log_creator
         resource._kafka_publisher = log_publisher
 
-        self.simulate_request(
-            '/log/single',
+        res = self.simulate_request(
+            path='/log/single',
             method='POST',
             query_string='tenant_id=1',
             headers={
@@ -147,7 +148,7 @@ class TestApiLogs(base.BaseApiTestCase):
                 'Content-Length': '0'
             }
         )
-        self.assertEqual(falcon.HTTP_204, self.srmock.status)
+        self.assertEqual(falcon.HTTP_204, res.status)
 
         self.assertEqual(1, log_publisher.send_message.call_count)
         self.assertEqual(1, log_creator.new_log.call_count)
@@ -159,26 +160,25 @@ class TestApiLogs(base.BaseApiTestCase):
         _init_resource(self)
         rest_utils.read_body.return_value = True
 
-        self.simulate_request(
-            '/log/single',
+        res = self.simulate_request(
+            path='/log/single',
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
                 headers.X_DIMENSIONS.name: '',
                 'Content-Type': 'application/json',
-                'Content-Length': '0'
             },
             body='{"message":"test"}'
         )
-        self.assertEqual(log_api_exceptions.HTTP_422, self.srmock.status)
+        self.assertEqual(log_api_exceptions.HTTP_422, res.status)
 
     @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
     @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
     def test_should_fail_for_invalid_content_type(self, _, __):
         _init_resource(self)
 
-        self.simulate_request(
-            '/log/single',
+        res = self.simulate_request(
+            path='/log/single',
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
@@ -187,7 +187,7 @@ class TestApiLogs(base.BaseApiTestCase):
                 'Content-Length': '0'
             }
         )
-        self.assertEqual(falcon.HTTP_415, self.srmock.status)
+        self.assertEqual(falcon.HTTP_415, res.status)
 
     @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
     @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
@@ -195,20 +195,25 @@ class TestApiLogs(base.BaseApiTestCase):
         _init_resource(self)
 
         max_log_size = 1000
-        content_length = max_log_size - 100
+        body = ujson.dumps({
+            'message': 't' * (max_log_size - 100)
+        })
+
+        content_length = len(body)
         self.conf_override(max_log_size=max_log_size, group='service')
 
-        self.simulate_request(
-            '/log/single',
+        res = self.simulate_request(
+            path='/log/single',
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
                 headers.X_DIMENSIONS.name: '',
                 'Content-Type': 'application/json',
                 'Content-Length': str(content_length)
-            }
+            },
+            body=body
         )
-        self.assertEqual(falcon.HTTP_204, self.srmock.status)
+        self.assertEqual(falcon.HTTP_204, res.status)
 
     @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
     @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
@@ -219,8 +224,8 @@ class TestApiLogs(base.BaseApiTestCase):
         content_length = max_log_size + 100
         self.conf_override(max_log_size=max_log_size, group='service')
 
-        self.simulate_request(
-            '/log/single',
+        res = self.simulate_request(
+            path='/log/single',
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
@@ -229,7 +234,7 @@ class TestApiLogs(base.BaseApiTestCase):
                 'Content-Length': str(content_length)
             }
         )
-        self.assertEqual(falcon.HTTP_413, self.srmock.status)
+        self.assertEqual(falcon.HTTP_413, res.status)
 
     @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
     @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
@@ -240,8 +245,8 @@ class TestApiLogs(base.BaseApiTestCase):
         content_length = max_log_size
         self.conf_override(max_log_size=max_log_size, group='service')
 
-        self.simulate_request(
-            '/log/single',
+        res = self.simulate_request(
+            path='/log/single',
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
@@ -250,15 +255,15 @@ class TestApiLogs(base.BaseApiTestCase):
                 'Content-Length': str(content_length)
             }
         )
-        self.assertEqual(falcon.HTTP_413, self.srmock.status)
+        self.assertEqual(falcon.HTTP_413, res.status)
 
     @mock.patch('monasca_log_api.app.controller.v2.aid.service.LogCreator')
     @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
     def test_should_fail_content_length(self, _, __):
         _init_resource(self)
 
-        self.simulate_request(
-            '/log/single',
+        res = self.simulate_request(
+            path='/log/single',
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
@@ -266,4 +271,4 @@ class TestApiLogs(base.BaseApiTestCase):
                 'Content-Type': 'application/json'
             }
         )
-        self.assertEqual(falcon.HTTP_411, self.srmock.status)
+        self.assertEqual(falcon.HTTP_411, res.status)

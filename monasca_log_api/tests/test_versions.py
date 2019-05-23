@@ -13,7 +13,6 @@
 # under the License.
 
 import falcon
-import ujson as json
 
 from monasca_log_api.app.controller import versions
 from monasca_log_api.tests import base
@@ -25,24 +24,25 @@ def _get_versioned_url(version_id):
 
 class TestApiVersions(base.BaseApiTestCase):
 
-    def before(self):
+    def setUp(self):
+        super(TestApiVersions, self).setUp()
         self.versions = versions.Versions()
-        self.api.add_route("/version/", self.versions)
-        self.api.add_route("/version/{version_id}", self.versions)
+        self.app.add_route("/version/", self.versions)
+        self.app.add_route("/version/{version_id}", self.versions)
 
     def test_should_fail_for_unsupported_version(self):
         unsupported_version = 'v5.0'
         uri = _get_versioned_url(unsupported_version)
 
-        self.simulate_request(
-            uri,
+        res = self.simulate_request(
+            path=uri,
             method='GET',
             headers={
                 'Content-Type': 'application/json'
             }
         )
 
-        self.assertEqual(falcon.HTTP_400, self.srmock.status)
+        self.assertEqual(falcon.HTTP_400, res.status)
 
     def test_should_return_all_supported_versions(self):
 
@@ -78,16 +78,15 @@ class TestApiVersions(base.BaseApiTestCase):
         expected_links_keys = 'self', 'version', 'healthcheck'
 
         res = self.simulate_request(
-            '/version',
+            path='/version',
             method='GET',
             headers={
                 'Content-Type': 'application/json'
-            },
-            decode='utf-8'
+            }
         )
-        self.assertEqual(falcon.HTTP_200, self.srmock.status)
+        self.assertEqual(falcon.HTTP_200, res.status)
 
-        response = json.loads(res)
+        response = res.json
 
         _check_elements()
         _check_global_links()
@@ -97,16 +96,15 @@ class TestApiVersions(base.BaseApiTestCase):
         for expected_version in expected_versions:
             uri = _get_versioned_url(expected_version)
             res = self.simulate_request(
-                uri,
+                path=uri,
                 method='GET',
                 headers={
                     'Content-Type': 'application/json'
                 },
-                decode='utf-8'
             )
-            self.assertEqual(falcon.HTTP_200, self.srmock.status)
+            self.assertEqual(falcon.HTTP_200, res.status)
 
-            response = json.loads(res)
+            response = res.json
             self.assertIn('elements', response)
             self.assertIn('links', response)
 

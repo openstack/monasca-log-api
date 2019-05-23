@@ -92,7 +92,7 @@ class Logs(logs_api.LogsApi):
         return self._log_creator.new_log(
             application_type=request.get_header(*headers.X_APPLICATION_TYPE),
             dimensions=request.get_header(*headers.X_DIMENSIONS),
-            payload=request.stream,
+            payload=request.media,
             content_type=request.content_type
         )
 

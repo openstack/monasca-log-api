@@ -66,11 +66,11 @@ class TestApiSameV2V3Output(base.BaseApiTestCase):
             ]
         }
 
-        self.api.add_route('/v2.0', v2)
-        self.api.add_route('/v3.0', v3)
+        self.app.add_route('/v2.0', v2)
+        self.app.add_route('/v3.0', v3)
 
         self.simulate_request(
-            '/v2.0',
+            path='/v2.0',
             method='POST',
             headers={
                 headers.X_ROLES.name: roles,
@@ -78,19 +78,17 @@ class TestApiSameV2V3Output(base.BaseApiTestCase):
                 headers.X_APPLICATION_TYPE.name: component,
                 headers.X_TENANT_ID.name: tenant_id,
                 'Content-Type': 'application/json',
-                'Content-Length': '100'
             },
             body=json.dumps(v2_body)
         )
 
         self.simulate_request(
-            '/v3.0',
+            path='/v3.0',
             method='POST',
             headers={
                 headers.X_ROLES.name: roles,
                 headers.X_TENANT_ID.name: tenant_id,
                 'Content-Type': 'application/json',
-                'Content-Length': '100'
             },
             body=json.dumps(v3_body)
         )

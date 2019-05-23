@@ -14,7 +14,6 @@
 
 import falcon
 import mock
-import simplejson as json
 
 from monasca_log_api.app.controller import healthchecks
 from monasca_log_api.healthcheck import kafka_check as healthcheck
@@ -25,16 +24,19 @@ ENDPOINT = '/healthcheck'
 
 class TestApiHealthChecks(base.BaseApiTestCase):
 
-    def before(self):
+    def setUp(self):
+        super(TestApiHealthChecks, self).setUp()
         self.resource = healthchecks.HealthChecks()
-        self.api.add_route(
+        self.app.add_route(
             ENDPOINT,
             self.resource
         )
 
     def test_should_return_200_for_head(self):
-        self.simulate_request(ENDPOINT, method='HEAD')
-        self.assertEqual(falcon.HTTP_NO_CONTENT, self.srmock.status)
+        res = self.simulate_request(
+            path=ENDPOINT,
+            method='HEAD')
+        self.assertEqual(falcon.HTTP_NO_CONTENT, res.status)
 
     @mock.patch('monasca_log_api.healthcheck.kafka_check.KafkaHealthCheck')
     def test_should_report_healthy_if_kafka_healthy(self, kafka_check):
@@ -42,17 +44,16 @@ class TestApiHealthChecks(base.BaseApiTestCase):
                                                                        'OK')
         self.resource._kafka_check = kafka_check
 
-        ret = self.simulate_request(ENDPOINT,
+        res = self.simulate_request(path=ENDPOINT,
                                     headers={
                                         'Content-Type': 'application/json'
                                     },
-                                    decode='utf8',
                                     method='GET')
-        self.assertEqual(falcon.HTTP_OK, self.srmock.status)
+        self.assertEqual(falcon.HTTP_OK, res.status)
 
-        ret = json.loads(ret)
-        self.assertIn('kafka', ret)
-        self.assertEqual('OK', ret.get('kafka'))
+        res = res.json
+        self.assertIn('kafka', res)
+        self.assertEqual('OK', res.get('kafka'))
 
     @mock.patch('monasca_log_api.healthcheck.kafka_check.KafkaHealthCheck')
     def test_should_report_unhealthy_if_kafka_healthy(self, kafka_check):
@@ -62,14 +63,13 @@ class TestApiHealthChecks(base.BaseApiTestCase):
                                                                        err_str)
         self.resource._kafka_check = kafka_check
 
-        ret = self.simulate_request(ENDPOINT,
+        res = self.simulate_request(path=ENDPOINT,
                                     headers={
                                         'Content-Type': 'application/json'
                                     },
-                                    decode='utf8',
                                     method='GET')
-        self.assertEqual(falcon.HTTP_SERVICE_UNAVAILABLE, self.srmock.status)
+        self.assertEqual(falcon.HTTP_SERVICE_UNAVAILABLE, res.status)
 
-        ret = json.loads(ret)
-        self.assertIn('kafka', ret)
-        self.assertEqual(err_str, ret.get('kafka'))
+        res = res.json
+        self.assertIn('kafka', res)
+        self.assertEqual(err_str, res.get('kafka'))

@@ -77,6 +77,7 @@ def create_version_app(global_conf, **local_conf):
     wsgi_app = falcon.API(
         request_type=request.Request
     )
+    wsgi_app.req_options.strip_url_path_trailing_slash = True
     for route, ctrl in controllers.items():
         wsgi_app.add_route(route, ctrl)
     return wsgi_app

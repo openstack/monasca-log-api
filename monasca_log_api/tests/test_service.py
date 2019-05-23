@@ -304,7 +304,7 @@ class PayloadSizeValidations(base.BaseTestCase):
         req.content_length = content_length
 
         self.assertRaises(
-            errors.HTTPRequestEntityTooLarge,
+            errors.HTTPPayloadTooLarge,
             validation.validate_payload_size,
             req
         )
@@ -319,7 +319,7 @@ class PayloadSizeValidations(base.BaseTestCase):
         req.content_length = content_length
 
         self.assertRaises(
-            errors.HTTPRequestEntityTooLarge,
+            errors.HTTPPayloadTooLarge,
             validation.validate_payload_size,
             req
         )
@@ -357,14 +357,13 @@ class LogsCreatorNewLog(base.BaseTestCase):
         super(LogsCreatorNewLog, self).setUp()
         self.instance = aid_service.LogCreator()
 
-    @mock.patch('io.IOBase')
-    def test_should_create_log_from_json(self, payload):
+    def test_should_create_log_from_json(self):
         msg = u'Hello World'
         path = u'/var/log/messages'
-        json_msg = u'{"path":"%s","message":"%s"}' % (path, msg)
+        payload = {"path": path,
+                   "message": msg}
         app_type = 'monasca'
         dimensions = 'cpu_time:30'
-        payload.read.return_value = json_msg
 
         expected_log = {
             'message': msg,
@@ -381,14 +380,12 @@ class LogsCreatorNewLog(base.BaseTestCase):
             payload=payload
         ))
 
-    @mock.patch('io.IOBase')
-    def test_should_create_log_from_text(self, payload):
+    def test_should_create_log_from_text(self):
         msg = u'Hello World'
         app_type = 'monasca'
         dimension_name = 'cpu_time'
         dimension_value = 30
         dimensions = '%s:%s' % (dimension_name, str(dimension_value))
-        payload.read.return_value = msg
 
         expected_log = {
             'message': msg,
@@ -401,7 +398,7 @@ class LogsCreatorNewLog(base.BaseTestCase):
         self.assertEqual(expected_log, self.instance.new_log(
             application_type=app_type,
             dimensions=dimensions,
-            payload=payload,
+            payload=msg,
             content_type='text/plain'
         ))
 

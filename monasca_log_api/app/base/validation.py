@@ -207,7 +207,7 @@ def validate_payload_size(req):
         )
 
     if payload_size >= max_size:
-        raise falcon.HTTPRequestEntityTooLarge(
+        raise falcon.HTTPPayloadTooLarge(
             title='Log payload size exceeded',
             description='Maximum allowed size is %d bytes' % max_size
         )

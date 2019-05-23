@@ -14,6 +14,7 @@
 
 import falcon
 import mock
+from six import PY3
 import ujson as json
 
 from monasca_log_api.app.base import exceptions as log_api_exceptions
@@ -28,7 +29,7 @@ ROLES = 'admin'
 
 def _init_resource(test):
     resource = logs.Logs()
-    test.api.add_route(ENDPOINT, resource)
+    test.app.add_route(ENDPOINT, resource)
     return resource
 
 
@@ -92,7 +93,7 @@ class TestApiLogsMonitoring(base.BaseApiTestCase):
         content_length = len(payload)
 
         self.simulate_request(
-            ENDPOINT,
+            path=ENDPOINT,
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
@@ -128,7 +129,7 @@ class TestApiLogsMonitoring(base.BaseApiTestCase):
         res._processor._get_dimensions = mock.Mock(side_effect=side_effects)
 
         self.simulate_request(
-            ENDPOINT,
+            path=ENDPOINT,
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
@@ -172,7 +173,7 @@ class TestApiLogsMonitoring(base.BaseApiTestCase):
         payload = json.dumps(v3_body)
         content_length = len(payload)
         self.simulate_request(
-            ENDPOINT,
+            path=ENDPOINT,
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
@@ -211,8 +212,8 @@ class TestApiLogs(base.BaseApiTestCase):
         v3_body, v3_logs = _generate_v3_payload(1)
         payload = json.dumps(v3_body)
         content_length = len(payload)
-        self.simulate_request(
-            '/logs',
+        res = self.simulate_request(
+            path='/logs',
             method='POST',
             query_string='tenant_id=1',
             headers={
@@ -222,7 +223,7 @@ class TestApiLogs(base.BaseApiTestCase):
             },
             body=payload
         )
-        self.assertEqual(falcon.HTTP_204, self.srmock.status)
+        self.assertEqual(falcon.HTTP_204, res.status)
         logs_resource._processor.send_message.assert_called_with(
             logs=v3_logs,
             global_dimensions=v3_body['dimensions'],
@@ -232,8 +233,8 @@ class TestApiLogs(base.BaseApiTestCase):
                 'BulkProcessor')
     def test_should_fail_not_delegate_ok_cross_tenant_id(self, _):
         _init_resource(self)
-        self.simulate_request(
-            '/logs',
+        res = self.simulate_request(
+            path='/logs',
             method='POST',
             query_string='tenant_id=1',
             headers={
@@ -242,7 +243,7 @@ class TestApiLogs(base.BaseApiTestCase):
                 'Content-Length': '0'
             }
         )
-        self.assertEqual(falcon.HTTP_400, self.srmock.status)
+        self.assertEqual(falcon.HTTP_400, res.status)
 
     @mock.patch('monasca_log_api.app.controller.v3.aid.bulk_processor.'
                 'BulkProcessor')
@@ -254,8 +255,8 @@ class TestApiLogs(base.BaseApiTestCase):
         v3_body, _ = _generate_v3_payload(1)
         payload = json.dumps(v3_body)
         content_length = len(payload)
-        self.simulate_request(
-            '/logs',
+        res = self.simulate_request(
+            path='/logs',
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
@@ -264,7 +265,7 @@ class TestApiLogs(base.BaseApiTestCase):
             },
             body=payload
         )
-        self.assertEqual(falcon.HTTP_204, self.srmock.status)
+        self.assertEqual(falcon.HTTP_204, res.status)
         self.assertEqual(1, bulk_processor.send_message.call_count)
 
     @mock.patch('monasca_log_api.app.controller.v3.aid.bulk_processor.'
@@ -277,8 +278,8 @@ class TestApiLogs(base.BaseApiTestCase):
         v3_body, _ = _generate_v3_payload(1)
         payload = json.dumps(v3_body)
         content_length = len(payload)
-        self.simulate_request(
-            '/logs',
+        res = self.simulate_request(
+            path='/logs',
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
@@ -287,7 +288,7 @@ class TestApiLogs(base.BaseApiTestCase):
             },
             body=payload
         )
-        self.assertEqual(falcon.HTTP_204, self.srmock.status)
+        self.assertEqual(falcon.HTTP_204, res.status)
         self.assertEqual(1, bulk_processor.send_message.call_count)
 
 
@@ -301,9 +302,9 @@ class TestUnicodeLogs(base.BaseApiTestCase):
         messages = [m['input'] for m in base.UNICODE_MESSAGES]
         v3_body, _ = _generate_v3_payload(messages=messages)
         payload = json.dumps(v3_body, ensure_ascii=False)
-        content_length = len(payload)
-        self.simulate_request(
-            '/logs',
+        content_length = len(payload.encode('utf8') if PY3 else payload)
+        res = self.simulate_request(
+            path='/logs',
             method='POST',
             headers={
                 headers.X_ROLES.name: ROLES,
@@ -312,4 +313,4 @@ class TestUnicodeLogs(base.BaseApiTestCase):
             },
             body=payload
         )
-        self.assertEqual(falcon.HTTP_204, self.srmock.status)
+        self.assertEqual(falcon.HTTP_204, res.status)

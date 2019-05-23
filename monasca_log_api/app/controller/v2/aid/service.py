@@ -15,7 +15,6 @@
 
 import datetime
 
-from monasca_common.rest import utils as rest_utils
 from oslo_config import cfg
 from oslo_log import log
 
@@ -87,7 +86,6 @@ class LogCreator(object):
         :keyword: log_object
         """
 
-        payload = rest_utils.read_body(payload, content_type)
         if not payload:
             return None
 

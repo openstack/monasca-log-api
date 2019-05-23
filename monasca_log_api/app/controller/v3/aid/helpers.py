@@ -33,9 +33,13 @@ def read_json_msg_body(req):
     :raises falcon.HTTPBadRequest:
     """
     try:
-        msg = req.stream.read()
-        json_msg = rest_utils.from_json(msg)
-        return json_msg
+        body = req.media
+
+        if body is not None:
+            return body
+        else:
+            raise falcon.HTTPBadRequest('Bad request',
+                                        'Request body is Empty')
 
     except rest_utils.exceptions.DataConversionException as ex:
         LOG.debug(ex)
