@@ -759,14 +759,6 @@ function create_log_management_accounts {
             "$MONASCA_LOG_API_URI_V3" \
             "$MONASCA_LOG_API_URI_V3"
 
-        get_or_create_service "logs_v2" "logs_v2" "Monasca Log V2.0 service"
-        get_or_create_endpoint \
-            "logs_v2" \
-            "$REGION_NAME" \
-            "$MONASCA_LOG_API_URI_V2" \
-            "$MONASCA_LOG_API_URI_V2" \
-            "$MONASCA_LOG_API_URI_V2"
-
         get_or_create_service "logs-search" "logs-search" "Monasca Log search service"
         get_or_create_endpoint \
             "logs-search" \
