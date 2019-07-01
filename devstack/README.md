@@ -16,7 +16,7 @@ To run Monasca Log Management in DevStack, do the following three steps.
 1. Clone the DevStack repo.
 
 ```
-git clone https://git.openstack.org/openstack-dev/devstack
+git clone https://opendev.org/openstack/devstack
 ```
 
 2. Add the following to the DevStack local.conf file in the root of the devstack directory. You may
@@ -52,8 +52,8 @@ MONASCA_METRICS_DB=${MONASCA_METRICS_DB:-influxdb}
 # MONASCA_METRICS_DB=${MONASCA_METRICS_DB:-vertica}
 
 # This line will enable all of Monasca.
-enable_plugin monasca-api https://git.openstack.org/openstack/monasca-api
-enable_plugin monasca-log-api https://github.com/openstack/monasca-log-api.git
+enable_plugin monasca-api https://opendev.org/openstack/monasca-api
+enable_plugin monasca-log-api https://opendev.org/openstack/monasca-log-api.git
 ```
 
 3.   Run './stack.sh' from the root of the devstack directory.
