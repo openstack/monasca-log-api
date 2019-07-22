@@ -23,8 +23,8 @@ Api
 To learn how to use Monasca-Log-Api, consult the documentation
 available online at:
 
-* `Api Guide <https://developer.openstack.org/api-guide/monitoring-log-api/>`_
-* `Api Ref <https://developer.openstack.org/api-ref/monitoring-log-api/>`_
+* `Api Guide <https://docs.openstack.org/api-guide/monitoring-log-api/>`_
+* `Api Ref <https://docs.openstack.org/api-ref/monitoring-log-api/>`_
 
 For more information on OpenStack Apis, SDKs and CLIs,
 please see:
