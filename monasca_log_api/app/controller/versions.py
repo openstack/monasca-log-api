@@ -85,7 +85,7 @@ def _get_common_links(req):
     self_uri = req.uri
     if six.PY2:
         self_uri = self_uri.decode(rest_utils.ENCODING)
-    base_uri = self_uri.replace(req.path, '')
+    base_uri = self_uri.rpartition(req.path)[0]
     return [
         {
             'rel': 'self',
@@ -106,7 +106,7 @@ def _parse_version(version_id, req):
     self_uri = req.uri
     if six.PY2:
         self_uri = self_uri.decode(rest_utils.ENCODING)
-    base_uri = self_uri.replace(req.path, '')
+    base_uri = self_uri.rpartition(req.path)[0]
 
     # need to get template dict, consecutive calls
     # needs to operate on unmodified instance
