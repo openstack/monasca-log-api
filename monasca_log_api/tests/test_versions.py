@@ -27,6 +27,7 @@ class TestApiVersions(base.BaseApiTestCase):
     def setUp(self):
         super(TestApiVersions, self).setUp()
         self.versions = versions.Versions()
+        self.app.add_route("/", self.versions)
         self.app.add_route("/version/", self.versions)
         self.app.add_route("/version/{version_id}", self.versions)
 
@@ -73,23 +74,31 @@ class TestApiVersions(base.BaseApiTestCase):
                 self.assertIn('rel', link)
                 key = link.get('rel')
                 self.assertIn(key, expected_links_keys)
+                href = link.get('href')
+                self.assertTrue(href.startswith(expected_url))
 
         expected_versions = 'v2.0', 'v3.0'
         expected_links_keys = 'self', 'version', 'healthcheck'
+        expected_protocol = 'http'
+        expected_host = 'fakehost.com'
+        expected_url = '{}://{}'.format(expected_protocol, expected_host)
 
-        res = self.simulate_request(
-            path='/version',
-            method='GET',
-            headers={
-                'Content-Type': 'application/json'
-            }
-        )
-        self.assertEqual(falcon.HTTP_200, res.status)
+        for expected_path in ['/', '/version']:
+            res = self.simulate_request(
+                path=expected_path,
+                protocol=expected_protocol,
+                host=expected_host,
+                method='GET',
+                headers={
+                    'Content-Type': 'application/json'
+                }
+            )
+            self.assertEqual(falcon.HTTP_200, res.status)
 
-        response = res.json
+            response = res.json
 
-        _check_elements()
-        _check_global_links()
+            _check_elements()
+            _check_global_links()
 
     def test_should_return_expected_version_id(self):
         expected_versions = 'v2.0', 'v3.0'
