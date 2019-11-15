@@ -50,18 +50,13 @@
         c-vol: false
         cinder: false
         horizon: false
+      devstack_localrc:
+        USE_PYTHON3: true
     irrelevant-files:
       - ^.*\.rst$
       - ^.*\.md$
       - ^doc/.*$
       - ^releasenotes/.*$
-
-- job:
-    name: monascalog-python2-tempest
-    parent: monascalog-tempest-base
-    vars:
-      devstack_localrc:
-        TEMPEST_PLUGINS: /opt/stack/monasca-tempest-plugin
 
 - job:
     name: monascalog-python3-tempest
@@ -76,19 +71,16 @@
       - check-requirements
       - openstack-cover-jobs
       - openstack-lower-constraints-jobs
-      - openstack-python-jobs
-      - openstack-python3-train-jobs
+      - openstack-python3-ussuri-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
     check:
       jobs:
-        - monascalog-python2-tempest
         - monascalog-python3-tempest
         - build-monasca-docker-image
     gate:
       queue: monasca
       jobs:
-        - monascalog-python2-tempest
         - monascalog-python3-tempest
     post:
       jobs:
