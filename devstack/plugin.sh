@@ -96,7 +96,7 @@ function init_monasca_grafana_dashboards {
     if is_service_enabled horizon; then
         echo_summary "Init Grafana dashboards"
 
-        sudo python "${PLUGIN_FILES}"/grafana/grafana.py "${PLUGIN_FILES}"/grafana/dashboards.d
+        sudo python3 "${PLUGIN_FILES}"/grafana/grafana.py "${PLUGIN_FILES}"/grafana/dashboards.d
     fi
 }
 
