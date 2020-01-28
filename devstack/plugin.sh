@@ -460,11 +460,17 @@ function start_elasticsearch {
     fi
 }
 
+function _get_kibana_version_name {
+    echo "kibana-${KIBANA_VERSION}-linux-x86_64"
+}
+
 function install_kibana {
     if is_service_enabled kibana; then
         echo_summary "Installing Kibana ${KIBANA_VERSION}"
 
-        local kibana_tarball=kibana-${KIBANA_VERSION}.tar.gz
+        local kibana_version_name
+        kibana_version_name=`_get_kibana_version_name`
+        local kibana_tarball=${kibana_version_name}.tar.gz
         local kibana_tarball_url=http://download.elastic.co/kibana/kibana/${kibana_tarball}
 
         local kibana_tarball_dest
@@ -472,8 +478,8 @@ function install_kibana {
 
         tar xzf ${kibana_tarball_dest} -C $DEST
 
-        sudo chown -R $STACK_USER $DEST/kibana-${KIBANA_VERSION}
-        ln -sf $DEST/kibana-${KIBANA_VERSION} $KIBANA_DIR
+        sudo chown -R $STACK_USER $DEST/${kibana_version_name}
+        ln -sf $DEST/${kibana_version_name} $KIBANA_DIR
     fi
 }
 
@@ -518,8 +524,10 @@ function clean_kibana {
     if is_service_enabled kibana; then
         echo_summary "Cleaning Kibana ${KIBANA_VERSION}"
 
+        local kibana_tarball
+        kibana_tarball=`_get_kibana_version_name`.tar.gz
         sudo rm -rf $KIBANA_DIR || true
-        sudo rm -rf $FILES/kibana-${KIBANA_VERSION}.tar.gz || true
+        sudo rm -rf $FILES/${kibana_tarball} || true
         sudo rm -rf $KIBANA_CFG_DIR || true
     fi
 }
@@ -681,7 +689,8 @@ function start_monasca_log_agent {
 function install_nodejs {
     if is_service_enabled kibana; then
         # refresh installation
-        apt_get install nodejs npm
+        curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
+        apt_get install nodejs
         (
             npm config set registry "http://registry.npmjs.org/"; \
             npm config set proxy "${HTTP_PROXY}"; \
@@ -693,7 +702,7 @@ function install_nodejs {
 function clean_nodejs {
     if is_service_enabled kibana; then
         echo_summary "Cleaning Node.js"
-        apt_get purge nodejs npm
+        apt_get purge nodejs
     fi
 }
 
@@ -705,10 +714,12 @@ function build_kibana_plugin {
     if is_service_enabled kibana; then
         echo "Building Kibana plugin"
 
-        git_clone $MONASCA_KIBANA_PLUGIN_REPO $MONASCA_KIBANA_PLUGIN_DIR \
+        git_clone $MONASCA_KIBANA_PLUGIN_REPO \
+            $MONASCA_KIBANA_PLUGIN_DIR \
             $MONASCA_KIBANA_PLUGIN_BRANCH
 
         pushd $MONASCA_KIBANA_PLUGIN_DIR
+        git_update_branch $MONASCA_KIBANA_PLUGIN_BRANCH
 
         local monasca_kibana_plugin_version
         monasca_kibana_plugin_version="$(python -c 'import json; \
@@ -790,6 +801,10 @@ function enable_log_management {
     fi
 }
 
+function configure_tempest_for_monasca {
+    iniset $TEMPEST_CONFIG monitoring kibana_version $KIBANA_VERSION
+}
+
 # check for service enabled
 if is_service_enabled monasca-log; then
 
@@ -802,6 +817,12 @@ if is_service_enabled monasca-log; then
         # Perform installation of service source
         echo_summary "Installing Monasca Log Management"
         install_monasca_log
+
+    elif [[ "$1" == "stack" && "$2" == "test-config" ]]; then
+        if is_service_enabled tempest; then
+            echo_summary "Configuring Tempest for Monasca"
+            configure_tempest_for_monasca
+        fi
 
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         # Configure after the other layer 1 and 2 services have been configured

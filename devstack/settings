@@ -15,6 +15,12 @@
 # limitations under the License.
 #
 
+# --- WARNING ---
+# monasca-log-api DevStack plugin has been deprecated in Ussuri
+# the code has been merged into monasca-api DevStack plugin
+# the settings here apply only to stable/train and older branches
+# please use settings in monasca-api for newer releases
+
 # services
 enable_service zookeeper              # devstack/monasca-api/zookeeper
 enable_service kibana                 # devstack/monasca-api/kafka
@@ -27,7 +33,7 @@ enable_service monasca-log-metrics
 enable_service monasca-log-agent
 
 # libraries/frameworks/projects monasca-log requires to install itself
-KIBANA_VERSION=${KIBANA_VERSION:-4.6.3-linux-x86_64}
+KIBANA_VERSION=${KIBANA_VERSION:-4.6.3}
 LOGSTASH_VERSION=${LOGSTASH_VERSION:-2.4.1}
 ELASTICSEARCH_VERSION=${ELASTICSEARCH_VERSION:-2.4.6}
 LOGSTASH_OUTPUT_MONASCA_VERSION=${LOGSTASH_OUTPUT_MONASCA_VERSION:-1.0.4}
