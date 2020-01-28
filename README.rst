@@ -10,6 +10,12 @@ Team and repository tags
 OpenStack Monasca-Log-Api
 =========================
 
+.. important::
+
+   This API is deprecated. Last maintained release is OpenStack Train.
+   Please use `Monasca API <https://docs.openstack.org/monasca-api/latest/>`_
+   for newer versions. This repository is kept only for maintenance purposes.
+
 OpenStack Monasca-Log-Api provides RESTful Api to collect logs
 from the OpenStack cloud.
 

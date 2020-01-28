@@ -27,6 +27,8 @@ from monasca_log_api.monitoring import metrics
 
 CONF = conf.CONF
 LOG = log.getLogger(__name__)
+_LOG_API_DEPRECATED = ('This API has been deprecated. Please use '
+                       'monasca-api/logs')
 
 
 class Logs(logs_api.LogsApi):
@@ -49,6 +51,7 @@ class Logs(logs_api.LogsApi):
         else:
             self._processor = bulk_processor.BulkProcessor()
 
+    @falcon.deprecated(_LOG_API_DEPRECATED)
     def on_post(self, req, res):
         validation.validate_authorization(req, ['log_api:logs:post'])
         if CONF.monitoring.enable:
