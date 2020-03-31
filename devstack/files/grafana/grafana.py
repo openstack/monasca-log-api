@@ -59,6 +59,7 @@ def retry(retries=5, delay=2.0, exc_types=(RequestException,)):
         return f_retry
     return decorator
 
+
 def create_login_payload():
     if os.environ.get('GRAFANA_USERS'):
         try:
@@ -71,12 +72,14 @@ def create_login_payload():
         grafana_users = GRAFANA_USERS
     return grafana_users
 
+
 @retry(retries=24, delay=5.0)
 def login(session, user):
     r = session.post('{url}/login'.format(url=GRAFANA_URL),
                      json=user,
                      timeout=5)
     r.raise_for_status()
+
 
 def create_dashboard_payload(json_path):
     with open(json_path, 'r') as f:
@@ -87,6 +90,7 @@ def create_dashboard_payload(json_path):
             'dashboard': dashboard,
             'overwrite': True
         }
+
 
 def main():
     for user in create_login_payload():
