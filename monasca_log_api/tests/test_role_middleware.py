@@ -12,7 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import mock
+from unittest import mock
+
 from webob import response
 
 from monasca_log_api.middleware import role_middleware as rm

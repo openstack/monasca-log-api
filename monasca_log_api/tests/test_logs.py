@@ -13,9 +13,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import falcon
-import mock
 import simplejson as json
+from unittest import mock
+
+import falcon
 
 from monasca_log_api.app.base import exceptions as log_api_exceptions
 from monasca_log_api.app.controller.api import headers

@@ -18,8 +18,8 @@ import datetime
 import random
 import simplejson as json
 import unittest
+from unittest import mock
 
-import mock
 from oslo_config import cfg
 from oslo_log import log
 import six

@@ -12,8 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import mock
 import simplejson as json
+from unittest import mock
 
 from monasca_log_api.app.controller.api import headers
 from monasca_log_api.app.controller.v2 import logs as v2_logs

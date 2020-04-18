@@ -19,11 +19,11 @@ import codecs
 import os
 import random
 import string
+from unittest import mock
 
 import falcon
 from falcon import testing
 import fixtures
-import mock
 from monasca_common.policy import policy_engine as policy
 from oslo_config import fixture as oo_cfg
 from oslo_context import fixture as oo_ctx

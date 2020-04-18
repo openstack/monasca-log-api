@@ -13,7 +13,7 @@
 # under the License.
 
 import falcon
-import mock
+from unittest import mock
 
 from monasca_log_api.app.controller import healthchecks
 from monasca_log_api.healthcheck import kafka_check as healthcheck

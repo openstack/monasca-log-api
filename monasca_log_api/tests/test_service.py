@@ -15,10 +15,10 @@
 
 import datetime
 import unittest
+from unittest import mock
 
 from falcon import errors
 from falcon import testing
-import mock
 
 from monasca_log_api.app.base import exceptions
 from monasca_log_api.app.base import validation

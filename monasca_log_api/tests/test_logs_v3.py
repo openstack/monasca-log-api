@@ -13,8 +13,9 @@
 # under the License.
 
 import falcon
-import mock
 import simplejson as json
+from unittest import mock
+
 from six import PY3
 
 from monasca_log_api.app.base import exceptions as log_api_exceptions
