@@ -62,6 +62,15 @@ ELASTICSEARCH_CFG_DIR=$ELASTICSEARCH_DIR/config
 ELASTICSEARCH_LOG_DIR=$LOGDIR/elasticsearch
 ELASTICSEARCH_DATA_DIR=$DATA_DIR/elasticsearch
 
+# Settings needed for Elasticsearch
+# Elasticsearch uses a lot of file descriptors or file handles.
+# Increase the limit on the number of open files descriptors for the user running Elasticsearch to 65,536 or higher.
+LIMIT_NOFILE=${LIMIT_NOFILE:-65535}
+# Elasticsearch uses a mmapfs directory by default to store its indices.
+# The default operating system limits on mmap counts is likely to be too low,
+# which may result in out of memory exceptions, increase to at least 262144.
+VM_MAX_MAP_COUNT=${VM_MAX_MAP_COUNT:-262144}
+
 KIBANA_DIR=$DEST/kibana
 KIBANA_CFG_DIR=$KIBANA_DIR/config
 

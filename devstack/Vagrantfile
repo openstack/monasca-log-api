@@ -54,7 +54,7 @@ Vagrant.configure(2) do |config|
       sudo cp ./maven_proxy_settings.xml /root/.m2/settings.xml
     fi
 
-    git clone https://opendev.org/openstack/devstack --branch master --depth 1
+    git clone https://opendev.org/openstack/devstack --branch stable/train --depth 1
     cd devstack
     echo '[[local|localrc]]
 
