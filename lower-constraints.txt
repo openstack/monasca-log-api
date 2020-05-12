@@ -74,7 +74,7 @@ requests==2.14.2
 requestsexceptions==1.2.0
 restructuredtext-lint==1.1.1
 rfc3986==0.3.1
-simplejson==3.5.1
+simplejson==3.8.1
 six==1.10.0
 smmap==0.9.0
 snowballstemmer==1.2.1
@@ -86,7 +86,6 @@ stevedore==1.20.0
 tabulate==0.8.1
 testtools==2.2.0
 traceback2==1.4.0
-ujson==1.35
 unittest2==1.1.0
 WebOb==1.7.1
 wrapt==1.7.0

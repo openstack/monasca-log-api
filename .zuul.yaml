@@ -61,6 +61,7 @@
 - job:
     name: monascalog-python3-tempest
     parent: monascalog-tempest-base
+    voting: false
     vars:
       devstack_localrc:
         USE_PYTHON3: true

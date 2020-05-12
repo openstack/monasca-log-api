@@ -16,7 +16,7 @@
 # under the License.
 
 import falcon
-from monasca_common.rest import utils as rest_utils
+from monasca_log_api.common.rest import utils as rest_utils
 from oslo_log import log
 
 from monasca_log_api.app.base import exceptions

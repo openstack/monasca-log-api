@@ -16,3 +16,4 @@ PasteDeploy>=1.5.0 # MIT
 monasca-common>=2.7.0 # Apache-2.0
 eventlet!=0.18.3,!=0.20.1,!=0.21.0,>=0.18.2  # MIT
 monasca-statsd>=1.1.0 # Apache-2.0
+simplejson>=3.8.1 # MIT

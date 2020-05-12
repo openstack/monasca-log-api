@@ -14,8 +14,8 @@
 
 import falcon
 import mock
+import simplejson as json
 from six import PY3
-import ujson as json
 
 from monasca_log_api.app.base import exceptions as log_api_exceptions
 from monasca_log_api.app.controller.api import headers

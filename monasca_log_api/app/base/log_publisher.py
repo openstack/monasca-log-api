@@ -17,7 +17,7 @@ import time
 
 import falcon
 from monasca_common.kafka import producer
-from monasca_common.rest import utils as rest_utils
+from monasca_log_api.common.rest import utils as rest_utils
 from oslo_log import log
 from oslo_utils import encodeutils
 

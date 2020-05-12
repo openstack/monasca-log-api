@@ -16,7 +16,7 @@
 import falcon
 import six
 
-from monasca_common.rest import utils as rest_utils
+from monasca_log_api.common.rest import utils as rest_utils
 
 from monasca_log_api.app.base.validation import validate_authorization
 from monasca_log_api.app.controller.api import versions_api

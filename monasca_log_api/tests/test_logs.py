@@ -15,7 +15,7 @@
 
 import falcon
 import mock
-import ujson
+import simplejson as json
 
 from monasca_log_api.app.base import exceptions as log_api_exceptions
 from monasca_log_api.app.controller.api import headers
@@ -154,7 +154,7 @@ class TestApiLogs(base.BaseApiTestCase):
         self.assertEqual(1, log_creator.new_log.call_count)
         self.assertEqual(1, log_creator.new_log_envelope.call_count)
 
-    @mock.patch('monasca_common.rest.utils')
+    @mock.patch('monasca_log_api.common.rest.utils')
     @mock.patch('monasca_log_api.app.base.log_publisher.LogPublisher')
     def test_should_fail_empty_dimensions_delegate(self, _, rest_utils):
         _init_resource(self)
@@ -195,7 +195,7 @@ class TestApiLogs(base.BaseApiTestCase):
         _init_resource(self)
 
         max_log_size = 1000
-        body = ujson.dumps({
+        body = json.dumps({
             'message': 't' * (max_log_size - 100)
         })
 

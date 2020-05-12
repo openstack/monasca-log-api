@@ -13,7 +13,7 @@
 # under the License.
 
 import mock
-import ujson as json
+import simplejson as json
 
 from monasca_log_api.app.controller.api import headers
 from monasca_log_api.app.controller.v2 import logs as v2_logs

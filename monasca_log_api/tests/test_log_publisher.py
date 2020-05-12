@@ -16,7 +16,7 @@
 import copy
 import datetime
 import random
-import ujson
+import simplejson as json
 import unittest
 
 import mock
@@ -131,7 +131,7 @@ class TestSendMessage(base.BaseTestCase):
 
         instance._kafka_publisher.publish.assert_called_once_with(
             cfg.CONF.log_publisher.topics[0],
-            [ujson.dumps(msg, ensure_ascii=False).encode('utf-8')])
+            [json.dumps(msg, ensure_ascii=False).encode('utf-8')])
 
     @mock.patch('monasca_log_api.app.base.log_publisher.producer'
                 '.KafkaProducer')
@@ -166,7 +166,7 @@ class TestSendMessage(base.BaseTestCase):
             }
         )
         msg['creation_time'] = creation_time
-        json_msg = ujson.dumps(msg, ensure_ascii=False)
+        json_msg = json.dumps(msg, ensure_ascii=False)
 
         instance.send_message(msg)
 
@@ -201,7 +201,7 @@ class TestSendMessage(base.BaseTestCase):
                 )
                 instance.send_message(envelope)
 
-                expected_message = ujson.dumps(envelope, ensure_ascii=False)
+                expected_message = json.dumps(envelope, ensure_ascii=False)
 
                 if six.PY3:
                     expected_message = expected_message.encode('utf-8')
@@ -219,7 +219,7 @@ class TestSendMessage(base.BaseTestCase):
     'monasca_log_api.app.base.log_publisher.producer'
     '.KafkaProducer')
 class TestTruncation(base.BaseTestCase):
-    EXTRA_CHARS_SIZE = len(bytearray(ujson.dumps({
+    EXTRA_CHARS_SIZE = len(bytearray(json.dumps({
         'log': {
             'message': None
         }
@@ -276,7 +276,7 @@ class TestTruncation(base.BaseTestCase):
         envelope_copy = copy.deepcopy(envelope)
         json_envelope = instance._truncate(envelope_copy)
 
-        parsed_envelope = ujson.loads(json_envelope)
+        parsed_envelope = json.loads(json_envelope)
 
         parsed_log_message = parsed_envelope['log']['message']
         parsed_log_message_len = len(parsed_log_message)
