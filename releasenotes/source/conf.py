@@ -37,10 +37,11 @@ source_encoding = 'utf-8'
 master_doc = 'index'
 
 # General information about the project.
-repository_name = u'openstack/monasca-log-api'
+openstackdocs_repo_name = u'openstack/monasca-log-api'
+openstackdocs_auto_name = False
 project = u'Monasca Log Release Notes'
-bug_project = u'monasca-log-api'
-bug_tag = u'releasenotes'
+openstackdocs_bug_project = u'monasca-log-api'
+openstackdocs_bug_tag = u'releasenotes'
 copyright = u'2014, OpenStack Foundation'
 
 # Release notes do not need a version number in the title, they
@@ -78,7 +79,7 @@ exclude_patterns = []
 # show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'native'
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -126,10 +127,6 @@ html_theme = 'openstackdocs'
 # .htaccess) here, relative to this directory. These files are copied
 # directly to the root of the documentation.
 # html_extra_path = []
-
-# If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
-# using the given strftime format.
-html_last_updated_fmt = '%Y-%m-%d %H:%M'
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.

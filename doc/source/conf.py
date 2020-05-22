@@ -15,8 +15,6 @@
 import os
 import sys
 
-from monasca_log_api.version import version_info
-
 sys.path = [
     os.path.abspath('../..'),
     os.path.abspath('../../bin')
@@ -43,12 +41,11 @@ extensions = [
 ]
 
 # geeneral information about project
-repository_name = u'openstack/monasca-log-api'
+openstackdocs_repo_name = u'openstack/monasca-log-api'
+openstackdocs_auto_name = False
 project = u'Monasca Log Dev Docs'
-version = version_info.version_string()
-release = version_info.release_string()
-bug_project = u'monasca-log-api'
-bug_tag = u'doc'
+openstackdocs_bug_project = u'monasca-log-api'
+openstackdocs_bug_tag = u'doc'
 copyright = u'2014-present, OpenStack Foundation'
 author = u'OpenStack Foundation'
 
@@ -96,7 +93,7 @@ add_module_names = True
 show_authors = True
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'native'
 
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['monasca_log_api.', 'monasca']
@@ -140,10 +137,6 @@ html_static_path = ['_static']
 # .htaccess) here, relative to this directory. These files are copied
 # directly to the root of the documentation.
 # html_extra_path = []
-
-# If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
-# using the given strftime format.
-html_last_updated_fmt = '%Y-%m-%d %H:%M'
 
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
