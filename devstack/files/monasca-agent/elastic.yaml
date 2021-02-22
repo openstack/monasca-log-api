@@ -1,3 +1,0 @@
-init_config:
-instances:
--   url: http://{{IP}}:9200

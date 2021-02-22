@@ -1,6 +1,0 @@
----
-deprecations:
-  - |
-    This API is deprecated. Last maintained release is OpenStack Train.
-    Please use monasca-api for newer versions. This repository is kept only
-    for maintenance purposes.
