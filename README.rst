@@ -14,4 +14,4 @@ for newer versions. This repository is kept only for maintenance purposes.
 
 For any further questions, please email
 openstack-discuss@lists.openstack.org or join #openstack-monasca on
-Freenode.
+OFTC.
